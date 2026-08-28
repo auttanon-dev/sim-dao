@@ -1,0 +1,1007 @@
+# -*- coding: utf-8 -*-
+"""กฎของโลกทั้งหมด — แก้ที่นี่ที่เดียว"""
+
+# ---------------------------------------------------------------- ขั้นและโลก
+REALMS = ["ปุถุชน", "ตื่นชี่", "หลอมกระดูก", "เปิดทวาร", "ก่อธาตุ",
+          "รวมแกนธาตุ", "ทารกธรรม", "แปรวิญญาณ", "อาศัยฟ้า", "ล่วงพ้นวิถี"]
+REALM_CAP = len(REALMS) - 1          # ตันขั้นนี้ในโลกหนึ่งๆ แล้วต้องข้ามฟ้า
+
+# ข้ามฟ้าแล้วชื่อขั้นไต่สูงขึ้นเรื่อยๆ ไม่ย้อนกลับไปเรียกปุถุชนอีก
+REALM_PREFIX = ["", "เซียน", "เทพ"]
+REALM_RANKS = ["แรกเริ่ม", "สถิต", "หยก", "ทอง", "ธรรม", "อมตะ",
+               "ราชา", "จักรพรรดิ", "บรรพกาล", "ล่วงพ้น"]
+MARA_RANKS = ["มารฝึกหัด", "แม่ทัพมารภพ", "ราชามารปฐพี",
+              "มารเซียนลี้ลับ", "ราชันมารราตรี", "จอมมารเต๋าทมิฬ",
+              "มหาเทพมารดาราร่วง", "มารโกลาหลดับสูญ", "จอมมารบรรพกาลไร้ลักษณ์"]
+
+# ---------------------------------------------------------------- อสูร
+BEAST_RANKS = ["อสูรแรกกำเนิด", "อสูรวิญญาณ", "อสูรมายา",
+               "อสูรนภา", "ราชันย์อสูร", "จักรพรรดิอสูร",
+               "อสูรบรรพกาล", "อสูรศักดิ์สิทธิ์", "อสูรเทวะต้นกำเนิด"]
+UNIQUE_BEAST_CHANCE = 0.05           # โอกาสที่อสูรจะเป็นตัวยูนีค
+UNIQUE_BEAST_TITLES = ["เพลิงคลั่ง", "เงาทมิฬ", "กลายพันธุ์", "สายฟ้าคลั่ง", "โลหิตเดือด", "เกล็ดน้ำแข็ง", "กลืนสวรรค์"]
+
+
+def realm_name(tier: int, realm: int) -> str:
+    realm = max(0, min(realm, REALM_CAP))
+    if tier <= 0:
+        return REALMS[realm]
+    pre = REALM_PREFIX[min(tier, len(REALM_PREFIX) - 1)]
+    return pre + REALM_RANKS[realm]
+LIFESPAN = [100, 120, 150, 200, 300, 500, 1000, 3000, 5000, 10000]
+
+REALM_STEP = 3.0
+TIER_STEP = REALM_STEP * REALM_CAP   # ขั้นสูงสุดของโลกล่าง = ขั้นต่ำสุดของโลกบน
+TEMP = 1.0
+INSIGHT_W = 0.35
+DECAY_W = 0.60
+
+TIER_NAMES = ["โลกมนุษย์", "แดนเซียน", "สวรรค์นอกชั้นฟ้า"]
+MARA_WORLD_NAME = "แดนมาร"
+CHAOS_WORLD_NAME = "ห้วงโกลาหล"
+
+# โลกบนพลังบริสุทธิ์กว่า -> เกณฑ์สะสมลดลง แต่อันตรายขึ้น
+PURITY_PER_TIER = 0.12               # ลดเกณฑ์สะสม 12% ต่อระดับโลก
+DANGER_PER_TIER = 0.15               # เกณฑ์ตายต่ำลง 15% ต่อระดับโลก
+
+# โลกต่ำหล่อเลี้ยงคนที่เกินขั้นไม่ได้
+SUPPORTED_REALM = 7                  # อยู่โลกที่ต่ำกว่าตัวเอง เกินขั้นนี้จะร่อยหรอ
+OVERPOWER_DRAIN = 0.06               # ความเสื่อมที่เพิ่มต่อปี ต่อขั้นที่เกิน
+
+# ---------------------------------------------------------------- สายเลือด
+BLOODS = ["human", "spirit", "demon", "mara", "chaos"]
+BLOOD_TH = {"human": "มนุษย์", "spirit": "วิญญาณ", "demon": "อสูร", "mara": "มาร", "chaos": "โกลาหล"}
+PURITY_EXP = 1.4                     # ยิ่งผสม แต่ละทางยิ่งทำงานได้ไม่เต็ม
+SPIRIT_BASE_W = 4.0                  # สายเลือดวิญญาณให้พลังตั้งต้น
+DEMON_BASE_W = 2.0
+MARA_BASE_W = 2.5                    # ส่วนมารให้พลัง แต่ผูกกับจิตมาร
+BLOOD_DILUTE = 0.12                  # สายเลือดวิญญาณเจือจางต่อรุ่น -> กลายเป็นอสูร
+
+# ---------------------------------------------------------------- วิถี
+DAO_POOL = {
+    "วิถีดาบ": ["ต่อสู้", "ตัดสินใจ", "เลือด"],
+    "วิถียา": ["รักษา", "ต้นไม้", "ความตาย"],
+    "วิถีค้าขาย": ["แลกเปลี่ยน", "เดินทาง", "คน"],
+    "วิถีคำสัตย์": ["สัญญา", "คน", "ทรยศ"],
+    "วิถีเปลวไฟ": ["ทำลาย", "ต่อสู้", "หลอมรวม"],
+    "วิถีสายน้ำ": ["ไหลผ่าน", "เดินทาง", "อดทน"],
+    "วิถีความว่าง": ["สูญเสีย", "อดทน", "ความตาย"],
+    "วิถีเหล็ก": ["หลอมรวม", "ทำลาย", "อดทน"],
+    "วิถีพเนจร": ["เดินทาง", "คน", "สูญเสีย"],
+    "วิถีเลือด": ["เลือด", "ทรยศ", "ทำลาย"],
+}
+
+# ---------------------------------------------------------------- เลื่อนขั้น
+NEED_BASE = 6.0
+NEED_PER_REALM = 3.0
+BREAK_BASE_P = 0.55                  # โอกาสผ่านด่านพลังเมื่อสะสมพอดีเป๊ะ
+SURPLUS_BONUS = 0.12                 # สะสมเกินเกณฑ์ทุก 1 หน่วย เพิ่มโอกาสเท่านี้
+DECAY_PENALTY = 0.10                 # ความเสื่อมค้างในตัว ลดโอกาสต่อหน่วย
+FAIL_LOSS = 0.5                      # ล้มเหลว เสียการสะสมไปกี่ส่วน
+BACKLASH_DECAY = 1.2                 # ธาตุไฟเข้าแทรก ความเสื่อมพุ่ง
+
+# ---------------------------------------------------------------- จิตมาร
+INNER_NONE_P = 0.05                  # โอกาสเกิดมาไร้จิตมาร
+INNER_ART_P = 0.08                   # โอกาสเป็นสายฝึกจิตมารเป็นวิชา
+INNER_PER_REALM = 0.8                # ด่านจิตมารแข็งขึ้นตามขั้น
+DEBT_WEIGHT = {"ทรยศ": 2.0, "ฆ่า": 1.5, "ผิดสัญญา": 1.2, "ทอดทิ้ง": 1.0}
+INNER_TRIAL_W = 0.9                  # น้ำหนักจิตมารในด่าน
+INNER_FALL_MARA = 0.15               # พ่ายด่านจิตมาร -> ส่วนมารพุ่งเท่านี้
+INNER_ART_BONUS = 0.5                # สายวิชาจิตมาร เอาจิตมารมาเป็นพลัง
+INNER_ART_RISK = 1.6                 # แลกกับด่านที่โหดขึ้น
+
+# ---------------------------------------------------------------- ความเสื่อม
+DECAY_PER_YEAR = 0.020
+DECAY_PER_REALM_MULT = 0.12
+DECAY_PER_FIGHT = 0.25
+REGRESS_AT = 3.5
+CULTIVATE_HEAL = 0.9
+
+# ---------------------------------------------------------------- ชะตา/ตาย
+FATE_MIN, FATE_MAX = 0, 3
+DEATH_MARGIN = 1.6
+DUEL_LETHAL_MULT = 1.7
+
+# ---------------------------------------------------------------- บัญชีพลังฟ้า
+HEAVEN_CAP = 70000.0                  # ระดับพลังฟ้าดินของโลกชั้นล่างสุด
+HEAVEN_CAP_PER_TIER = 2.4           # โลกชั้นสูงพลังฟ้าดินเยอะกว่า (ดึงดูดคนขึ้นไป)
+HEAVEN_POP_LIMIT = 120              # ประชากรขีดสุดของแดนเซียนก่อนประตูปิดกั้น
+BREAK_COST = 2.0                     # ใช้พลังฟ้าดิน = BREAK_COST * (ขั้น)^2
+LIFE_INFLOW = 0.020                  # เกิด/ตาย/ปี: ชดเชยพลังฟ้าดิน (ปุถุชน)
+NATURAL_RETURN = 1.00                # หมดอายุขัย คืนพลังฟ้าดิน
+KILLED_RETURN = 0.25                 # ถูกฆ่าตาย คืนพลังฟ้าดิน
+DECLINE_RATIO = 0.25                 # พลังฟ้าดินน้อยกว่า = ยุคเสื่อม
+FLOURISH_RATIO = 0.70                # พลังฟ้าดินมากกว่า = ยุครุ่งเรือง
+RECOVER_RATIO = 0.97                 # คลังเต็มยาวนาน โลกไต่ระดับกลับขึ้นได้ (วัฏจักร)
+RECOVER_P = 0.02
+COLLAPSE_RATIO = 0.04                # ต่ำกว่านี้ = โลกตกระดับ
+ERA_PUSHDOWN = 1
+ERA_CULL_P = 0.30
+
+# ---------------------------------------------------------------- ข้ามฟ้า
+ASCEND_MIN_REALM = 7                 # ถึงขั้นนี้จึงลองข้ามฟ้าได้
+ASCEND_P = 0.45                      # ด่านข้ามฟ้า ตายได้จริง
+ASCEND_RESET_REALM = 0               # ขึ้นไปแล้วเริ่มจากต่ำสุดของโลกใหม่
+
+# ---------------------------------------------------------------- ของและแดนลับ
+ITEM_KINDS = ["ยาวิเศษ", "อาวุธวิเศษ", "สมบัติฟ้าดิน", "อาวุธค่ายกล"]
+
+ARRAY_WEAPON_KINDS = ["ธงค่ายกล", "คัมภีร์เหล็กจารึก", "พู่กันกระดูกอสูร", "หมุดตรึงทิศ"]
+MATERIAL_KINDS = [
+    "ศิลาปราณห้าธาตุ", "โลหิตอสูรกลั่น", "แร่เหล็กทมิฬ", "ไหมแมงมุมวิญญาณ", 
+    "แร่ออริคัลคัม", "ผงมุกดารา", "กระดูกแกนกลางสัตว์อสูร", "ขนของสัตว์อสูรธาตุลม", 
+    "แร่เงินบริสุทธิ์", "แก่นหินใต้โลก"
+]
+
+ARRAY_TYPES = {
+    "ค่ายกลดินเหนี่ยวรั้ง": {"cost": {"ศิลาปราณห้าธาตุ": 2}, "type": "CC"},
+    "ค่ายกลกระจกสลับทิศ": {"cost": {"ศิลาปราณห้าธาตุ": 3}, "type": "CC"},
+    "ค่ายกลเพลิงผลาญวิญญาณ": {"cost": {"ศิลาปราณห้าธาตุ": 4, "โลหิตอสูรกลั่น": 1}, "type": "DPS"},
+    "ค่ายกลหมื่นกระบี่ทะลวงฟ้า": {"cost": {"ศิลาปราณห้าธาตุ": 5}, "type": "DPS"},
+    "ค่ายกลรวมปราณฟ้าดิน": {"cost": {"ศิลาปราณห้าธาตุ": 2}, "type": "Buff"},
+    "ค่ายกลม่านกลืนแสง": {"cost": {"ศิลาปราณห้าธาตุ": 3}, "type": "Stealth"}
+}
+CORE_PER_HUNT = (1, 3)               # แก่นพลังที่ได้ต่อการล่าหนึ่งครั้ง
+CRAFT_CORE_COST = 3
+CRAFT_GAIN = 0.6                     # ฝีมือหลอมที่ได้ต่อครั้ง
+PILL_BREAK_BONUS = 0.18              # ยาวิเศษหนึ่งเม็ด เพิ่มโอกาสข้ามขั้น
+TREASURE_POWER = 0.8
+ITEM_WEAR = 0.05                     # ของเสื่อมต่อการใช้/ต่อสิบปี
+SEAL_BASE = 300.0                    # ความแรงผนึกตั้งต้นของแดนลับ (ปี)
+SEAL_DECAY_PER_YEAR = 1.0
+CACHE_MIN_REALM = 5                  # ขั้นเท่านี้ขึ้นไปตายหรือซ่อนตัวจึงเกิดแดนลับ
+CACHE_TRAP_P = 0.22                  # โอกาสที่แดนลับเป็นกับดักแกล้งตาย
+CACHE_ROT = 0.6                      # ของในแดนลับผุไปกี่ส่วนเมื่อผนึกเสื่อมหมด
+
+# ---------------------------------------------------------------- องค์กร
+ORG_KINDS = ["สำนัก", "ตระกูล", "องค์กร"]
+ORG_FOUND_REALM = 4
+ORG_FOUND_REALM_MARA = 2             # คนนอกคอกต้องรวมกลุ่มเพื่อเอาตัวรอด เกณฑ์จึงต่ำกว่า
+ORG_FOUND_P_MARA = 0.55
+ORG_FOUND_P = 0.30
+ORG_JOIN_P = 0.35
+SPY_P = 0.12                         # โอกาสที่สมาชิกคนหนึ่งเป็นไส้ศึก
+ORG_AVENGE_P = 0.55                  # ฆ่าสมาชิกเขาแล้วโดนตามล้าง
+GRUDGE_PER_KILL = 3
+
+# ---------------------------------------------------------------- มาร
+MARA_HATE_BLOOD = 0.25               # เลือดมารเกินนี้ + เป็นมนุษย์ = ถูกรังเกียจ
+MARA_HUNT_P = 0.14                   # โอกาสถูกไล่ล่าเพราะเป็นมนุษย์มาร
+MARA_RAID_P = 0.05
+
+# ---------------------------------------------------------------- เผ่าโกลาหล
+# ศัตรูร่วมของทุกคนที่ขึ้นถึงสวรรค์นอกชั้นฟ้า — ทำลายทุกอย่างให้กลับเป็นความโกลาหลก่อนกำเนิดจักรวาล
+CHAOS_TIER = 2                       # อยู่ข้างๆ สวรรค์นอกชั้นฟ้า
+CHAOS_POP = 18
+CHAOS_EDGE = 1.1                     # เก่งกว่าผู้บำเพ็ญขั้นสูงสุด "เล็กน้อย" เพราะมนุษย์แพ้ทาง
+CHAOS_LORD_BONUS = 6.0               # เจ้าโกลาหล มีคนเดียว
+CHAOS_RAID_P = 0.06
+# ลงมาโลกมนุษย์ผ่านรูหนอนบิดเบี้ยวมิติมืด — ไม่ผ่านแดนเซียน
+CHAOS_INVADE_P = 0.012
+RIFT_GROWTH = 1.0                    # ทำลายสำเร็จ รอยแยกกว้างขึ้น ดึงขุนพลระดับสูงลงมา
+RIFT_RANK_PER = 4.0
+RIFT_HEAL_PER_YEAR = 0.05            # ฟ้าดินสมานรอยแยกเองช้าๆ                  # รอยแยกกว้างเท่านี้ ปลดล็อกโกลาหลขั้นสูงขึ้นหนึ่งขั้น
+RUIN_YEARS = 80
+# เผ่าโกลาหลลงมาโลกล่างก็ถูกกฎฟิสิกส์กดเหมือนกัน — ไม่มีใครได้ยกเว้น
+CHAOS_DESCEND_PUSH = 2               # ถูกกดกี่ขั้นเมื่อลงมาอยู่โลกที่ต่ำกว่าถิ่นตัวเอง                     # สถานที่ที่ถูกทำลาย ใช้เวลาฟื้นเท่านี้
+# เจ้าโกลาหลไม่มีวันตาย — แค่หายไปจนพลังฟื้น แล้วกลับมาแข็งแกร่งขึ้น
+LORD_RETURN_DAYS = (2000, 12000)
+LORD_GROWTH = 1.5                    # กลับมาแต่ละครั้งแข็งขึ้นเท่านี้
+CHAOS_THRALL_P = 0.30                # โอกาสที่การบุกจะจบด้วยการทำให้ตกเป็นพวกมัน
+CHAOS_RANKS = ["มารร้ายโกลาหล", "อสูรกลืนมิติ", "ขุนพลบิดเบี้ยว",
+               "ราชาผู้ดับแสง", "จักรพรรดิอนันตลี้", "เจตจำนงกลืนกินฟ้า"]
+
+# ---------------------------------------------------------------- วิชา
+LEARN_BASE_P = 0.55                  # โอกาสฝึกวิชาสำเร็จ
+LEARN_BACKFIRE = 1.0                 # ฝึกพลาด ความเสื่อมพุ่ง                   # โอกาสเกิดการบุกต่อเหตุการณ์ในโลกมนุษย์
+MARA_CONVERT_P = 0.35                # จับไปแล้วเปลี่ยนเป็นมาร (ที่เหลือคือกิน)
+
+# ---------------------------------------------------------------- ประชากร
+CAST_SIZE = 150                      # จำนวนประชากรสูงสุดต่อโลก
+REPOP_RATE = 0.10
+
+# --- TRIBES ---
+TRIBES = [
+    ("ชาวตงหยวน", 0.70),
+    ("เผ่าเหมียว", 0.05),
+    ("เผ่าเร่ร่อน", 0.10),
+    ("เผ่าทิเบต", 0.05),
+    ("เผ่าคนป่า", 0.05),
+    ("ชาวอุยกูร์", 0.05)
+]
+
+# --- PROFESSIONS ---
+PROFESSIONS = [
+    # สายบู๊ (15%)
+    ("เจ้าสำนัก", 0.01), ("ศิษย์เอก", 0.03), ("ศิษย์ฝ่ายนอก", 0.05), ("จอมยุทธพเนจร", 0.02), ("นักคุ้มกันภัย", 0.01), ("นักฆ่า", 0.01), ("โจรป่า", 0.01), ("ผู้คุมกฎ", 0.01),
+    # สายสนับสนุน (10%)
+    ("หมอยา", 0.02), ("นักปรุงโอสถ", 0.01), ("ช่างตีเหล็ก", 0.02), ("นักสร้างค่ายกล", 0.01), ("หมอดู", 0.02), ("คนเลี้ยงสัตว์อสูร", 0.02),
+    # สายข้อมูล/การค้า (15%)
+    ("เสี่ยวเอ้อ", 0.05), ("เถ้าแก่", 0.02), ("สายลับ", 0.01), ("พ่อค้าเร่", 0.05), ("นักประมูล", 0.02),
+    # สายราชการ/ทหาร (20%)
+    ("ท่านอ๋อง", 0.01), ("มือปราบ", 0.03), ("องครักษ์เสื้อแพร", 0.01), ("องครักษ์หลวง", 0.01), ("ทหารรักษาพระนคร", 0.02), ("แม่ทัพใหญ่", 0.01), ("ทหารม้าเหล็ก", 0.02), ("ทหารลาดตระเวน", 0.03), ("ทหารยาม", 0.03), ("ทหารกองปราบ", 0.03),
+    # สายนักบวช/นักพรต (5%)
+    ("นักบวช", 0.025), ("นักพรต", 0.025),
+    # ชาวบ้านทั่วไป (35%)
+    ("บัณฑิต", 0.05), ("หลงจู๊", 0.02), ("คนแจวเรือ", 0.03), ("คนสับฟืน", 0.05), ("ชาวนา", 0.20)
+]
+
+# --- CITIES ---
+CITIES = [
+    {
+        "id": 1,
+        "name_th": "เมืองจักรพรรดิมั่นคง",
+        "name_pinyin": "Zhencheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 95,
+            "wealth": 90,
+            "jianghu": 20,
+            "info": 50
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 2,
+        "name_th": "เมืองมังกรทะยาน",
+        "name_pinyin": "Longfeicheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 75,
+            "wealth": 95,
+            "jianghu": 45,
+            "info": 70
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 3,
+        "name_th": "เมืองเมฆาพิสุทธิ์",
+        "name_pinyin": "Baiyuncheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 85,
+            "wealth": 85,
+            "jianghu": 30,
+            "info": 55
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 4,
+        "name_th": "เมืองสวรรค์บัญชา",
+        "name_pinyin": "Tianmingcheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 90,
+            "wealth": 75,
+            "jianghu": 40,
+            "info": 45
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 5,
+        "name_th": "เมืองปราชญ์รุ่งเรือง",
+        "name_pinyin": "Wenchangcheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 85,
+            "wealth": 70,
+            "jianghu": 15,
+            "info": 65
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 6,
+        "name_th": "เมืองดารารวม",
+        "name_pinyin": "Xingjucheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 80,
+            "wealth": 85,
+            "jianghu": 60,
+            "info": 80
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 7,
+        "name_th": "เมืองทองคำล้น",
+        "name_pinyin": "Jinshancheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 70,
+            "wealth": 90,
+            "jianghu": 35,
+            "info": 60
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 8,
+        "name_th": "เมืองแสงจรัส",
+        "name_pinyin": "Mingguangcheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 80,
+            "wealth": 80,
+            "jianghu": 50,
+            "info": 55
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 9,
+        "name_th": "เมืองวารีสงบ",
+        "name_pinyin": "Pingshuicheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 75,
+            "wealth": 85,
+            "jianghu": 40,
+            "info": 65
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 10,
+        "name_th": "เมืองกำแพงเหล็ก",
+        "name_pinyin": "Tiebicheng",
+        "type_id": 1,
+        "type_desc": "เมืองหลวง / เมืองใหญ่",
+        "attributes": {
+            "safety": 90,
+            "wealth": 70,
+            "jianghu": 25,
+            "info": 40
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 11,
+        "name_th": "เมืองด่านกลืนทราย",
+        "name_pinyin": "Tunshazhen",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 30,
+            "wealth": 40,
+            "jianghu": 65,
+            "info": 75
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 12,
+        "name_th": "เมืองหิมะโปรย",
+        "name_pinyin": "Luoxuecheng",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 50,
+            "wealth": 35,
+            "jianghu": 55,
+            "info": 40
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 13,
+        "name_th": "เมืองหมาป่าคะนอง",
+        "name_pinyin": "Zhanlangcheng",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 40,
+            "wealth": 50,
+            "jianghu": 70,
+            "info": 50
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 14,
+        "name_th": "เมืองด่านสยบประจิม",
+        "name_pinyin": "Zhenxicheng",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 60,
+            "wealth": 65,
+            "jianghu": 50,
+            "info": 60
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 15,
+        "name_th": "เมืองไร้ราก",
+        "name_pinyin": "Wugencheng",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 25,
+            "wealth": 55,
+            "jianghu": 60,
+            "info": 70
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 16,
+        "name_th": "เมืองพายุคลั่ง",
+        "name_pinyin": "Kuangfengzhen",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 45,
+            "wealth": 30,
+            "jianghu": 50,
+            "info": 45
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 17,
+        "name_th": "เมืองธารน้ำแข็ง",
+        "name_pinyin": "Binghezhen",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 55,
+            "wealth": 45,
+            "jianghu": 45,
+            "info": 35
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 18,
+        "name_th": "เมืองทรายเหลือง",
+        "name_pinyin": "Huangshacheng",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 20,
+            "wealth": 35,
+            "jianghu": 70,
+            "info": 65
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 19,
+        "name_th": "เมืองป้อมทมิฬ",
+        "name_pinyin": "Heibaocheng",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 70,
+            "wealth": 40,
+            "jianghu": 55,
+            "info": 45
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 20,
+        "name_th": "เมืองด่านเมฆโลหิต",
+        "name_pinyin": "Xueyunzhen",
+        "type_id": 2,
+        "type_desc": "ชายแดน / ทะเลทราย / หิมะ",
+        "attributes": {
+            "safety": 35,
+            "wealth": 30,
+            "jianghu": 75,
+            "info": 50
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 21,
+        "name_th": "เมืองคนโฉด",
+        "name_pinyin": "Weitucheng",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 10,
+            "wealth": 60,
+            "jianghu": 85,
+            "info": 80
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 22,
+        "name_th": "เมืองตลาดราตรี",
+        "name_pinyin": "Heixizhen",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 15,
+            "wealth": 80,
+            "jianghu": 75,
+            "info": 90
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 23,
+        "name_th": "เมืองวิญญาณหลอน",
+        "name_pinyin": "Youmingcheng",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 15,
+            "wealth": 40,
+            "jianghu": 80,
+            "info": 60
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 24,
+        "name_th": "เมืองบุปผาโลหิต",
+        "name_pinyin": "Xuehuazhen",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 35,
+            "wealth": 75,
+            "jianghu": 65,
+            "info": 95
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 25,
+        "name_th": "เมืองไร้กฎ",
+        "name_pinyin": "Wufazhen",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 5,
+            "wealth": 50,
+            "jianghu": 90,
+            "info": 75
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 26,
+        "name_th": "เมืองหมอกพิษ",
+        "name_pinyin": "Duyuncheng",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 20,
+            "wealth": 45,
+            "jianghu": 80,
+            "info": 30
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 27,
+        "name_th": "เมืองกระดูกขาว",
+        "name_pinyin": "Baiguzhen",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 25,
+            "wealth": 30,
+            "jianghu": 70,
+            "info": 55
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 28,
+        "name_th": "เมืองหน้ากากเหล็ก",
+        "name_pinyin": "Tiemiancheng",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 30,
+            "wealth": 65,
+            "jianghu": 85,
+            "info": 65
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 29,
+        "name_th": "เมืองกลลวง",
+        "name_pinyin": "Huanyingcheng",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 40,
+            "wealth": 40,
+            "jianghu": 75,
+            "info": 40
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 30,
+        "name_th": "เมืองร้อยอสูร",
+        "name_pinyin": "Baishouzhen",
+        "type_id": 3,
+        "type_desc": "เมืองลับแล / กบดาน / ตลาดมืด",
+        "attributes": {
+            "safety": 20,
+            "wealth": 35,
+            "jianghu": 80,
+            "info": 45
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 31,
+        "name_th": "เมืองเงาสำนัก",
+        "name_pinyin": "Jianyingzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 85,
+            "wealth": 60,
+            "jianghu": 95,
+            "info": 65
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 32,
+        "name_th": "เมืองธรรมโอสถ",
+        "name_pinyin": "Lingyaozhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 80,
+            "wealth": 75,
+            "jianghu": 90,
+            "info": 55
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 33,
+        "name_th": "เมืองสระมังกร",
+        "name_pinyin": "Longtanzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 75,
+            "wealth": 55,
+            "jianghu": 85,
+            "info": 50
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 34,
+        "name_th": "เมืองระฆังทอง",
+        "name_pinyin": "Jinzhongzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 90,
+            "wealth": 40,
+            "jianghu": 80,
+            "info": 45
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 35,
+        "name_th": "เมืองเต๋าพิสุทธิ์",
+        "name_pinyin": "Qingxiuzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 85,
+            "wealth": 50,
+            "jianghu": 85,
+            "info": 50
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 36,
+        "name_th": "เมืองห้าธาตุ",
+        "name_pinyin": "Wuxingzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 80,
+            "wealth": 55,
+            "jianghu": 80,
+            "info": 60
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 37,
+        "name_th": "เมืองไผ่เขียว",
+        "name_pinyin": "Cuizhuzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 55,
+            "wealth": 20,
+            "jianghu": 100,
+            "info": 100
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 38,
+        "name_th": "เมืองน้ำพุทิพย์",
+        "name_pinyin": "Lingchuanzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 95,
+            "wealth": 45,
+            "jianghu": 70,
+            "info": 35
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 39,
+        "name_th": "เมืองหมื่นวิชา",
+        "name_pinyin": "Wanfacheng",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 60,
+            "wealth": 50,
+            "jianghu": 100,
+            "info": 85
+        },
+        "dominant_faction": "Heterodox"
+    },
+    {
+        "id": 40,
+        "name_th": "เมืองสะพานเซียน",
+        "name_pinyin": "Xiangxianzhen",
+        "type_id": 4,
+        "type_desc": "หน้าด่านสำนักยุทธ",
+        "attributes": {
+            "safety": 85,
+            "wealth": 65,
+            "jianghu": 75,
+            "info": 70
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 41,
+        "name_th": "เมืองสุขสำราญ",
+        "name_pinyin": "Anlecheng",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 80,
+            "wealth": 60,
+            "jianghu": 20,
+            "info": 30
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 42,
+        "name_th": "เมืองรวงข้าวทอง",
+        "name_pinyin": "Jinguzhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 85,
+            "wealth": 40,
+            "jianghu": 15,
+            "info": 25
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 43,
+        "name_th": "เมืองล้อมดารา",
+        "name_pinyin": "Huanxingzhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 70,
+            "wealth": 55,
+            "jianghu": 35,
+            "info": 60
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 44,
+        "name_th": "เมืองพันสมุนไพร",
+        "name_pinyin": "Wanchaozhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 65,
+            "wealth": 70,
+            "jianghu": 40,
+            "info": 45
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 45,
+        "name_th": "เมืองสะพานหิน",
+        "name_pinyin": "Shiqiaozhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 75,
+            "wealth": 50,
+            "jianghu": 25,
+            "info": 55
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 46,
+        "name_th": "เมืองสุราหอม",
+        "name_pinyin": "Fangjiuzhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 60,
+            "wealth": 65,
+            "jianghu": 50,
+            "info": 75
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 47,
+        "name_th": "เมืองช่างศิลป์",
+        "name_pinyin": "Qiaoshouzhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 85,
+            "wealth": 75,
+            "jianghu": 30,
+            "info": 40
+        },
+        "dominant_faction": "Imperial"
+    },
+    {
+        "id": 48,
+        "name_th": "เมืองเมฆลอย",
+        "name_pinyin": "Feiyunzhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 50,
+            "wealth": 35,
+            "jianghu": 60,
+            "info": 45
+        },
+        "dominant_faction": "Tribal"
+    },
+    {
+        "id": 49,
+        "name_th": "เมืองสงบจิต",
+        "name_pinyin": "Ningxinzhen",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 90,
+            "wealth": 45,
+            "jianghu": 25,
+            "info": 35
+        },
+        "dominant_faction": "Orthodox"
+    },
+    {
+        "id": 50,
+        "name_th": "เมืองกระจกเงา",
+        "name_pinyin": "Mingjingcheng",
+        "type_id": 5,
+        "type_desc": "เมืองวิถีชีวิต",
+        "attributes": {
+            "safety": 80,
+            "wealth": 50,
+            "jianghu": 15,
+            "info": 50
+        },
+        "dominant_faction": "Imperial"
+    }
+]
+
+
+FACTIONS = {
+    "ฝ่ายธรรมะ": [
+        {"name": "สำนักกระบี่สวรรค์", "focus": "วิถีดาบ", "trait": "โจมตีรุนแรง, ยึดมั่นคุณธรรม"},
+        {"name": "หุบเขายาเทวะ", "focus": "วิถียา", "trait": "ฟื้นฟูยอดเยี่ยม, เส้นสายกว้างขวาง"}
+    ],
+    "ฝ่ายอธรรม": [
+        {"name": "นิกายโลหิตทมิฬ", "focus": "วิถีเลือด", "trait": "ดูดกลืนพลังชีวิต, โจมตีโหดเหี้ยม"},
+        {"name": "ตำหนักวิญญาณแค้น", "focus": "วิถีความว่าง", "trait": "ลอบสังหาร, ควบคุมจิตใจ"}
+    ],
+    "ขั้วอำนาจกลาง/ราชสำนัก": [
+        {"name": "ค่ายทหารเหล็กไหล", "focus": "วิถีเหล็ก", "trait": "ค่ายกลกลยุทธ์ทหาร, พลังป้องกันสูง, ทำงานเป็นทีม"},
+        {"name": "หอการค้าหมื่นลี้", "focus": "วิถีค้าขาย", "trait": "ทรัพยากรมหาศาล, ข่าวสารฉับไว"}
+    ],
+    "ตระกูลโบราณ": [
+        {"name": "ตระกูลตงฟาง", "focus": "วิถีเปลวไฟ", "trait": "สืบทอดสายเลือดอสูร, เชี่ยวชาญเพลิง"},
+        {"name": "ตระกูลเป่ยหมิง", "focus": "วิถีสายน้ำ", "trait": "ทนทาน, พลังปราณลึกล้ำ"}
+    ]
+}
+
+MORTAL_REALMS_CONFIG = {
+    1: {"name": "ปุถุชน", "lifespan": 100, "tribulation": "ไม่มี"},
+    2: {"name": "ตื่นชี่", "lifespan": 120, "tribulation": "ไม่มี"},
+    3: {"name": "หลอมกระดูก", "lifespan": 150, "tribulation": "ไม่มี"},
+    4: {"name": "เปิดทวาร", "lifespan": 200, "tribulation": "ไม่มี"},
+    5: {"name": "ก่อธาตุ", "lifespan": 300, "tribulation": "ด่านมารในใจ (ทดสอบสมาธิ)"},
+    6: {"name": "รวมแกนธาตุ", "lifespan": 500, "tribulation": "ทัณฑ์อัสนี 3 สาย"},
+    7: {"name": "ทารกธรรม", "lifespan": 1000, "tribulation": "ทัณฑ์อัสนี 9 สาย"},
+    8: {"name": "แปรวิญญาณ", "lifespan": 3000, "tribulation": "เพลิงกรรมเผาผลาญวิญญาณ"},
+    9: {"name": "อาศัยฟ้า", "lifespan": 5000, "tribulation": "ทัณฑ์อัสนีสีทอง 27 สาย"},
+    10: {"name": "ล่วงพ้นวิถี", "lifespan": 10000, "tribulation": "มหาทัณฑ์สวรรค์เก้าสี (ข้ามมิติ)"}
+}
+
+
+CURRENCY = {
+    "mortal": ["อีแปะ", "ตำลึงเงิน", "ตำลึงทอง"], # 100 อีแปะ = 1 เงิน, 100 เงิน = 1 ทอง
+    "cultivator": {
+        "low": "ศิลาปราณระดับต่ำ",
+        "mid": "ศิลาปราณระดับกลาง", # 100 ระดับต่ำ = 1 ระดับกลาง
+        "high": "ศิลาปราณระดับสูง",
+        "supreme": "ศิลาปราณบริสุทธิ์" # หายากมาก ใช้ขับเคลื่อนค่ายกลระดับเมือง
+    }
+}
+
+
+SUPREME_DAO_PATHS = {
+    "วิถีแห่งเวลา": {"concept": ["อดีต", "อนาคต", "หยุดนิ่ง"], "effect": "ควบคุมลำดับเทิร์นการต่อสู้, ย้อนสถานะ"},
+    "วิถีแห่งมิติ": {"concept": ["ระยะทาง", "มิติเอกเทศ", "ตัดขาด"], "effect": "หลบหลีก 100%, โจมตีทะลุพลังป้องกัน"},
+    "วิถีหยินหยาง": {"concept": ["สมดุล", "สะท้อนกลับ", "ชีวิตและตาย"], "effect": "สะท้อนการโจมตี, สลับสถานะบัฟ/ดีบัฟ"},
+    "วิถีสายฟ้า": {"concept": ["พิพากษา", "รวดเร็ว", "ทัณฑ์สวรรค์"], "effect": "ความเร็วสูงสุด, พลังทำลายล้างเป้าหมายเดี่ยวที่รุนแรงที่สุด"},
+    "วิถีโกลาหล": {"concept": ["ไร้กฎเกณฑ์", "กลืนกิน", "ดับสูญ"], "effect": "ลบล้างวิถีเต๋าอื่นทั้งหมด, ป้องกันการฟื้นฟู"}
+}
+
+for _dao, _data in SUPREME_DAO_PATHS.items():
+    DAO_POOL[_dao] = _data["concept"]
+
+
+ITEM_GRADES = ["ขั้นมนุษย์", "ขั้นปฐพี", "ขั้นสวรรค์", "ขั้นเทวะ"]
+
+MANUALS_AND_TALISMANS = {
+    "คัมภีร์บ่มเพาะ": [
+        "เคล็ดวิชาปราณเมฆา", "เคล็ดหมุนเวียนหยินหยาง", "คัมภีร์กลืนนภา"
+    ],
+    "วิชาต่อสู้": [
+        "เพลงกระบี่ตัดวารี", "ฝ่ามือทลายผา", "หอกมังกรทะลวงทัพ"
+    ],
+    "วิชาตัวเบา": [
+        "ย่างก้าวไร้เงา", "เคล็ดเหินเมฆา", "พริบตาพันลี้"
+    ],
+    "ยันต์วิเศษ (ใช้แล้วทิ้ง)": [
+        "ยันต์เคลื่อนย้ายพันลี้ (หนีจากการต่อสู้)",
+        "ยันต์เกราะทองคำ (อมตะ 1 เทิร์น)",
+        "ยันต์สายฟ้าพิพากษา (ทำดาเมจทะลุเกราะ)"
+    ]
+}
