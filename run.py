@@ -8,6 +8,10 @@ if sys.platform == "win32":
         pass
 from tiandao.sim import Sim
 from tiandao import story, config as C
+from tiandao import tuning as TN
+from tiandao import chronicle as CH
+from tiandao import persist as PS
+from tiandao.ai import config_ai as ACFG
 
 
 
@@ -51,9 +55,62 @@ def main():
     ap.add_argument("--bio", type=int, default=None)
     ap.add_argument("--leaderboard", action="store_true")
     ap.add_argument("--out", default="out")
+    ap.add_argument("--no-autotune", action="store_true",
+                     help="ไม่โหลดค่าที่เอนจินเรียนรู้ไว้ข้ามรัน (learned_config.json) ใช้ค่าตั้งต้นใน config.py")
+    ap.add_argument("--no-chronicle", action="store_true",
+                     help="ไม่บันทึกตำนานของรันนี้ลง tiandao/chronicle.json")
+    ap.add_argument("--legends", action="store_true",
+                     help="แสดงตำนานที่สะสมไว้จากทุกรันที่ผ่านมา แล้วจบโปรแกรมทันที ไม่รันซิมใหม่")
+    ap.add_argument("--save-path", default=PS.DEFAULT_PATH,
+                     help="ตำแหน่งไฟล์บันทึกสถานะโลกทั้งก้อน (ดีฟอลต์ tiandao/world.save)")
+    ap.add_argument("--resume", action="store_true",
+                     help="เดินต่อจากไฟล์ --save-path แทนที่จะสร้างโลกใหม่จาก --seed "
+                          "(ถ้าไม่พบไฟล์ จะสร้างโลกใหม่แทนแล้วเตือน)")
+    ap.add_argument("--save", action="store_true",
+                     help="บันทึกสถานะโลกทั้งก้อนไว้ที่ --save-path หลังรันจบ (คนละอย่างกับ chronicle "
+                          "ที่บันทึกแค่ตำนานสรุป — อันนี้บันทึกตัวโลกจริง เดินต่อได้ด้วย --resume)")
+    ap.add_argument("--llm", action="store_true",
+                     help="เปิด Layer 3 (Ollama) จริง — ต้องมี Ollama รันอยู่ที่ localhost:11434 พร้อม "
+                          "โมเดลที่ตั้งไว้ใน tiandao/ai/config_ai.py (ดีฟอลต์ qwen2.5vl:7b) "
+                          "(Phase G) sim.run() เองไม่บล็อกอีกต่อไป — งาน LLM เข้าคิวไว้แล้วประมวลผล "
+                          "ทั้งหมดหลัง sim.run() จบครั้งเดียว (ยังกินเวลารวมเท่าเดิม แค่ไม่บล็อกระหว่างเดิน)")
     a = ap.parse_args()
 
-    sim = Sim(seed=a.seed, tiers=a.tiers).run(a.events)
+    if a.llm:
+        ACFG.LLM_ENABLED = True
+
+    if a.legends:
+        print(CH.format_hall_of_legends())
+        return
+
+    if not a.no_autotune:
+        state = TN.load_state()
+        if state.get("overrides"):
+            TN.apply_overrides(state["overrides"])
+            print(f"[autotune] โหลดค่าที่เรียนรู้ไว้: {state['overrides']}")
+
+    sim = None
+    if a.resume:
+        try:
+            sim = PS.load_sim(a.save_path)
+            print(f"[persist] เดินต่อจากไฟล์ {a.save_path} — วันที่ {sim.day} (ปีที่ {sim.day//365})")
+        except FileNotFoundError:
+            print(f"[persist] ไม่พบไฟล์ {a.save_path} — เริ่มโลกใหม่จาก seed {a.seed} แทน")
+    if sim is None:
+        sim = Sim(seed=a.seed, tiers=a.tiers)
+    sim.run(a.events)
+
+    if a.llm:
+        n = sim.brain_manager.drain_llm_queue(sim, budget=0)
+        print(f"[llm] ประมวลผลคิว Layer 3 แล้ว {n} งาน (Phase G — แยกจากลูปหลักของ sim.run() แล้ว)")
+
+    if a.save:
+        save_dir = os.path.dirname(a.save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
+        PS.save_sim(sim, a.save_path)
+        print(f"[persist] บันทึกสถานะโลกไว้ที่ {a.save_path}")
+
     os.makedirs(a.out, exist_ok=True)
     with open(f"{a.out}/events_{a.seed}.jsonl", "w", encoding="utf-8") as f:
         for e in sim.log:
@@ -64,6 +121,13 @@ def main():
     for w in sim.worlds:
         print(f"   {w.name} (ชั้น {w.tier}): ยุคที่ {w.era} · {w.state()} · คลังฟ้า {w.ratio()*100:.0f}% "
               f"· คน {len(sim.living_in(w.wid))}")
+
+    if not a.no_chronicle:
+        entry = CH.record_run(sim, a.seed, a.events)
+        top_name = entry["legends"][0]["name"] if entry["legends"] else None
+        if top_name:
+            print(f"[ตำนาน] บันทึกรันนี้ไว้แล้ว — ผู้เด่นที่สุดคือ [{top_name}] "
+                  f"(ดูทั้งหมดด้วย python run.py --legends)")
 
     print()
 

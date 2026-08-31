@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="5">
+<title>เทียนเต้า — โลกที่มีชีวิต</title>
+<style>
+  body { background:#12100e; color:#e8dcc4; font-family: "Tahoma", sans-serif; margin: 2rem; }
+  h1 { color:#d4af37; margin-bottom: 0; }
+  .sub { color:#8a8272; margin-top: 0.2rem; }
+  .grid { display:flex; flex-wrap:wrap; gap:1rem; margin: 1.5rem 0; }
+  .card { background:#1c1916; border:1px solid #3a342a; border-radius:8px; padding:1rem 1.2rem; min-width:220px; }
+  .card h3 { margin:0 0 0.4rem 0; color:#d4af37; }
+  .card .stat { font-size:1.4rem; }
+  table { border-collapse: collapse; width:100%; margin-top: 0.5rem; }
+  th, td { text-align:left; padding: 0.3rem 0.6rem; border-bottom: 1px solid #2a251f; font-size: 0.92rem; }
+  th { color:#8a8272; font-weight:normal; }
+  .empty { color:#8a8272; font-style: italic; }
+  a { color:#d4af37; }
+</style>
+</head>
+<body>
+{% if snap %}
+  <h1>โลกเทียนเต้า</h1>
+  <p class="sub">วันที่ {{ snap.day }} · ปีที่ {{ snap.years }} · {{ snap.season }} (regen x{{ "%.2f"|format(snap.regen_mult) }}) · ไฟล์: {{ save_path }}</p>
+
+  <div class="grid">
+    <div class="card"><h3>ประชากรทั้งหมด</h3><div class="stat">{{ snap.population }}</div></div>
+    <div class="card"><h3>องค์กร/สำนัก</h3><div class="stat">{{ snap.n_orgs }}</div></div>
+    <div class="card"><h3>แดนลับ</h3><div class="stat">{{ snap.n_caches }}</div></div>
+    <div class="card" style="background: linear-gradient(135deg, #1b2838 0%, #101820 100%); border-color: #48cae4;">
+      <h3 style="color:#48cae4;">👁️ มุมมองพระเจ้า (God's View)</h3>
+      <a href="/godview" style="display:inline-block; margin-top:0.4rem; padding:0.4rem 0.9rem; background:#48cae4; color:#08090c; font-weight:bold; border-radius:6px; text-decoration:none;">เปิด WebGL PixiJS Renderer →</a>
+    </div>
+    <div class="card" style="background: linear-gradient(135deg, #2b2518 0%, #1c1916 100%); border-color: #d4af37;">
+      <h3 style="color:#ffd166;">🗺️ แผนที่ภูมิประเทศมิติ (Mapgen4)</h3>
+      <a href="/map" style="display:inline-block; margin-top:0.4rem; padding:0.4rem 0.9rem; background:#d4af37; color:#12100e; font-weight:bold; border-radius:6px; text-decoration:none;">เปิดแผนที่แบบ Interactive 3D/2D →</a>
+    </div>
+    <div class="card" style="background: linear-gradient(135deg, #1e3a2f 0%, #13241b 100%); border-color: #52b788;">
+      <h3 style="color:#52b788;">🏘️ ผังเมืองและหมู่บ้านเสมือนจริง (Watabou)</h3>
+      <a href="/settlement/0" style="display:inline-block; margin-top:0.4rem; padding:0.4rem 0.9rem; background:#52b788; color:#08090c; font-weight:bold; border-radius:6px; text-decoration:none;">เปิดชมผังเมือง & ชุมชน NPC →</a>
+    </div>
+    <div class="card" style="background: linear-gradient(135deg, #3d131a 0%, #1f0b0f 100%); border-color: #e63946;">
+      <h3 style="color:#e63946;">⚔️ ลานประลองยุทธ์ (Combat Arena)</h3>
+      <a href="/combat" style="display:inline-block; margin-top:0.4rem; padding:0.4rem 0.9rem; background:#e63946; color:#ffffff; font-weight:bold; border-radius:6px; text-decoration:none;">เปิดชมฉากดวลวิชาประลองยุทธ์ →</a>
+    </div>
+  </div>
+
+  <h2>โลกทั้งหมด</h2>
+  <table>
+    <tr><th>ชื่อ</th><th>ชนิด</th><th>ชั้น</th><th>ยุค</th><th>สถานะ</th><th>คลังฟ้า</th><th>ประชากร</th></tr>
+    {% for w in snap.worlds %}
+    <tr>
+      <td>{{ w.name }}</td><td>{{ w.kind }}</td><td>{{ w.tier }}</td><td>{{ w.era }}</td>
+      <td>{{ w.state }}</td><td>{{ w.ratio }}%</td><td>{{ w.population }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <h2>เหตุการณ์ล่าสุด</h2>
+  <table>
+    <tr><th>วัน</th><th>ชนิด</th><th>รายละเอียด</th></tr>
+    {% for e in snap.recent_events %}
+    <tr><td>{{ e.day }}</td><td>{{ e.kind }}</td><td>{{ e.text }}</td></tr>
+    {% endfor %}
+  </table>
+{% else %}
+  <h1>โลกเทียนเต้า</h1>
+  <p class="empty">ยังไม่พบไฟล์ {{ save_path }} — รัน <code>python run.py --save</code> หรือ
+     <code>python daemon.py</code> ก่อนเพื่อสร้างโลก แล้วรีเฟรชหน้านี้ใหม่</p>
+{% endif %}
+
+  <h2>ตำนานที่สะสมมา</h2>
+  {% if legends %}
+  <table>
+    <tr><th>ชื่อ</th><th>เผ่าพันธุ์</th><th>วิถี</th><th>ขั้นสูงสุด</th><th>สถานะ</th></tr>
+    {% for lg in legends %}
+    <tr><td>{{ lg.name }}</td><td>{{ lg.race }}</td><td>{{ lg.dao }}</td><td>{{ lg.peak_realm }}</td><td>{{ lg.status }}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="empty">ยังไม่มีตำนานถูกบันทึกไว้</p>
+  {% endif %}
+</body>
+</html>

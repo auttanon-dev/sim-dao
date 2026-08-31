@@ -1,4 +1,14 @@
 __pycache__/
 *.pyc
 out/
+datasets/
+loras/
 .claude/
+tiandao/learned_config.json
+tiandao/chronicle.json
+tiandao/world.save
+tiandao/world.save.events.jsonl
+tiandao/world.save.*
+merged/
+vendor_llama_cpp_convert/
+*.gguf

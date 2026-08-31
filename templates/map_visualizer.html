@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วิถีสวรรค์ — แผนที่ภูมิศาสตร์มิติและแผ่นดิน (Tiandao Mapgen4 Visualizer)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Noto+Sans+Thai:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0a0908;
+    --panel-bg: rgba(18, 16, 14, 0.85);
+    --panel-border: rgba(212, 175, 55, 0.25);
+    --gold: #d4af37;
+    --gold-glow: rgba(212, 175, 55, 0.4);
+    --cyan: #48cae4;
+    --crimson: #e63946;
+    --purple: #9d4edd;
+    --green: #52b788;
+    --text-main: #f3ede2;
+    --text-muted: #9c9281;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Noto Sans Thai', 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header & Top Bar */
+  header {
+    height: 60px;
+    background: linear-gradient(180deg, rgba(14, 12, 10, 0.95) 0%, rgba(14, 12, 10, 0.6) 100%);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .brand h1 {
+    font-family: 'Cinzel', 'Noto Sans Thai', serif;
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-shadow: 0 0 12px var(--gold-glow);
+  }
+  .brand span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.06);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .nav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .nav-btn:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+  }
+  .nav-btn.active {
+    background: var(--gold);
+    color: #12100e;
+    font-weight: 700;
+  }
+
+  /* Main Workspace */
+  #main-viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #14161d 0%, #08090d 100%);
+  }
+
+  canvas {
+    display: block;
+    cursor: grab;
+  }
+  canvas:active {
+    cursor: grabbing;
+  }
+
+  /* Floating UI Panels */
+  .floating-panel {
+    position: absolute;
+    background: var(--panel-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 50;
+  }
+
+  /* Realm Selector (Top Left) */
+  #realm-bar {
+    top: 1rem;
+    left: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    max-width: 580px;
+  }
+  .realm-chip {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .realm-chip:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .realm-chip.active {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(212, 175, 55, 0.05) 100%);
+    border-color: var(--gold);
+    color: var(--gold);
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+  }
+
+  /* Layers & Toggles (Top Right) */
+  #layer-controls {
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 200px;
+  }
+  .layer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .layer-item label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .layer-item input[type="checkbox"] {
+    accent-color: var(--gold);
+    cursor: pointer;
+  }
+
+  /* Inspector Drawer (Bottom Right) */
+  #inspector-card {
+    bottom: 1rem;
+    right: 1rem;
+    width: 320px;
+    max-height: 480px;
+    overflow-y: auto;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  #inspector-card h2 {
+    font-size: 1.1rem;
+    color: var(--gold);
+    margin-bottom: 0.3rem;
+    font-family: 'Cinzel', serif;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+  }
+  .badge.town { background: rgba(82, 183, 136, 0.2); color: #52b788; border: 1px solid #52b788; }
+  .badge.sect { background: rgba(72, 202, 228, 0.2); color: #48cae4; border: 1px solid #48cae4; }
+  .badge.secret { background: rgba(157, 78, 221, 0.2); color: #9d4edd; border: 1px solid #9d4edd; }
+  .badge.gate { background: rgba(212, 175, 55, 0.2); color: #d4af37; border: 1px solid #d4af37; }
+  .badge.sealed { background: rgba(230, 57, 70, 0.2); color: #e63946; border: 1px solid #e63946; }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.85rem;
+  }
+  .stat-row span:first-child { color: var(--text-muted); }
+
+  /* Map Controls Bottom Left */
+  #view-controls {
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    gap: 0.4rem;
+  }
+  .view-btn {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .view-btn:hover {
+    border-color: var(--gold);
+    color: var(--gold);
+    box-shadow: 0 0 10px var(--gold-glow);
+  }
+
+  /* Status Bar Bottom */
+  #status-bar {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(14, 12, 10, 0.85);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    padding: 0.35rem 1.2rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    gap: 1.2rem;
+    pointer-events: none;
+  }
+  #status-bar b { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>วิถีสวรรค์ · ภูมิศาสตร์มิติ</h1>
+    <span>MAPGEN4 TERRAIN ENGINE</span>
+  </div>
+  <div class="nav-links">
+    <a href="/" class="nav-btn">📊 กลับหน้า Dashboard</a>
+    <button class="nav-btn active" id="btn-reset-view">🗺️ รีเซ็ตมุมมอง</button>
+  </div>
+</header>
+
+<div id="main-viewport">
+  <canvas id="map-canvas"></canvas>
+
+  <!-- Realm Selector -->
+  <div class="floating-panel" id="realm-bar">
+    <div class="realm-chip active" data-realm="all">🌌 จักรวาลทั้งหมด</div>
+    <div class="realm-chip" data-realm="0">🌏 โลกมนุษย์ (จงหยวน)</div>
+    <div class="realm-chip" data-realm="siam">🌾 แดนสยาม</div>
+    <div class="realm-chip" data-realm="fusang">🌸 แดนอาทิตย์อุทัย</div>
+    <div class="realm-chip" data-realm="steppe">🦅 แดนทุ่งหญ้าคีตาวายุ</div>
+    <div class="realm-chip" data-realm="oasis">🕌 แดนโอเอซิสพันราตรี</div>
+    <div class="realm-chip" data-realm="bharata">🪷 แดนชมพูทวีป</div>
+    <div class="realm-chip" data-realm="1">☁️ แดนเซียนลอยฟ้า</div>
+    <div class="realm-chip" data-realm="2">✨ สวรรค์นอกชั้นฟ้า</div>
+    <div class="realm-chip" data-realm="mara">🌋 แดนมารอเวจี</div>
+    <div class="realm-chip" data-realm="chaos">🌀 ห้วงโกลาหล</div>
+  </div>
+
+  <!-- Layer Toggles -->
+  <div class="floating-panel" id="layer-controls">
+    <div class="layer-item"><label><input type="checkbox" id="chk-terrain" checked> ⛰️ ภูมิประเทศ & เนินเขา</label></div>
+    <div class="layer-item"><label><input type="checkbox" id="chk-rivers" checked> 🌊 แม่น้ำ & แหล่งน้ำ</label></div>
+    <div class="layer-item"><label><input type="checkbox" id="chk-biomes" checked> 🌿 สี Biomes ธรรมชาติ</label></div>
+    <div class="layer-item"><label><input type="checkbox" id="chk-roads" checked> 🛣️ ถนน & เส้นทางข้ามแดน</label></div>
+    <div class="layer-item"><label><input type="checkbox" id="chk-gates" checked> 🌀 ประตูมิติ & รอยแยก</label></div>
+    <div class="layer-item"><label><input type="checkbox" id="chk-cultivators" checked> 🚶‍♂️ ผู้บำเพ็ญสด (Live)</label></div>
+    <div class="layer-item"><label><input type="checkbox" id="chk-labels" checked> 🏷️ ป้ายชื่อสถานที่</label></div>
+  </div>
+
+  <!-- View Controls -->
+  <div id="view-controls">
+    <button class="view-btn" id="btn-zoom-in" title="ซูมเข้า">+</button>
+    <button class="view-btn" id="btn-zoom-out" title="ซูมออก">-</button>
+  </div>
+
+  <!-- Place Inspector Card -->
+  <div class="floating-panel" id="inspector-card">
+    <h2 id="insp-name">เลือกสถานที่บนแผนที่</h2>
+    <div id="insp-badge" class="badge town">พร้อมตรวจสอบ</div>
+    <p id="insp-desc" style="font-size: 0.83rem; color: var(--text-muted); margin-bottom: 0.8rem;">
+      คลิกที่จุดใดก็ได้บนแผนที่เพื่อดูข้อมูลทรัพยากร พิกัด 3D และผู้บำเพ็ญที่พำนักอยู่
+    </p>
+    <div class="stat-row"><span>ภพภูมิ</span><span id="insp-realm">-</span></div>
+    <div class="stat-row"><span>ระดับชั้นสถานที่</span><span id="insp-grade">-</span></div>
+    <div class="stat-row"><span>สภาพแวดล้อม (Biome)</span><span id="insp-biome">-</span></div>
+    <div class="stat-row"><span>พิกัดสามมิติ (X, Y, Z)</span><span id="insp-coords">-</span></div>
+    <div class="stat-row"><span>ทรัพยากรหลัก</span><span id="insp-res">-</span></div>
+    <div class="stat-row"><span>เตาหลอม / สิ่งอำนวย</span><span id="insp-furn">-</span></div>
+  </div>
+
+  <!-- Status Bar -->
+  <div id="status-bar">
+    <span>วัน: <b id="stat-day">0</b> (ปี <b id="stat-year">0</b>)</span>
+    <span>ประชากร: <b id="stat-pop">0</b> คน</span>
+    <span>มหาผนึกสะกดหมื่นมาร: <b id="stat-seal">100.0%</b></span>
+  </div>
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('map-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight - 60;
+
+  window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight - 60;
+    render();
+  });
+
+  // State
+  let terrainData = null;
+  let placesData = [];
+  let edgesData = [];
+  let cultivatorsData = [];
+  let statusData = null;
+
+  let selectedPlace = null;
+  let activeRealm = 'all';
+
+  // Camera View Transform
+  let camera = {
+    x: width / 2,
+    y: height / 2,
+    scale: 0.85,
+    isDragging: false,
+    dragStart: { x: 0, y: 0 }
+  };
+
+  // World coordinate to Screen coordinate
+  function worldToScreen(wx, wy) {
+    return {
+      x: camera.x + wx * camera.scale,
+      y: camera.y + wy * camera.scale
+    };
+  }
+
+  function screenToWorld(sx, sy) {
+    return {
+      x: (sx - camera.x) / camera.scale,
+      y: (sy - camera.y) / camera.scale
+    };
+  }
+
+  // Fetch API Data
+  async function loadAllData() {
+    try {
+      const [tRes, pRes, eRes, cRes, sRes] = await Promise.all([
+        fetch('/api/map/terrain').then(r => r.json()),
+        fetch('/api/map/places').then(r => r.json()),
+        fetch('/api/map/edges').then(r => r.json()),
+        fetch('/api/map/cultivators').then(r => r.json()),
+        fetch('/api/status').then(r => r.json())
+      ]);
+
+      terrainData = tRes;
+      placesData = pRes;
+      edgesData = eRes;
+      cultivatorsData = cRes;
+      statusData = sRes;
+
+      updateStatusBar();
+      render();
+    } catch (err) {
+      console.error("Error loading map data:", err);
+    }
+  }
+
+  function updateStatusBar() {
+    if (!statusData) return;
+    document.getElementById('stat-day').innerText = statusData.day || 0;
+    document.getElementById('stat-year').innerText = statusData.years || 0;
+    document.getElementById('stat-pop').innerText = statusData.population || 0;
+    if (statusData.mara_seal) {
+      const sealElem = document.getElementById('stat-seal');
+      sealElem.innerText = statusData.mara_seal.seal + '% (' + statusData.mara_seal.status + ')';
+      if (statusData.mara_seal.broken) {
+        sealElem.style.color = 'var(--crimson)';
+      } else if (statusData.mara_seal.seal <= 30.0) {
+        sealElem.style.color = '#ffb703';
+      } else {
+        sealElem.style.color = 'var(--green)';
+      }
+    }
+  }
+
+  // Render Loop
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+
+    if (!terrainData) return;
+
+    const showTerrain = document.getElementById('chk-terrain').checked;
+    const showRivers = document.getElementById('chk-rivers').checked;
+    const showBiomes = document.getElementById('chk-biomes').checked;
+    const showRoads = document.getElementById('chk-roads').checked;
+    const showGates = document.getElementById('chk-gates').checked;
+    const showCultivators = document.getElementById('chk-cultivators').checked;
+    const showLabels = document.getElementById('chk-labels').checked;
+
+    // 1. Draw Terrain Grid & Biome Polygons
+    if (showTerrain && terrainData.grid) {
+      const grid = terrainData.grid;
+      const gSize = terrainData.grid_size;
+
+      for (let y = 0; y < gSize - 1; y++) {
+        for (let x = 0; x < gSize - 1; x++) {
+          const c00 = grid[y][x];
+          const c10 = grid[y][x+1];
+          const c11 = grid[y+1][x+1];
+          const c01 = grid[y+1][x];
+
+          // Filter by Realm if selected
+          if (activeRealm !== 'all' && c00.realm != activeRealm) {
+            continue;
+          }
+
+          const s00 = worldToScreen(c00.x, c00.y);
+          const s10 = worldToScreen(c10.x, c10.y);
+          const s11 = worldToScreen(c11.x, c11.y);
+          const s01 = worldToScreen(c01.x, c01.y);
+
+          // Hillshade lighting calculation (Sun from North-West)
+          const dzdx = c10.elev - c00.elev;
+          const dzdy = c01.elev - c00.elev;
+          const light = Math.max(0.2, Math.min(1.4, 1.0 - (dzdx * 1.5 + dzdy * 1.5)));
+
+          ctx.beginPath();
+          ctx.moveTo(s00.x, s00.y);
+          ctx.lineTo(s10.x, s10.y);
+          ctx.lineTo(s11.x, s11.y);
+          ctx.lineTo(s01.x, s01.y);
+          ctx.closePath();
+
+          let fillColor = showBiomes ? c00.color : '#2b2d42';
+          ctx.fillStyle = fillColor;
+          ctx.globalAlpha = c00.floating ? 0.92 : 0.85;
+          ctx.fill();
+
+          // Apply hillshade overlay
+          ctx.fillStyle = light > 1.0 ? 'rgba(255,255,255,' + (light - 1.0)*0.25 + ')' : 'rgba(0,0,0,' + (1.0 - light)*0.35 + ')';
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1.0;
+    }
+
+    // 2. Draw Rivers
+    if (showRivers && terrainData.rivers) {
+      terrainData.rivers.forEach(riv => {
+        ctx.beginPath();
+        ctx.strokeStyle = riv.color;
+        ctx.lineWidth = 4 * camera.scale;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        riv.points.forEach((pt, idx) => {
+          const s = worldToScreen(pt[0], pt[1]);
+          if (idx === 0) ctx.moveTo(s.x, s.y);
+          else ctx.lineTo(s.x, s.y);
+        });
+        ctx.stroke();
+      });
+    }
+
+    // 3. Draw Road Graph & Gate Edges
+    if (showRoads) {
+      edgesData.forEach(edge => {
+        const pA = placesData[edge.from];
+        const pB = placesData[edge.to];
+        if (!pA || !pB) return;
+
+        if (activeRealm !== 'all' && pA.realm_key != activeRealm && pB.realm_key != activeRealm) {
+          return;
+        }
+
+        const isGate = edge.type === 'gate';
+        const isSealed = edge.type === 'sealed_barrier';
+        const isBorder = edge.type === 'border';
+
+        if (isGate && !showGates) return;
+
+        const sA = worldToScreen(pA.x, pA.y);
+        const sB = worldToScreen(pB.x, pB.y);
+
+        ctx.beginPath();
+        ctx.moveTo(sA.x, sA.y);
+        ctx.lineTo(sB.x, sB.y);
+
+        if (isGate) {
+          ctx.strokeStyle = 'rgba(212, 175, 55, 0.85)';
+          ctx.lineWidth = 2.5 * camera.scale;
+          ctx.setLineDash([6 * camera.scale, 4 * camera.scale]);
+        } else if (isSealed) {
+          ctx.strokeStyle = edge.traversable ? 'rgba(230, 57, 70, 0.85)' : 'rgba(230, 57, 70, 0.4)';
+          ctx.lineWidth = 3 * camera.scale;
+          ctx.setLineDash([4 * camera.scale, 6 * camera.scale]);
+        } else if (isBorder) {
+          ctx.strokeStyle = 'rgba(72, 202, 228, 0.7)';
+          ctx.lineWidth = 2 * camera.scale;
+          ctx.setLineDash([2 * camera.scale, 3 * camera.scale]);
+        } else {
+          ctx.strokeStyle = 'rgba(156, 146, 129, 0.3)';
+          ctx.lineWidth = 1.2 * camera.scale;
+          ctx.setLineDash([]);
+        }
+
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+    }
+
+    // 4. Draw Cultivators (Live)
+    if (showCultivators && cultivatorsData.length > 0) {
+      cultivatorsData.forEach(ch => {
+        const place = placesData[ch.place];
+        if (!place) return;
+        if (activeRealm !== 'all' && place.realm_key != activeRealm) return;
+
+        let wx = place.x;
+        let wy = place.y;
+
+        // If traveling, interpolate position along path
+        if (ch.travel_dest >= 0 && placesData[ch.travel_dest]) {
+          const dest = placesData[ch.travel_dest];
+          const progress = 0.5 + 0.3 * Math.sin(Date.now() * 0.003 + ch.cid);
+          wx = place.x + (dest.x - place.x) * progress;
+          wy = place.y + (dest.y - place.y) * progress;
+        }
+
+        const s = worldToScreen(wx, wy);
+
+        // Aura pulse circle
+        ctx.beginPath();
+        const color = ch.realm >= 5 ? '#ffd166' : ch.realm >= 2 ? '#48cae4' : '#06d6a0';
+        ctx.arc(s.x, s.y, (3.5 + ch.realm * 0.8) * camera.scale, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8 * camera.scale;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    // 5. Draw Places Nodes & Labels
+    placesData.forEach(p => {
+      if (activeRealm !== 'all' && p.realm_key != activeRealm) return;
+
+      const s = worldToScreen(p.x, p.y);
+
+      // Node marker
+      ctx.beginPath();
+      let radius = (5 + p.grade * 2.5) * camera.scale;
+      let color = '#52b788';
+
+      if (p.type === 'เมือง') color = '#ffd166';
+      else if (p.type === 'สำนัก') color = '#48cae4';
+      else if (p.type === 'ประตูมิติ') color = '#d4af37';
+      else if (p.type === 'แดนลับ') color = p.is_sealed ? '#e63946' : '#c77dff';
+      else if (p.type === 'ด่านชายแดน') color = '#f77f00';
+
+      ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = selectedPlace && selectedPlace.idx === p.idx ? '#ffffff' : '#12100e';
+      ctx.lineWidth = (selectedPlace && selectedPlace.idx === p.idx ? 3 : 1.5) * camera.scale;
+      ctx.stroke();
+
+      // Selected ring animation
+      if (selectedPlace && selectedPlace.idx === p.idx) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, radius + 5 * camera.scale, 0, Math.PI * 2);
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 2 * camera.scale;
+        ctx.stroke();
+      }
+
+      // Labels
+      if (showLabels && camera.scale >= 0.6) {
+        ctx.font = `${Math.max(10, Math.round(11 * camera.scale))}px 'Noto Sans Thai', sans-serif`;
+        ctx.fillStyle = '#f3ede2';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 4;
+        ctx.fillText(p.name, s.x, s.y - radius - 4);
+        ctx.shadowBlur = 0;
+      }
+    });
+  }
+
+  // User Interaction & Camera Controls
+  canvas.addEventListener('mousedown', e => {
+    camera.isDragging = true;
+    camera.dragStart = { x: e.clientX - camera.x, y: e.clientY - camera.y };
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (camera.isDragging) {
+      camera.x = e.clientX - camera.dragStart.x;
+      camera.y = e.clientY - camera.dragStart.y;
+      render();
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    camera.isDragging = false;
+  });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+    const mouseWBefore = screenToWorld(e.clientX, e.clientY);
+
+    camera.scale = Math.max(0.2, Math.min(3.5, camera.scale * zoomFactor));
+
+    const mouseWAfter = screenToWorld(e.clientX, e.clientY);
+    camera.x += (mouseWAfter.x - mouseWBefore.x) * camera.scale;
+    camera.y += (mouseWAfter.y - mouseWBefore.y) * camera.scale;
+
+    render();
+  });
+
+  // Place Selection (Click)
+  canvas.addEventListener('click', e => {
+    const mouseW = screenToWorld(e.clientX, e.clientY);
+    let nearest = null;
+    let minDist = 18.0 / camera.scale;
+
+    placesData.forEach(p => {
+      const d = Math.hypot(p.x - mouseW.x, p.y - mouseW.y);
+      if (d < minDist) {
+        minDist = d;
+        nearest = p;
+      }
+    });
+
+    if (nearest) {
+      inspectPlace(nearest);
+    }
+  });
+
+  function inspectPlace(p) {
+    selectedPlace = p;
+    document.getElementById('insp-name').innerText = p.name;
+    const badge = document.getElementById('insp-badge');
+    badge.innerText = p.type;
+    badge.className = 'badge ' + (p.type === 'เมือง' ? 'town' : p.type === 'สำนัก' ? 'sect' : p.type === 'ประตูมิติ' ? 'gate' : p.is_sealed ? 'sealed' : 'secret');
+
+    document.getElementById('insp-realm').innerText = p.realm_name + ` (${p.realm_key})`;
+    document.getElementById('insp-grade').innerText = `ขั้นที่ ${p.grade}`;
+    document.getElementById('insp-biome').innerText = `${p.biome_name}`;
+    document.getElementById('insp-coords').innerText = `(${p.x}, ${p.y}, Z: +${p.z})`;
+    document.getElementById('insp-res').innerText = p.resource || 'ไม่มี';
+    document.getElementById('insp-furn').innerText = p.furnace >= 0 ? `เตาหลอมขั้น ${p.furnace}` : 'ไม่มี';
+
+    render();
+  }
+
+  // Realm Filter Chips
+  document.querySelectorAll('.realm-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.realm-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeRealm = chip.dataset.realm;
+
+      if (activeRealm !== 'all' && terrainData && terrainData.realms[activeRealm]) {
+        const rc = terrainData.realms[activeRealm].center;
+        camera.x = width / 2 - rc[0] * 1.5;
+        camera.y = height / 2 - rc[1] * 1.5;
+        camera.scale = 1.5;
+      } else {
+        camera.x = width / 2;
+        camera.y = height / 2;
+        camera.scale = 0.85;
+      }
+      render();
+    });
+  });
+
+  // Layer Checkbox Changes
+  document.querySelectorAll('#layer-controls input').forEach(input => {
+    input.addEventListener('change', render);
+  });
+
+  // Zoom Buttons
+  document.getElementById('btn-zoom-in').addEventListener('click', () => {
+    camera.scale = Math.min(3.5, camera.scale * 1.25);
+    render();
+  });
+  document.getElementById('btn-zoom-out').addEventListener('click', () => {
+    camera.scale = Math.max(0.2, camera.scale * 0.8);
+    render();
+  });
+  document.getElementById('btn-reset-view').addEventListener('click', () => {
+    camera.x = width / 2;
+    camera.y = height / 2;
+    camera.scale = 0.85;
+    selectedPlace = null;
+    activeRealm = 'all';
+    document.querySelectorAll('.realm-chip').forEach(c => c.classList.remove('active'));
+    document.querySelector('.realm-chip[data-realm="all"]').classList.add('active');
+    render();
+  });
+
+  // Animation Loop for live cultivator movement
+  setInterval(async () => {
+    try {
+      const [cRes, sRes] = await Promise.all([
+        fetch('/api/map/cultivators').then(r => r.json()),
+        fetch('/api/status').then(r => r.json())
+      ]);
+      cultivatorsData = cRes;
+      statusData = sRes;
+      updateStatusBar();
+      render();
+    } catch(e){}
+  }, 3000);
+
+  // Initialize
+  loadAllData();
+})();
+</script>
+</body>
+</html>

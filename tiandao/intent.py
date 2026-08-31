@@ -8,6 +8,8 @@
 """
 import random
 
+from . import config as C
+
 # ---------------------------------------------------------------- นิสัย
 TRAITS = {
     "ใจโอบอ้อม": "เลือกช่วยคนและรักษาสมาชิกตระกูลก่อนเสมอ",
@@ -45,6 +47,7 @@ ARCHETYPES = {
 ARCH_BY_DAO = {
     "วิถีค้าขาย": "พ่อค้าวาณิช", "วิถียา": "ช่างหลอม", "วิถีเหล็ก": "ช่างหลอม",
     "วิถีเลือด": "มารหิวกระหาย", "วิถีพเนจร": "ผู้พเนจร",
+    "วิถีมวยไทย": "นักล่าบ้าพลัง",
 }
 
 
@@ -60,6 +63,29 @@ def pick_archetype(ch, rng):
 def pick_traits(rng):
     n = rng.choice([1, 1, 2])
     return rng.sample(list(TRAITS.keys()), n)
+
+
+# ---------------------------------------------------------------- เรียนรู้จากประสบการณ์
+def snapshot(ch):
+    """สภาพตัวละครก่อน/หลังลงมือทำเจตนาหนึ่งครั้ง ใช้วัดว่าครั้งนั้นดีหรือร้ายกับตัวเอง"""
+    return (ch.decay, ch.insight + ch.refine * 3.0, sum(ch.money.values()), ch.realm, ch.hp)
+
+
+def learn_from_outcome(ch, kind, before, after):
+    """จำผลจริงที่เจอไว้กับเจตนานั้น (EMA) — ไม่ใช่ปรับตารางกลาง แค่ความจำของตัวเอง"""
+    d_decay = before[0] - after[0]      # ความเสื่อมลด = ดี
+    d_acc = after[1] - before[1]        # สะสมได้เพิ่ม = ดี
+    d_money = after[2] - before[2]
+    d_realm = after[3] - before[3]      # ข้ามขั้นสำเร็จ = ดีมาก
+    d_hp = after[4] - before[4]
+    reward = (d_decay * 0.5 + d_realm * 2.0 + d_hp * 0.01
+              + (0.3 if d_acc > 0 else -0.1 if d_acc < 0 else 0.0)
+              + (0.1 if d_money > 0 else -0.05 if d_money < 0 else 0.0))
+    if not ch.alive:
+        reward -= 5.0
+    reward = max(-3.0, min(3.0, reward))
+    m = ch.learn
+    m[kind] = m.get(kind, 0.0) * (1.0 - C.LEARN_ALPHA) + reward * C.LEARN_ALPHA
 
 
 # ---------------------------------------------------------------- เลือกเจตนา
@@ -122,6 +148,7 @@ def weigh(ch, sim, table, has_others):
             w[k] += bonus
 
     pv = sim.place_of(ch)
+    eco = sim.eco_ratio(ch.place) if hasattr(sim, "eco_ratio") else 1.0
     # ถึงคอขวดแล้วต้องหาตัวช่วย ไม่ใช่นั่งรอ
     if not hurt and ch.at_bottleneck():
         w["ข้ามขั้น"] = w.get("ข้ามขั้น", 0) + 25
@@ -142,7 +169,9 @@ def weigh(ch, sim, table, has_others):
     # อยู่แหล่งวัตถุดิบก็เก็บของ อยู่ตลาดก็ขาย
     if pv:
         if pv[4]:
-            w["ล่าอสูร"] = w.get("ล่าอสูร", 0) + 10
+            w["ล่าอสูร"] = w.get("ล่าอสูร", 0) + 10 * eco
+            if eco < 0.4:      # แหล่งนี้ร่อยหรอ — เริ่มมองหาที่อื่น
+                w["เดินทาง"] = w.get("เดินทาง", 0) + (1.0 - eco) * 15
         if pv[3] in ("ตลาด", "เมือง"):
             w["ค้าขาย"] = w.get("ค้าขาย", 0) + 12
         if pv[3] in ("ลานฝึก", "สำนัก", "แดนต้องห้าม"):
@@ -178,6 +207,34 @@ def weigh(ch, sim, table, has_others):
         w["ข้ามฟ้า"] = w.get("ข้ามฟ้า", 0) + 18
         w["ซ่อนตัว"] = w.get("ซ่อนตัว", 0) + 6
 
+    # ข่าวลือที่เคยได้ยินมา — จูงใจให้ไปตามหา ไม่ใช่แค่รู้เฉยๆ
+    from . import places as _PL
+    for lead in getattr(ch, "rumor_leads", ()):
+        if lead["kind"] == "แดนลับ":
+            w["ค้นแดนลับ"] = w.get("ค้นแดนลับ", 0) + 10
+        elif lead["kind"] == "สมบัติ":
+            w["ค้นแดนลับ"] = w.get("ค้นแดนลับ", 0) + 5
+            w["ชิงสมบัติ"] = w.get("ชิงสมบัติ", 0) + 6
+        elif lead["kind"] in ("ขาดแคลน", "อุดมสมบูรณ์"):
+            same_world = 0 <= lead["subject"] < len(_PL.PLACES) and \
+                _PL.PLACES[lead["subject"]][1] == getattr(sim.world(ch.world_id), "place_key", None)
+            if not same_world:
+                continue
+            if lead["kind"] == "ขาดแคลน" and lead["subject"] == ch.place:
+                w["เดินทาง"] = w.get("เดินทาง", 0) + 12
+            elif lead["kind"] == "อุดมสมบูรณ์":
+                w["เดินทาง"] = w.get("เดินทาง", 0) + 6
+        elif lead["kind"] == "ชิ้นส่วนวิชา":
+            w["ค้นแดนลับ"] = w.get("ค้นแดนลับ", 0) + 8
+            w["เดินทาง"] = w.get("เดินทาง", 0) + 5
+
+    # ---- เลเยอร์ 4: ประสบการณ์ตรงของตัวเอง (เรียนรู้ได้ด้วยตัวเอง) ----
+    if ch.learn:
+        for k in list(w.keys()):
+            bias = ch.learn.get(k, 0.0)
+            if bias:
+                w[k] *= max(C.LEARN_FLOOR, 1.0 + C.LEARN_GAIN * bias)
+
     # เหตุการณ์ที่ต้องมีคู่กรณี ต้องมีคนอื่นอยู่จริงเท่านั้น
     if not has_others:
         need_target = {e["kind"] for e in table if e["tgt"]}
@@ -187,8 +244,10 @@ def weigh(ch, sim, table, has_others):
     return {k: v for k, v in w.items() if v > 0 and k in valid}
 
 
-def choose(ch, sim, table, has_others, rng: random.Random):
-    w = weigh(ch, sim, table, has_others)
+def sample_weighted(w, rng: random.Random):
+    """สุ่มเลือกหนึ่ง kind ตามน้ำหนักใน w (roulette wheel) — คืน None ถ้า w ว่าง
+    แยกออกมาจาก choose() เพื่อให้ Cultivator Brain (tiandao/ai/) แทรก boost น้ำหนักระหว่าง
+    weigh() กับการสุ่มได้ โดยไม่ต้องแก้ตรรกะการสุ่มเอง"""
     if not w:
         return None
     total = sum(w.values())
@@ -198,3 +257,8 @@ def choose(ch, sim, table, has_others, rng: random.Random):
         if r <= acc:
             return kind
     return next(iter(w))
+
+
+def choose(ch, sim, table, has_others, rng: random.Random):
+    w = weigh(ch, sim, table, has_others)
+    return sample_weighted(w, rng)

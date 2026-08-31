@@ -1,0 +1,236 @@
+# Narrative Dataset Factory — config (ตาม ROLE (1).md: "ห้าม Hardcode มากเกินไป")
+#
+# ตารางทุกอันในนี้แก้ได้โดยไม่ต้องแตะโค้ด — event kind ใหม่ที่ไม่รู้จักจะตกไปที่ default_scene_type
+# เสมอ ไม่ throw error (รองรับ "Event ใหม่ในอนาคต" ตามที่ ROLE.md สั่ง)
+
+# kind ของ tiandao/events.py (และ sim.py ที่ emit เอง เช่น "โกลาหลบุก") -> scene_type มาตรฐาน
+# ใช้รายการ Event หลักที่ ROLE.md ระบุ: Breakthrough/Duel/Betrayal/Treasure/SectWar/Death/Escape/
+# PillCraft/Auction/Robbery
+scene_type_map:
+  ข้ามขั้น: Breakthrough
+  ประลอง: Duel
+  ล้างแค้น: Duel
+  ล่ามนุษย์มาร: Duel
+  ทรยศ: Betrayal
+  ไส้ศึกลงมือ: Betrayal
+  ชิงสมบัติ: Robbery
+  ดักปล้น: Robbery
+  ค้นแดนลับ: Treasure
+  สงครามสำนัก: SectWar
+  ซ่อนตัว: Escape
+  ลงโลกล่าง: Escape
+  หลอมยา: PillCraft
+  หลอมอาวุธ: PillCraft
+  เปิดประมูล: Auction
+  ค้าขาย: Auction
+  โกลาหลบุกโลกมนุษย์: Invasion
+  โกลาหลบุก: Invasion
+default_scene_type: Other
+
+# ถ้า outcome ของเหตุการณ์อยู่ในนี้ scene_type จะถูก override เป็น Death เสมอ (ไม่ว่า kind จะเป็นอะไร)
+death_outcomes: ["ตาย"]
+
+# conflict_level (0-100): ถ้า event.deltas มี "margin" จริง (เพิ่มเข้า sim.py แล้วตั้งแต่รอบนี้)
+# ใช้ margin/margin_scale แล้ว clamp 0-100 — ถ้าไม่มี (log เก่าก่อนมี margin) ใช้ตาราง outcome สำรอง
+conflict_level:
+  margin_scale: 12.0
+  outcome_fallback:
+    ตาย: 100
+    รอดตายด้วยชะตา: 90
+    พ่ายแพ้: 60
+    ล้มเหลว: 40
+    ยังไม่ถึง: 15
+    ถูกขับไล่: 55
+    ถูกสกัดกั้น: 30
+    สำเร็จ: 20
+    ผ่าน: 15
+    default: 10
+
+# emotion_curve: "narrative pacing template" เลือกจาก (scene_type, ผลชนะ/แพ้) — ไม่ใช่ค่าที่วัดจริง
+# จากซิม (เอนจินเป็น discrete-event ไม่มี sub-beat ให้วัด) เป็นรูปร่างจังหวะเรื่องมาตรฐานที่ใช้กับ
+# scene ประเภทนั้นๆ เท่านั้น
+emotion_curve_templates:
+  Breakthrough:
+    win: [20, 45, 70, 95, 60]
+    loss: [20, 45, 75, 30, 10]
+  Duel:
+    win: [30, 55, 80, 95, 50]
+    loss: [30, 60, 85, 20, 10]
+  Betrayal:
+    default: [10, 30, 80, 95, 40]
+  Death:
+    default: [40, 70, 95, 100, 0]
+  Escape:
+    default: [60, 85, 70, 40, 20]
+  Robbery:
+    win: [25, 50, 75, 60, 30]
+    loss: [25, 55, 80, 20, 10]
+  Treasure:
+    default: [15, 40, 65, 85, 55]
+  SectWar:
+    default: [35, 60, 90, 100, 55]
+  Invasion:
+    default: [30, 65, 90, 95, 45]
+  default:
+    default: [20, 40, 60, 70, 40]
+
+# foreshadowing: ค้นย้อนหลังใน log ของตัวละครเดียวกันเท่านั้น หา event kind ที่เป็น "ตัวปูเรื่อง" รู้จัก
+# ของ scene_type (payoff) นั้นๆ — คืนข้อความจริงจาก log เท่านั้น (ไม่เคยแต่งขึ้นเอง) ว่างได้ถ้าไม่เจอ
+foreshadowing_precursors:
+  Breakthrough: ["สะสมต่อ", "ยังไม่ถึง", "ฝึกวิชา"]
+  Betrayal: ["ให้สัญญา", "สะสางเรื่องเก่า", "ไส้ศึกลงมือ"]
+  SectWar: ["สงครามสำนัก"]
+  Duel: ["ล้างแค้น"]
+  Invasion: ["โกลาหลบุกโลกมนุษย์", "โกลาหลบุก"]
+foreshadowing_lookback_days: 3650   # ย้อนหลังสูงสุด ~10 ปีจำลอง
+foreshadowing_max_items: 2
+
+# Memory Retriever (Phase C): token budget คร่าวๆ (ประมาณ 3 ตัวอักษรไทย/token) + จำนวนความจำสูงสุด
+# ต่อฉาก — "Relevant Memory Only" ไม่ใช่ทั้งชีวิต
+memory_token_budget: 800
+memory_max_items: 8
+
+# Character Context Builder (Phase C): scene_type -> Current Goal ที่ตัวละครโฟกัสน่าจะไล่ตามอยู่ตอน
+# เกิดฉากนั้น — ใช้แทน tiandao/ai/brain.py:current_goal (Phase 2 ของ Cultivator Brain v2) เพราะอันนั้น
+# เป็น snapshot ปัจจุบัน (ท้ายซิม) ไม่ใช่ ณ เวลาของฉากในอดีต — ชื่อ goal อ้างอิงจาก
+# tiandao/ai/utility.py:NEEDS ให้สอดคล้องกัน
+goal_by_scene_type:
+  Breakthrough: Breakthrough
+  Duel: Reputation
+  Betrayal: Wealth
+  Robbery: Wealth
+  Treasure: DaoPursuit
+  PillCraft: DaoPursuit
+  Auction: Wealth
+  Escape: Escape
+  Death: Escape
+  SectWar: Reputation
+  Invasion: Escape
+default_goal: DaoPursuit
+
+# Dataset Export (Phase E)
+scene_type_th:
+  Breakthrough: "ฉากทะลุขั้นบำเพ็ญ"
+  Duel: "ฉากประลองฝีมือ"
+  Betrayal: "ฉากทรยศหักหลัง"
+  Robbery: "ฉากชิงทรัพย์"
+  Treasure: "ฉากค้นหาสมบัติ"
+  SectWar: "ฉากสงครามสำนัก"
+  Death: "ฉากความตาย"
+  Escape: "ฉากหลบหนี"
+  PillCraft: "ฉากหลอมยา"
+  Auction: "ฉากประมูล/ค้าขาย"
+  Invasion: "ฉากถูกรุกราน"
+default_scene_type_th: "ฉากทั่วไป"
+
+# Automatic Style Tagging — Romance/Comedy ไม่มีในตารางนี้โดยตั้งใจ: เอนจินไม่มีกลไกความรัก/มุกตลก
+# เป็นเหตุการณ์แยก จึงไม่มีมูลจะติด tag สองอันนี้ได้อย่างซื่อสัตย์
+style_tags_by_scene_type:
+  Breakthrough: ["Breakthrough", "Cultivation"]
+  Duel: ["Action"]
+  Betrayal: ["Betrayal"]
+  Robbery: ["Action"]
+  Treasure: ["Cultivation"]
+  SectWar: ["Politics", "Sect", "Action"]
+  Death: ["Action"]
+  Escape: ["Action"]
+  PillCraft: ["Cultivation"]
+  Auction: ["Auction"]
+  Invasion: ["Action", "Sect"]
+style_tag_conflict_threshold: 60
+
+# Dataset E (Planning) — mirror ของ tiandao/ai/goap.py:FIND_PILL_METHODS แต่คำนวณย้อนหลังจาก log
+# จริง (ไม่ใช่ live state) เพราะ Dataset Factory ทำงานบนโลกที่เซฟไว้แล้ว ไม่มีซิมสดให้ถาม
+goap_method_kinds:
+  Craft: หลอมยา
+  Buy: ค้าขาย
+  Trade: เปิดประมูล
+  Rob: ชิงสมบัติ
+goap_lookback_days: 200
+
+export_min_score: 80
+datasets_dir: datasets
+
+# Phase I — DPO Pair Builder: เกณฑ์คะแนนของฝั่ง "chosen" ต้องสูงกว่า PASS_THRESHOLD ปกติของ
+# scoring.py จริง (ตอนตั้งค่านี้ไว้ 85 ครั้งแรก PASS_THRESHOLD ยังเป็น 80 อยู่ — พอ Phase K เปลี่ยน
+# PASS_THRESHOLD เป็น 85 ด้วย [Shadow Evaluation V2] ค่าทั้งสองเลยชนกันพอดี ทำให้ "chosen" ไม่เข้มกว่า
+# เกณฑ์ผ่านปกติเหมือนที่ตั้งใจไว้แต่แรก — ปรับขึ้นเป็น 90 ให้ยังเข้มกว่า PASS_THRESHOLD จริงเหมือนเดิม)
+dpo_chosen_threshold: 90
+
+# Phase K5 — Arc Builder: ฉากติดกันของตัวละครเดียวกันห่างกันไม่เกินกี่วันถือเป็น "อาร์คเดียวกัน" (ใหญ่
+# กว่า scene_merge_window_days ของ Scene มาก เพราะ Arc คือเรื่องราวช่วงยาว ไม่ใช่ฉากเดียว)
+arc_merge_window_days: 365
+
+# Phase K3 — Hook Detector: ตารางละเอียดระดับ event.kind จริง (ตรวจก่อน hook_by_scene_type ด้านล่าง
+# ซึ่งเป็น fallback ถ้า kind นั้นไม่อยู่ในนี้) — Danger/Mystery/Desire/Opportunity/World Event
+hook_by_kind:
+  ประลอง: Danger
+  ล้างแค้น: Danger
+  ดักปล้น: Danger
+  ชิงสมบัติ: Danger
+  ลอบสังหาร: Danger
+  ไส้ศึกลงมือ: Danger
+  ทรยศ: Danger
+  ภัยธรรมชาติ: World Event
+  สงครามสำนัก: World Event
+  เหตุการณ์เมือง: World Event
+  โกลาหลบุก: World Event
+  โกลาหลบุกโลกมนุษย์: World Event
+  ซ่อนตัว: Mystery
+  ค้นแดนลับ: Mystery
+  ขายข่าวลับ: Mystery
+  ทำนายชะตา: Mystery
+  สะสางเรื่องเก่า: Mystery
+  ข้ามขั้น: Desire
+  บำเพ็ญ: Desire
+  ฝึกวิชา: Desire
+  ข้ามฟ้า: Desire
+  ขัดเกลาสายเลือด: Desire
+  ถ่ายทอดวิชา: Desire
+  ให้สัญญา: Desire
+  เปิดประมูล: Opportunity
+  ค้าขาย: Opportunity
+  ค้าขายทั่วไป: Opportunity
+  สมบัติฟ้าดิน: Opportunity
+  หลอมยา: Opportunity
+  หลอมอาวุธ: Opportunity
+  หลอมค่ายกล: Opportunity
+  ตั้งสำนัก: Opportunity
+  กำเนิดทายาท: Opportunity
+
+# Phase K1 — Narrative Teacher: Hook เปิดฉอง มาจาก scene_type ของ**เหตุการณ์แรก**ในฉาก (ไม่ใช่ anchor)
+# — ใช้เป็น fallback ของ Phase K3 (hook_by_kind ด้านบน) ถ้า kind ไม่อยู่ในตารางละเอียด
+hook_by_scene_type:
+  Breakthrough: Desire
+  Duel: Danger
+  Betrayal: Danger
+  Robbery: Danger
+  Treasure: Opportunity
+  SectWar: World Event
+  Death: Danger
+  Escape: Danger
+  PillCraft: Desire
+  Auction: Opportunity
+  Invasion: World Event
+default_hook: Mystery
+
+# Phase K1 — ประเภทความขัดแย้งหลักของฉาก มาจาก scene_type ของฉาก (anchor)
+conflict_type_by_scene_type:
+  Breakthrough: Dao Conflict
+  Duel: External
+  Betrayal: Social Conflict
+  Robbery: Survival Conflict
+  Treasure: External
+  SectWar: Social Conflict
+  Death: Survival Conflict
+  Escape: Survival Conflict
+  PillCraft: Internal
+  Auction: Social Conflict
+  Invasion: Survival Conflict
+default_conflict_type: External
+
+# Scene Extractor (Phase B): เหตุการณ์ที่มีผู้เล่นร่วมกัน (actor/target ซ้ำกัน) และห่างกันไม่เกินกี่วัน
+# ถือเป็น "ฉากเดียวกัน" ต่อเนื่องกัน (ไล่ล่า→ต่อสู้→จบ ที่เกิดในไม่กี่วันติดกัน) ห่างกว่านี้ = คนละฉาก
+scene_merge_window_days: 3
+# scene_type ที่จะ "ไม่" เอามาเป็นฉาก (ปรับตามข้อ "ห้ามเก็บข้อมูลแบบสุ่ม" ของ ROLE.md)
+excluded_scene_types: ["Other"]

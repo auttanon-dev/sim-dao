@@ -62,21 +62,27 @@ def has_anti_chaos(ch: Character) -> bool:
 
 
 def power(ch: Character, world: World, items=None, day: int = None) -> float:
-    p = (world.tier * C.TIER_STEP
-         + ch.realm * C.REALM_STEP
-         + ch.insight * C.INSIGHT_W
-         + blood_power(ch)
-         + skill_power(ch)
-         - ch.decay * C.DECAY_W)
     if ch.is_chaos():
-        # ลงมาโลกที่ต่ำกว่าถิ่นตัวเอง = ถูกกดเหมือนทุกคน
+        # ตาม SPEC: ความได้เปรียบของโกลาหลต้องมาจาก CHAOS_EDGE (ค่าคงที่) ล้วนๆ ไม่ใช่จากพลังดิบ
+        # พลังฐานจึงต้องเทียบเท่ามนุษย์ขั้นสูงสุดพอดี (eff_tier แทน world.tier ตรงๆ ไม่บวกซ้อน)
+        # ch.realm ถูกตั้งไว้ที่ REALM_CAP ตั้งแต่เกิดอยู่แล้ว ส่วน chaos_rank เป็นแค่ตัวแปรเล็กๆ
+        # ให้แตกต่างกันภายในเผ่าโกลาหลเอง ไม่ใช่พลังก้อนใหญ่ระดับเดียวกับการไต่ขั้นของมนุษย์
         eff_tier = min(C.CHAOS_TIER, world.tier)
         rank = ch.chaos_rank
-        if world.tier < C.CHAOS_TIER:
+        if world.tier < C.CHAOS_TIER:      # ลงมาโลกที่ต่ำกว่าถิ่นตัวเอง = ถูกกดเหมือนทุกคน
             rank = max(0, rank - C.CHAOS_DESCEND_PUSH)
-        p += eff_tier * C.TIER_STEP + rank * C.REALM_STEP
+        p = (eff_tier * C.TIER_STEP + ch.realm * C.REALM_STEP + rank * 1.0
+             + ch.insight * C.INSIGHT_W + blood_power(ch) + skill_power(ch)
+             - ch.decay * C.DECAY_W)
         if ch.is_lord:
             p += C.CHAOS_LORD_BONUS + ch.lord_returns * C.LORD_GROWTH
+    else:
+        p = (world.tier * C.TIER_STEP
+             + ch.realm * C.REALM_STEP
+             + ch.insight * C.INSIGHT_W
+             + blood_power(ch)
+             + skill_power(ch)
+             - ch.decay * C.DECAY_W)
     if items:
         p += item_power(ch, items, day)
     return p
@@ -418,3 +424,16 @@ def check_world(sim, world: World, rng):
 def seal_left(cache, day: int) -> float:
     yrs = (day - cache.sealed_day) / 365.0
     return cache.seal - yrs * C.SEAL_DECAY_PER_YEAR
+
+
+def mara_seal_state(sim) -> dict:
+    """ประเมินสถานะของมหาผนึกหมื่นมารสะกดโลก"""
+    seal = getattr(sim, "mara_seal", getattr(C, "MARA_SEAL_INITIAL", 100.0))
+    broken = getattr(sim, "mara_seal_broken", False)
+    if broken or seal <= getattr(C, "MARA_SEAL_BROKEN_THRESHOLD", 0.0):
+        status = "พังทลาย (สัญจรข้ามแดนได้สมบูรณ์)"
+    elif seal <= getattr(C, "MARA_SEAL_WEAK_THRESHOLD", 30.0):
+        status = "สั่นคลอน (ไอปีศาจรั่วไหล)"
+    else:
+        status = "แน่นหนา (ข้ามผ่านไม่ได้)"
+    return {"seal": round(seal, 2), "broken": broken, "status": status}

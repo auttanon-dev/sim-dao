@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วิถีสวรรค์ — ผังเมืองและหมู่บ้านเสมือนจริง (Watabou Settlement Viewer)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Noto+Sans+Thai:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg-dark: #0a0c10;
+    --panel-bg: rgba(16, 19, 26, 0.88);
+    --panel-border: rgba(212, 175, 55, 0.3);
+    --gold: #d4af37;
+    --gold-bright: #ffd166;
+    --cyan: #48cae4;
+    --green: #52b788;
+    --crimson: #e63946;
+    --text-main: #f3ede2;
+    --text-muted: #959fad;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Noto Sans Thai', 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    height: 56px;
+    background: linear-gradient(180deg, rgba(14, 16, 22, 0.96) 0%, rgba(14, 16, 22, 0.7) 100%);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    z-index: 100;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .brand h1 {
+    font-family: 'Cinzel', 'Noto Sans Thai', serif;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--gold);
+  }
+  .settlement-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #12100e;
+    background: var(--gold-bright);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  .btn-nav {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn-nav:hover {
+    background: rgba(212, 175, 55, 0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* Viewport */
+  #viewport-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #151a24 0%, #0a0c10 100%);
+  }
+
+  canvas {
+    display: block;
+    cursor: grab;
+  }
+  canvas:active { cursor: grabbing; }
+
+  /* Panels */
+  .panel {
+    position: absolute;
+    background: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 0.85rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    z-index: 50;
+  }
+
+  /* Place Switcher Dropdown (Top Left) */
+  #place-picker {
+    top: 1rem;
+    left: 1rem;
+    width: 280px;
+  }
+  #select-place {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--gold-bright);
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* Ward & Building Inspector (Bottom Left) */
+  #inspector-panel {
+    bottom: 1rem;
+    left: 1rem;
+    width: 320px;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  #insp-title {
+    font-size: 1.1rem;
+    color: var(--gold-bright);
+    font-family: 'Cinzel', serif;
+    margin-bottom: 0.2rem;
+  }
+  .tag {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--gold);
+    border: 1px solid var(--gold);
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .stat-row span:first-child { color: var(--text-muted); }
+
+  /* Occupant Card */
+  .occupant-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+  }
+  .occupant-card b { color: var(--cyan); }
+
+  /* Controls (Top Right) */
+  #controls-panel {
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.4rem;
+  }
+  .btn-ctrl {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .btn-ctrl:hover { border-color: var(--gold); color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1 id="header-name">ผังเมืองเสมือนจริง</h1>
+    <span class="settlement-badge">WATABOU VECTOR ENGINE</span>
+  </div>
+  <div class="nav-actions">
+    <a href="/godview" class="btn-nav">👁️ มุมมองพระเจ้า (God's View)</a>
+    <a href="/map" class="btn-nav">🗺️ แผนที่โลก</a>
+    <a href="/" class="btn-nav">📊 แดชบอร์ด</a>
+  </div>
+</header>
+
+<div id="viewport-container">
+  <canvas id="settlement-canvas"></canvas>
+
+  <!-- Place Picker Dropdown -->
+  <div class="panel" id="place-picker">
+    <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.3rem;">เลือกเมือง/สำนัก/หมู่บ้าน:</label>
+    <select id="select-place"></select>
+  </div>
+
+  <!-- Inspector Panel -->
+  <div class="panel" id="inspector-panel">
+    <h2 id="insp-title">เลือกอาคารในเมือง</h2>
+    <div id="insp-tag" class="tag">โครงสร้างเมือง</div>
+    <div id="insp-content">
+      <p style="font-size:0.8rem; color:var(--text-muted);">
+        คลิกที่แปลงอาคารใดๆ เพื่อดูรายชื่อผู้บำเพ็ญที่กำลังฝึกตน ค้าขาย หรือพำนักอยู่ภายใน
+      </p>
+    </div>
+  </div>
+
+  <!-- Zoom Controls -->
+  <div class="panel" id="controls-panel">
+    <button class="btn-ctrl" id="btn-zoom-in">+</button>
+    <button class="btn-ctrl" id="btn-zoom-out">-</button>
+    <button class="btn-ctrl" id="btn-reset">🎯</button>
+  </div>
+</div>
+
+<script>
+(async function() {
+  const canvas = document.getElementById('settlement-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight - 56;
+
+  let currentPlaceIdx = {{ place_idx }};
+  let settlementData = null;
+  let allPlaces = [];
+  let selectedBuilding = null;
+
+  // Camera State
+  let camera = {
+    x: width / 2,
+    y: height / 2,
+    scale: 1.0,
+    isDragging: false,
+    dragStart: { x: 0, y: 0 }
+  };
+
+  window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight - 56;
+    render();
+  });
+
+  // World to Screen coordinates
+  function worldToScreen(wx, wy) {
+    return {
+      x: camera.x + wx * camera.scale,
+      y: camera.y + wy * camera.scale
+    };
+  }
+
+  function screenToWorld(sx, sy) {
+    return {
+      x: (sx - camera.x) / camera.scale,
+      y: (sy - camera.y) / camera.scale
+    };
+  }
+
+  // Load All Places for Dropdown
+  async function loadPlacesList() {
+    try {
+      const res = await fetch('/api/map/places');
+      allPlaces = await res.json();
+      const sel = document.getElementById('select-place');
+      sel.innerHTML = '';
+      allPlaces.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.idx;
+        opt.innerText = `[${p.realm_name}] ${p.name} (${p.type})`;
+        if (p.idx === currentPlaceIdx) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      sel.addEventListener('change', () => {
+        currentPlaceIdx = parseInt(sel.value);
+        loadSettlementData();
+      });
+    } catch(e) {}
+  }
+
+  // Load Settlement Data
+  async function loadSettlementData() {
+    try {
+      const res = await fetch(`/api/settlement/${currentPlaceIdx}`);
+      settlementData = await res.json();
+      document.getElementById('header-name').innerText = settlementData.name;
+      selectedBuilding = null;
+      resetCamera();
+      render();
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  function resetCamera() {
+    camera.x = width / 2;
+    camera.y = height / 2;
+    camera.scale = 1.0;
+  }
+
+  // Render Settlement Canvas
+  function render() {
+    ctx.clearRect(0, 0, width, height);
+    if (!settlementData) return;
+
+    const pal = settlementData.palette;
+
+    // 1. Draw Ground Background Circle
+    const center = worldToScreen(0, 0);
+    const rad = settlementData.radius * camera.scale;
+
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, rad * 1.15, 0, Math.PI * 2);
+    ctx.fillStyle = pal.ground_color || '#212529';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 2. Draw Wards (District Outlines)
+    settlementData.wards.forEach(w => {
+      const sc = worldToScreen(w.x, w.y);
+      const wRad = w.radius * camera.scale;
+      ctx.beginPath();
+      ctx.arc(sc.x, sc.y, wRad, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.12)';
+      ctx.setLineDash([4 * camera.scale, 4 * camera.scale]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    // 3. Draw Roads
+    settlementData.roads.forEach(rd => {
+      ctx.beginPath();
+      ctx.strokeStyle = rd.type === 'main' ? '#4a4e69' : '#333533';
+      ctx.lineWidth = (rd.type === 'main' ? 5 : 2.5) * camera.scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      rd.points.forEach((pt, idx) => {
+        const s = worldToScreen(pt[0], pt[1]);
+        if (idx === 0) ctx.moveTo(s.x, s.y);
+        else ctx.lineTo(s.x, s.y);
+      });
+      ctx.stroke();
+    });
+
+    // 4. Draw City Walls & Gates
+    if (settlementData.city_wall) {
+      const cw = settlementData.city_wall;
+      ctx.beginPath();
+      ctx.strokeStyle = cw.color;
+      ctx.lineWidth = 6 * camera.scale;
+      ctx.lineJoin = 'round';
+
+      cw.points.forEach((pt, idx) => {
+        const s = worldToScreen(pt[0], pt[1]);
+        if (idx === 0) ctx.moveTo(s.x, s.y);
+        else ctx.lineTo(s.x, s.y);
+      });
+      ctx.stroke();
+
+      // Draw Gate bastions
+      cw.gates.forEach(g => {
+        const gs = worldToScreen(g.x, g.y);
+        ctx.beginPath();
+        ctx.arc(gs.x, gs.y, 6 * camera.scale, 0, Math.PI * 2);
+        ctx.fillStyle = pal.accent_color;
+        ctx.fill();
+        ctx.strokeStyle = '#12100e';
+        ctx.lineWidth = 2 * camera.scale;
+        ctx.stroke();
+      });
+    }
+
+    // 5. Draw Building Parcels (Watabou Style)
+    settlementData.buildings.forEach(b => {
+      const s = worldToScreen(b.x, b.y);
+      const bw = b.width * camera.scale;
+      const bh = b.height * camera.scale;
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(b.rotation);
+
+      // Building Drop Shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillRect(-bw/2 + 2, -bh/2 + 2, bw, bh);
+
+      // Building Roof Fill
+      const isSel = selectedBuilding && selectedBuilding.id === b.id;
+      ctx.fillStyle = isSel ? '#ffd166' : b.roof_color;
+      ctx.fillRect(-bw/2, -bh/2, bw, bh);
+
+      // Roof Ridge / Detail Ink Line
+      ctx.strokeStyle = isSel ? '#ffffff' : '#12100e';
+      ctx.lineWidth = isSel ? 2.5 * camera.scale : 1.2 * camera.scale;
+      ctx.strokeRect(-bw/2, -bh/2, bw, bh);
+
+      // Internal ridge line
+      ctx.beginPath();
+      ctx.moveTo(-bw/2, 0);
+      ctx.lineTo(bw/2, 0);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Occupants count marker
+      if (b.occupants && b.occupants.length > 0) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y - bh/2 - 4 * camera.scale, 3.5 * camera.scale, 0, Math.PI * 2);
+        ctx.fillStyle = '#48cae4';
+        ctx.fill();
+      }
+    });
+
+    // 6. Draw Living NPCs walking in Town
+    const curTime = Date.now();
+    settlementData.buildings.forEach(b => {
+      (b.occupants || []).forEach((occ, oIdx) => {
+        // Wandering trajectory around building
+        const wanderX = occ.x + 8 * Math.cos(curTime * 0.002 + occ.cid);
+        const wanderY = occ.y + 8 * Math.sin(curTime * 0.002 + occ.cid);
+        const sc = worldToScreen(wanderX, wanderY);
+
+        ctx.beginPath();
+        ctx.arc(sc.x, sc.y, 4 * camera.scale, 0, Math.PI * 2);
+        ctx.fillStyle = occ.is_lord ? '#ffd166' : '#48cae4';
+        ctx.fill();
+        ctx.strokeStyle = '#12100e';
+        ctx.lineWidth = 1.5 * camera.scale;
+        ctx.stroke();
+
+        // Name tag at close zoom
+        if (camera.scale >= 1.1) {
+          ctx.font = `${Math.round(9 * camera.scale)}px 'Noto Sans Thai', sans-serif`;
+          ctx.fillStyle = '#f3ede2';
+          ctx.textAlign = 'center';
+          ctx.fillText(occ.name, sc.x, sc.y - 6 * camera.scale);
+        }
+      });
+    });
+  }
+
+  // Pan & Zoom
+  canvas.addEventListener('mousedown', e => {
+    camera.isDragging = true;
+    camera.dragStart = { x: e.clientX - camera.x, y: e.clientY - camera.y };
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (camera.isDragging) {
+      camera.x = e.clientX - camera.dragStart.x;
+      camera.y = e.clientY - camera.dragStart.y;
+      render();
+    }
+  });
+
+  window.addEventListener('mouseup', () => { camera.isDragging = false; });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const zoom = e.deltaY < 0 ? 1.15 : 0.85;
+    const mouseX = e.clientX - camera.x;
+    const mouseY = e.clientY - camera.y;
+
+    const newScale = Math.max(0.4, Math.min(3.5, camera.scale * zoom));
+    camera.x -= mouseX * (newScale / camera.scale - 1);
+    camera.y -= mouseY * (newScale / camera.scale - 1);
+    camera.scale = newScale;
+    render();
+  });
+
+  // Building Click Inspection
+  canvas.addEventListener('click', e => {
+    const mouseW = screenToWorld(e.clientX, e.clientY);
+    let found = null;
+    let minDist = 25.0 / camera.scale;
+
+    settlementData.buildings.forEach(b => {
+      const d = Math.hypot(b.x - mouseW.x, b.y - mouseW.y);
+      if (d < minDist) {
+        minDist = d;
+        found = b;
+      }
+    });
+
+    if (found) {
+      inspectBuilding(found);
+    }
+  });
+
+  function inspectBuilding(b) {
+    selectedBuilding = b;
+    document.getElementById('insp-title').innerText = b.name;
+    document.getElementById('insp-tag').innerText = b.type.toUpperCase();
+
+    const occCount = (b.occupants || []).length;
+    let occHTML = '';
+    (b.occupants || []).forEach((occ, oIdx) => {
+      occHTML += `
+        <div class="occupant-card">
+          <b>${occ.name}</b> (ขั้นที่ ${occ.realm} · ${occ.realm_name})<br>
+          <span style="color:var(--text-muted); font-size:0.75rem;">วิถี: ${occ.dao} · กิจวัตร: ${occ.routine_action}</span>
+          <div style="display:flex; gap:0.4rem; margin-top:0.3rem;">
+            <button onclick="triggerDialogue(${occ.cid}, '${occ.name}')" style="flex:1; padding:0.25rem; font-size:0.72rem; background:rgba(72,202,228,0.2); border:1px solid var(--cyan); color:var(--cyan); border-radius:4px; cursor:pointer;">💬 สนทนา</button>
+            <a href="/combat" target="_blank" style="flex:1; text-align:center; padding:0.25rem; font-size:0.72rem; background:rgba(230,57,70,0.2); border:1px solid var(--crimson); color:var(--crimson); border-radius:4px; text-decoration:none; cursor:pointer;">⚔️ ประลองยุทธ์</a>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById('insp-content').innerHTML = `
+      <div class="stat-row"><span>ประเภทอาคาร</span><span>${b.type}</span></div>
+      <div class="stat-row"><span>ความจุผู้บำเพ็ญ</span><span>${occCount} / ${b.capacity} คน</span></div>
+      <div class="stat-row"><span>พิกัดภายในเมือง</span><span>(${b.x}, ${b.y})</span></div>
+      <div style="margin-top:0.6rem; font-size:0.8rem; font-weight:700; color:var(--gold-bright);">
+        ผู้บำเพ็ญภายในอาคาร (${occCount} คน):
+      </div>
+      ${occHTML || '<p style="font-size:0.78rem; color:var(--text-muted); margin-top:0.3rem;">ขณะนี้ยังไม่มีผู้บำเพ็ญพักอยู่</p>'}
+      <div id="dialogue-box" style="margin-top:0.8rem; display:none; background:rgba(0,0,0,0.4); border:1px solid var(--gold); border-radius:6px; padding:0.5rem; font-size:0.78rem;"></div>
+    `;
+    render();
+  }
+
+  // Trigger Dialogue
+  window.triggerDialogue = async function(cid, name) {
+    try {
+      const box = document.getElementById('dialogue-box');
+      box.style.display = 'block';
+      box.innerHTML = '<i>กำลังถ่ายทอดกระแสจิต...</i>';
+
+      const res = await fetch(`/api/dialogue/encounter?c1_id=${cid}&place_name=${encodeURIComponent(settlementData.name)}`);
+      const dlg = await res.json();
+      
+      let html = `<b style="color:var(--gold-bright);">📜 【${dlg.context}】</b><br>`;
+      (dlg.lines || []).forEach(l => {
+        html += `<p style="margin-top:0.3rem;"><b>${l.speaker}:</b> "${l.text}" <i>(${l.action || ''})</i></p>`;
+      });
+      box.innerHTML = html;
+    } catch(e) {
+      console.error(e);
+    }
+  };
+
+  // Weather Particles
+  let weatherData = null;
+  let weatherParticles = [];
+
+  async function loadWeather() {
+    try {
+      const rk = settlementData ? settlementData.realm_key : 'siam';
+      const res = await fetch(`/api/weather/current?realm_key=${rk}`);
+      weatherData = await res.json();
+
+      weatherParticles = [];
+      const pCount = weatherData.particle_count || 40;
+      for (let i = 0; i < pCount; i++) {
+        weatherParticles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: weatherData.wind_x || 1.0,
+          vy: weatherData.wind_y || 1.0,
+          radius: weatherData.particle_type === 'petal' ? 4 : weatherData.particle_type === 'snowflake' ? 3 : 2,
+          color: weatherData.particle_color || '#ffb3c6'
+        });
+      }
+    } catch(e){}
+  }
+
+  // Zoom Button Handlers
+  document.getElementById('btn-zoom-in').onclick = () => {
+    camera.scale = Math.min(3.5, camera.scale * 1.25);
+    render();
+  };
+  document.getElementById('btn-zoom-out').onclick = () => {
+    camera.scale = Math.max(0.4, camera.scale * 0.8);
+    render();
+  };
+  document.getElementById('btn-reset').onclick = () => {
+    resetCamera();
+    render();
+  };
+
+  // Animation Loop for live NPC wandering & Weather
+  setInterval(() => {
+    render();
+    // Render Weather Particles on top
+    if (weatherParticles.length > 0) {
+      weatherParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x > width) p.x = 0;
+        if (p.x < 0) p.x = width;
+        if (p.y > height) p.y = 0;
+        if (p.y < 0) p.y = height;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.65;
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      });
+    }
+  }, 100);
+
+  // Initialize
+  await loadPlacesList();
+  await loadSettlementData();
+  await loadWeather();
+})();
+</script>
+</body>
+</html>

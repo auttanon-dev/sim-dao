@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>วิถีสวรรค์ — ลานประลองยุทธ์เสมือนจริง (Tactical Combat Visualizer)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+Thai:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg-dark: #08090c;
+    --panel-bg: rgba(16, 19, 26, 0.9);
+    --panel-border: rgba(212, 175, 55, 0.35);
+    --gold: #d4af37;
+    --gold-bright: #ffd166;
+    --cyan: #48cae4;
+    --crimson: #e63946;
+    --green: #52b788;
+    --text-main: #f3ede2;
+    --text-muted: #959fad;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    background: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Noto Sans Thai', 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    height: 56px;
+    background: linear-gradient(180deg, rgba(14, 16, 22, 0.98) 0%, rgba(14, 16, 22, 0.75) 100%);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--panel-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    z-index: 100;
+  }
+  .brand { display: flex; align-items: center; gap: 0.8rem; }
+  .brand h1 {
+    font-family: 'Cinzel', 'Noto Sans Thai', serif;
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: var(--gold-bright);
+    letter-spacing: 1px;
+  }
+  .badge-combat {
+    background: linear-gradient(135deg, #e63946 0%, #b00020 100%);
+    color: #fff;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .nav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .nav-btn:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); border-color: var(--gold); }
+
+  /* Arena Viewport */
+  #arena-stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #1b202e 0%, #090b10 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem 1.5rem 2rem;
+  }
+
+  /* Fighters Top Status Bars */
+  #fighter-status-bar {
+    width: 100%;
+    max-width: 1080px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    z-index: 10;
+  }
+
+  .fighter-card {
+    flex: 1;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 0.8rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  }
+  .fighter-card.right { text-align: right; }
+
+  .fighter-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    font-family: 'Cinzel', 'Noto Sans Thai', serif;
+  }
+  .fighter-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .hp-bar-bg {
+    width: 100%;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+  }
+  .hp-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e63946 0%, #ff4d6d 100%);
+    border-radius: 8px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .hp-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 3px #000;
+  }
+
+  /* Central VS Badge */
+  .vs-badge {
+    font-family: 'Cinzel', serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--crimson);
+    text-shadow: 0 0 16px rgba(230, 57, 70, 0.8);
+    padding: 0.4rem 0.8rem;
+  }
+
+  /* Stage Canvas */
+  #combat-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* Skill Announcement Banner */
+  #skill-banner {
+    z-index: 20;
+    background: rgba(14, 16, 22, 0.92);
+    border: 1px solid var(--gold);
+    border-radius: 30px;
+    padding: 0.6rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gold-bright);
+    box-shadow: 0 0 24px var(--gold);
+    text-align: center;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  #skill-banner.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Bottom Controls & Commentary */
+  #bottom-controls {
+    width: 100%;
+    max-width: 1080px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    z-index: 10;
+  }
+
+  #commentary-box {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 0.8rem 1.2rem;
+    min-height: 54px;
+    font-size: 0.92rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .btn-action {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-action:hover {
+    background: var(--gold);
+    color: #12100e;
+    border-color: var(--gold);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+  }
+  .btn-action.primary {
+    background: linear-gradient(135deg, #ffd166 0%, #d4af37 100%);
+    color: #12100e;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>วิถีสวรรค์ · ลานประลองยุทธ์</h1>
+    <span class="badge-combat">TACTICAL COMBAT VISUALIZER</span>
+  </div>
+  <div class="nav-actions">
+    <a href="/settlement/25" class="nav-btn">🏘️ กลับสู่ผังเมือง</a>
+    <a href="/godview" class="nav-btn">👁️ มุมมองพระเจ้า</a>
+    <a href="/" class="nav-btn">📊 แดชบอร์ด</a>
+  </div>
+</header>
+
+<div id="arena-stage">
+  <!-- Top Fighter Status Cards -->
+  <div id="fighter-status-bar">
+    <div class="fighter-card" id="card-f1">
+      <div class="fighter-name" id="f1-name">ผู้ประลองหนึ่ง</div>
+      <div class="fighter-sub" id="f1-sub">ขั้นพลัง: - · วิถีเต๋า: -</div>
+      <div class="hp-bar-bg">
+        <div class="hp-bar-fill" id="f1-hp-fill" style="width: 100%;"></div>
+        <div class="hp-text" id="f1-hp-text">100 / 100</div>
+      </div>
+    </div>
+
+    <div class="vs-badge">VS</div>
+
+    <div class="fighter-card right" id="card-f2">
+      <div class="fighter-name" id="f2-name">ผู้ประลองสอง</div>
+      <div class="fighter-sub" id="f2-sub">ขั้นพลัง: - · วิถีเต๋า: -</div>
+      <div class="hp-bar-bg">
+        <div class="hp-bar-fill" id="f2-hp-fill" style="width: 100%;"></div>
+        <div class="hp-text" id="f2-hp-text">100 / 100</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Central Canvas Animation -->
+  <canvas id="combat-canvas"></canvas>
+
+  <!-- Skill Announcement -->
+  <div id="skill-banner">【แม่ไม้มวยไทยเก้าท่าจอมราชันย์】</div>
+
+  <!-- Bottom Commentary & Actions -->
+  <div id="bottom-controls">
+    <div id="commentary-box">กำลังเตรียมการประลองยุทธ์...</div>
+
+    <div class="action-bar">
+      <button class="btn-action primary" id="btn-next-round">⚡ ก้าวต่อไป (Next Move)</button>
+      <button class="btn-action" id="btn-auto-play">▶️ เล่นอัตโนมัติ (Auto Battle)</button>
+      <button class="btn-action" id="btn-random-duel">🎲 สุ่มคู่ประลองใหม่</button>
+      <button class="btn-action" id="btn-replay">🔄 เริ่มการประลองใหม่</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(async function() {
+  const canvas = document.getElementById('combat-canvas');
+  const ctx = canvas.getContext('2d');
+
+  let width = canvas.width = window.innerWidth;
+  let height = canvas.height = window.innerHeight;
+
+  window.addEventListener('resize', () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  });
+
+  let combatData = null;
+  let currentRoundIdx = 0;
+  let isAutoPlaying = false;
+
+  // Particle VFX System
+  let particles = [];
+
+  function addSlashVFX(x, y, color) {
+    for (let i = 0; i < 24; i++) {
+      particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 14,
+        vy: (Math.random() - 0.5) * 14,
+        radius: Math.random() * 4 + 2,
+        color: color || '#ffd166',
+        alpha: 1.0,
+        life: 1.0
+      });
+    }
+  }
+
+  // Load Combat Simulation Data
+  async function loadDuel(c1_id = null, c2_id = null) {
+    try {
+      const url = (c1_id && c2_id) ? `/api/combat/simulate/${c1_id}/${c2_id}` : '/api/combat/simulate/0/1';
+      const res = await fetch(url);
+      combatData = await res.json();
+      initDuelUI();
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
+  function initDuelUI() {
+    if (!combatData) return;
+    currentRoundIdx = 0;
+
+    const f1 = combatData.fighter1;
+    const f2 = combatData.fighter2;
+
+    document.getElementById('f1-name').innerText = f1.name;
+    document.getElementById('f1-sub').innerText = `${f1.realm_name} (ขั้น ${f1.realm}) · ${f1.dao}`;
+    document.getElementById('f1-hp-fill').style.width = '100%';
+    document.getElementById('f1-hp-text').innerText = `${f1.max_hp} / ${f1.max_hp}`;
+
+    document.getElementById('f2-name').innerText = f2.name;
+    document.getElementById('f2-sub').innerText = `${f2.realm_name} (ขั้น ${f2.realm}) · ${f2.dao}`;
+    document.getElementById('f2-hp-fill').style.width = '100%';
+    document.getElementById('f2-hp-text').innerText = `${f2.max_hp} / ${f2.max_hp}`;
+
+    document.getElementById('commentary-box').innerText = `การประลองยุทธ์ระหว่าง 【${f1.name}】 และ 【${f2.name}】 เริ่มต้นขึ้นแล้ว!`;
+    document.getElementById('skill-banner').classList.remove('active');
+  }
+
+  function playNextRound() {
+    if (!combatData || !combatData.rounds) return;
+
+    if (currentRoundIdx >= combatData.rounds.length) {
+      document.getElementById('commentary-box').innerHTML = `<b style="color:var(--gold-bright); font-size:1.05rem;">${combatData.summary}</b>`;
+      document.getElementById('skill-banner').classList.remove('active');
+      isAutoPlaying = false;
+      document.getElementById('btn-auto-play').innerText = '▶️ เล่นอัตโนมัติ (Auto Battle)';
+      return;
+    }
+
+    const r = combatData.rounds[currentRoundIdx];
+
+    // Update HP Bars
+    document.getElementById('f1-hp-fill').style.width = r.hp1_pct + '%';
+    document.getElementById('f1-hp-text').innerText = `${r.hp1} / ${combatData.fighter1.max_hp}`;
+
+    document.getElementById('f2-hp-fill').style.width = r.hp2_pct + '%';
+    document.getElementById('f2-hp-text').innerText = `${r.hp2} / ${combatData.fighter2.max_hp}`;
+
+    // Skill Banner
+    const banner = document.getElementById('skill-banner');
+    banner.innerText = `【${r.skill_name}】 (${r.skill_type})`;
+    banner.classList.add('active');
+
+    // Commentary
+    document.getElementById('commentary-box').innerText = r.commentary;
+
+    // Trigger VFX
+    const targetX = r.defender_id === 1 ? width * 0.3 : width * 0.7;
+    const targetY = height * 0.45;
+    addSlashVFX(targetX, targetY, r.is_crit ? '#e63946' : '#ffd166');
+
+    currentRoundIdx++;
+  }
+
+  // Animation Loop for Arena & VFX
+  function renderArena() {
+    ctx.clearRect(0, 0, width, height);
+
+    // Draw Fighter Avatars (Left and Right)
+    const f1X = width * 0.3;
+    const f2X = width * 0.7;
+    const groundY = height * 0.45;
+
+    // Fighter 1 Avatar
+    ctx.beginPath();
+    ctx.arc(f1X, groundY, 32, 0, Math.PI * 2);
+    ctx.fillStyle = '#48cae4';
+    ctx.fill();
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Fighter 2 Avatar
+    ctx.beginPath();
+    ctx.arc(f2X, groundY, 32, 0, Math.PI * 2);
+    ctx.fillStyle = '#e63946';
+    ctx.fill();
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Render Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= 0.03;
+      p.life -= 0.03;
+
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+        continue;
+      }
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
+
+    requestAnimationFrame(renderArena);
+  }
+
+  // Button Handlers
+  document.getElementById('btn-next-round').onclick = playNextRound;
+
+  document.getElementById('btn-auto-play').onclick = () => {
+    isAutoPlaying = !isAutoPlaying;
+    document.getElementById('btn-auto-play').innerText = isAutoPlaying ? '⏸️ หยุดชั่วคราว' : '▶️ เล่นอัตโนมัติ (Auto Battle)';
+    if (isAutoPlaying) {
+      const timer = setInterval(() => {
+        if (!isAutoPlaying || currentRoundIdx >= combatData.rounds.length) {
+          clearInterval(timer);
+          isAutoPlaying = false;
+          document.getElementById('btn-auto-play').innerText = '▶️ เล่นอัตโนมัติ (Auto Battle)';
+        }
+        playNextRound();
+      }, 1200);
+    }
+  };
+
+  document.getElementById('btn-replay').onclick = initDuelUI;
+  document.getElementById('btn-random-duel').onclick = () => loadDuel();
+
+  // Initialize
+  renderArena();
+  await loadDuel();
+})();
+</script>
+</body>
+</html>

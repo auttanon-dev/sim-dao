@@ -1,0 +1,324 @@
+# -*- coding: utf-8 -*-
+"""Watabou-Style Procedural Settlement & Virtual Village/City Generator.
+
+Generates deterministic, beautiful vector layouts (Wards, Road Skeletons, Building Parcels,
+City Walls, Waterways, and Living Character Occupants) for all 182 places in Sim Dao.
+"""
+import math
+import random
+from typing import Dict, List, Any, Tuple
+
+from . import places as PL
+from . import config as C
+
+# Cultural styling configurations for settlement generation
+CULTURAL_PALETTES = {
+    "siam": {
+        "wall_type": "moat_and_wood",
+        "wall_color": "#8d6e63",
+        "roof_colors": ["#d4af37", "#b08968", "#795548", "#e07a5f"],
+        "accent_color": "#ffd166",
+        "water_color": "#48cae4",
+        "ground_color": "#2c2820",
+        "tree_color": "#38b000",
+        "special_buildings": ["ค่ายมวยไทยปฐพีเพลิง", "โรงช้างศึกหลวง", "อารามสถูปทองคำ", "เรือนแพตลาดน้ำ"],
+    },
+    "fusang": {
+        "wall_type": "stone_castle",
+        "wall_color": "#495057",
+        "roof_colors": ["#212529", "#343a40", "#6c757d", "#c77dff"],
+        "accent_color": "#e63946",
+        "water_color": "#0077b6",
+        "ground_color": "#1e2229",
+        "tree_color": "#ff70a6",  # ซากุระชมพู
+        "special_buildings": ["ปราสาทไดเมียว", "สำนักดาบอิไอ", "ศาลเจ้าเสาโทริอิ", "หอองเมียวจิ"],
+    },
+    "steppe": {
+        "wall_type": "wood_palisade",
+        "wall_color": "#6c584c",
+        "roof_colors": ["#f8f9fa", "#e9ecef", "#dee2e6", "#dda15e"],
+        "accent_color": "#2a9d8f",
+        "water_color": "#90e0ef",
+        "ground_color": "#333d29",
+        "tree_color": "#606c38",
+        "special_buildings": ["กระโจมทองคำข่าน", "ลานยิงธนูหลังม้า", "วิหารเสาโอโวเต็งกรี", "คอกม้าศึกพายุ"],
+    },
+    "oasis": {
+        "wall_type": "adobe_sandstone",
+        "wall_color": "#b08968",
+        "roof_colors": ["#e9c46a", "#f4a261", "#e76f51", "#2a9d8f"],
+        "accent_color": "#e76f51",
+        "water_color": "#52b788",
+        "ground_color": "#3d312a",
+        "tree_color": "#2d6a4f",  # อินทผาลัม
+        "special_buildings": ["หออภิมหาเวทแปรธาตุ", "หอดูดาวดวงดารา", "ตลาดบาซาร์เครื่องเทศ", "วังสุลต่านโอเอซิส"],
+    },
+    "bharata": {
+        "wall_type": "carved_redstone",
+        "wall_color": "#9c6644",
+        "roof_colors": ["#e76f51", "#f4a261", "#e9c46a", "#c77dff"],
+        "accent_color": "#ffb703",
+        "water_color": "#48cae4",
+        "ground_color": "#2b2620",
+        "tree_color": "#40916c",
+        "special_buildings": ["มหาวิหารนาลันทา", "ท่าน้ำบันไดหินคงคา (Ghat)", "สำนักโยคะกายเพชร", "สระบงกชสหัสวรรษ"],
+    },
+    1: {  # แดนเซียน
+        "wall_type": "jade_floating_barrier",
+        "wall_color": "#caf0f8",
+        "roof_colors": ["#90e0ef", "#00b4d8", "#0077b6", "#caf0f8"],
+        "accent_color": "#ffd166",
+        "water_color": "#90e0ef",
+        "ground_color": "#172554",
+        "tree_color": "#48cae4",  # ต้นไม้เซียนประกายฟ้า
+        "special_buildings": ["วังโอสถสวรรค์", "หอประมูลเซียนลอยฟ้า", "แท่นรับทัณฑ์อัสนี", "น้ำตกสวรรค์เก้าชั้น"],
+    },
+    "mara": {  # แดนมาร
+        "wall_type": "obsidian_spikes",
+        "wall_color": "#212529",
+        "roof_colors": ["#540b0e", "#9e2a2b", "#333533", "#e63946"],
+        "accent_color": "#e63946",
+        "water_color": "#9b2226",  # ลาวา/บึงโลหิต
+        "ground_color": "#1b1918",
+        "tree_color": "#3f1d24",
+        "special_buildings": ["พระราชวังทมิฬนิรันดร์", "แท่นพิพากษาลิขิตมาร", "เตาหลอมกลืนจิต", "ค่ายทหารมารกระดูก"],
+    },
+    0: {  # โลกมนุษย์ (จงหยวน)
+        "wall_type": "stone_brick_wall",
+        "wall_color": "#5c677d",
+        "roof_colors": ["#33415c", "#7d8597", "#b56576", "#d4af37"],
+        "accent_color": "#d4af37",
+        "water_color": "#48cae4",
+        "ground_color": "#212529",
+        "tree_color": "#2d6a4f",
+        "special_buildings": ["จวนเจ้าเมือง", "สำนักกระบี่หลวง", "หอประมูลรุ่งอรุณ", "โรงเตี๊ยมสยบพยัคฆ์"],
+    }
+}
+
+
+def _pseudo_rand(seed: int, idx: int) -> float:
+    """Deterministic pseudo-random float [0.0, 1.0] from seed and index."""
+    n = math.sin(seed * 12.9898 + idx * 78.233) * 43758.5453
+    return n - math.floor(n)
+
+
+def generate_settlement_layout(place_idx: int, sim=None) -> Dict[str, Any]:
+    """สร้างโครงสร้างผังเมืองเสมือนจริง (Watabou Procedural Settlement) สำหรับสถานที่ใดๆ"""
+    if place_idx < 0 or place_idx >= len(PL.PLACES):
+        place_idx = 0
+    p = PL.PLACES[place_idx]
+    name, world_key, grade, ptype, res, furn, sec_parent, is_sealed = p
+    
+    palette = CULTURAL_PALETTES.get(world_key, CULTURAL_PALETTES[0])
+    seed = place_idx * 1009 + grade * 37 + len(name)
+    
+    # กำหนดขนาดและจำนวนอาคารตามประเภทและระดับชั้น
+    if ptype == "เมือง":
+        radius = 280.0 + grade * 60.0
+        n_districts = 6 + grade * 2
+        n_buildings_per_ward = 7 + grade * 3
+        has_walls = True
+    elif ptype == "สำนัก":
+        radius = 240.0 + grade * 40.0
+        n_districts = 4 + grade
+        n_buildings_per_ward = 5 + grade * 2
+        has_walls = True
+    elif ptype == "ตลาด":
+        radius = 220.0 + grade * 30.0
+        n_districts = 4
+        n_buildings_per_ward = 6
+        has_walls = False
+    elif ptype == "ด่านชายแดน" or ptype == "ประตูมิติ":
+        radius = 180.0
+        n_districts = 3
+        n_buildings_per_ward = 4
+        has_walls = True
+    else:  # ลานฝึก / แหล่งวัตถุดิบ / แดนลับ
+        radius = 160.0
+        n_districts = 3
+        n_buildings_per_ward = 3
+        has_walls = False
+
+    # 1. Generate City Center and Wards (Districts)
+    wards = []
+    ward_names_pool = [
+        "ย่านปราสาท/ตำหนักหลัก (Citadel)",
+        "ย่านตลาดการค้าและโอสถ (Market Bazaar)",
+        "ย่านโรงฝึกยุทธ์และลานประลอง (Martial Dojo)",
+        "ย่านช่างตีเหล็กและหลอมศาสตรา (Smiths & Alchemy)",
+        "ย่านเรือนพักผู้บำเพ็ญ (Residential Quarters)",
+        "ย่านอารามและหอคัมภีร์ (Sanctum Library)",
+        "ย่านท่าน้ำและสะพานข้ามภพ (Docks & Gates)",
+        "ย่านสวนสมุนไพรและถ้ำกักตน (Seclusion Groves)"
+    ]
+    
+    for d in range(n_districts):
+        angle = (d / n_districts) * 2 * math.pi + _pseudo_rand(seed, d * 3) * 0.4
+        dist = (_pseudo_rand(seed, d * 7 + 1) * 0.5 + 0.35) * radius
+        wx = dist * math.cos(angle)
+        wy = dist * math.sin(angle)
+        w_radius = 45.0 + _pseudo_rand(seed, d * 11) * 30.0
+        w_name = ward_names_pool[d % len(ward_names_pool)]
+        wards.append({
+            "id": d,
+            "name": w_name,
+            "x": round(wx, 1),
+            "y": round(wy, 1),
+            "radius": round(w_radius, 1)
+        })
+
+    # 2. Generate Road Skeleton (Main Avenues + Alleys)
+    roads = []
+    # Main ring road
+    ring_points = []
+    n_ring_pts = 12
+    for r_i in range(n_ring_pts):
+        ang = (r_i / n_ring_pts) * 2 * math.pi
+        r_dist = radius * (0.8 + _pseudo_rand(seed, r_i * 13) * 0.1)
+        ring_points.append((round(r_dist * math.cos(ang), 1), round(r_dist * math.sin(ang), 1)))
+    ring_points.append(ring_points[0])
+    roads.append({"name": "ถนนวงแหวนรอบนอก", "type": "main", "points": ring_points})
+
+    # Radial arterial roads from center (0,0) to gates
+    n_gates = 4 if has_walls else 3
+    gates = []
+    for g_i in range(n_gates):
+        g_ang = (g_i / n_gates) * 2 * math.pi + 0.3
+        gx = round(radius * 0.85 * math.cos(g_ang), 1)
+        gy = round(radius * 0.85 * math.sin(g_ang), 1)
+        gates.append({"id": g_i, "name": f"ประตูนครทิศที่ {g_i+1}", "x": gx, "y": gy})
+        roads.append({"name": f"ถนนใหญ่สู่ประตู {g_i+1}", "type": "main", "points": [(0.0, 0.0), (gx, gy)]})
+
+    # Connect wards to nearest road
+    for w in wards:
+        roads.append({
+            "name": f"ตรอกเชื่อม {w['name']}",
+            "type": "alley",
+            "points": [(0.0, 0.0), (w["x"], w["y"])]
+        })
+
+    # 3. Generate Building Parcels
+    buildings = []
+    b_id = 0
+
+    # Central Landmark Palace / Main Hall
+    special_names = palette["special_buildings"]
+    central_name = special_names[0] if special_names else "ตำหนักใหญ่"
+    buildings.append({
+        "id": b_id,
+        "name": central_name,
+        "type": "citadel",
+        "x": 0.0,
+        "y": 0.0,
+        "width": 46.0,
+        "height": 46.0,
+        "rotation": 0.0,
+        "roof_color": palette["roof_colors"][0],
+        "ward_id": 0,
+        "capacity": 10,
+        "occupants": []
+    })
+    b_id += 1
+
+    # Buildings per ward
+    for w in wards:
+        for b_i in range(n_buildings_per_ward):
+            b_seed = seed + w["id"] * 100 + b_i * 17
+            b_ang = _pseudo_rand(b_seed, 1) * 2 * math.pi
+            b_dist = _pseudo_rand(b_seed, 2) * (w["radius"] * 0.75) + 12.0
+            bx = round(w["x"] + b_dist * math.cos(b_ang), 1)
+            by = round(w["y"] + b_dist * math.sin(b_ang), 1)
+            
+            b_w = round(16.0 + _pseudo_rand(b_seed, 3) * 14.0, 1)
+            b_h = round(14.0 + _pseudo_rand(b_seed, 4) * 12.0, 1)
+            rot = round(_pseudo_rand(b_seed, 5) * math.pi, 2)
+            
+            # Determine Building Type & Name
+            if w["id"] == 1:
+                b_type = "market"
+                b_name = f"ร้านค้าโอสถและวัตถุดิบ #{b_id}"
+            elif w["id"] == 2:
+                b_type = "dojo"
+                b_name = f"ลานประลองยุทธ์ #{b_id}"
+            elif w["id"] == 3:
+                b_type = "craft"
+                b_name = f"เตาหลอมศาสตรา #{b_id}"
+            elif w["id"] == 5:
+                b_type = "temple"
+                b_name = f"หอคัมภีร์และสมาธิ #{b_id}"
+            else:
+                b_type = "house"
+                b_name = f"เรือนพักผู้บำเพ็ญ #{b_id}"
+                
+            roof_col = palette["roof_colors"][b_id % len(palette["roof_colors"])]
+            
+            buildings.append({
+                "id": b_id,
+                "name": b_name,
+                "type": b_type,
+                "x": bx,
+                "y": by,
+                "width": b_w,
+                "height": b_h,
+                "rotation": rot,
+                "roof_color": roof_col,
+                "ward_id": w["id"],
+                "capacity": 4,
+                "occupants": []
+            })
+            b_id += 1
+
+    # 4. Populate with Living Cultivators (if Sim instance provided)
+    if sim is not None:
+        living = [c for c in sim.living() if getattr(c, "place", -1) == place_idx]
+        for c_idx, c in enumerate(living):
+            # Assign character to building
+            target_b_idx = 0 if getattr(c, "is_lord", False) else (c_idx % len(buildings))
+            b_target = buildings[target_b_idx]
+            
+            c_info = {
+                "cid": c.cid,
+                "name": c.name,
+                "realm": c.realm,
+                "realm_name": c.realm_name(),
+                "dao": getattr(c, "dao", "วิถีทั่วไป"),
+                "is_lord": getattr(c, "is_lord", False),
+                "current_building_id": b_target["id"],
+                "routine_action": "ฝึกปราณในเรือนพัก" if b_target["type"] == "house" else "แลกเปลี่ยนสมบัติในตลาด" if b_target["type"] == "market" else "ประลองวิชา" if b_target["type"] == "dojo" else "หลอมยาและศาสตรา",
+                "x": b_target["x"] + _pseudo_rand(c.cid, 1) * 10.0 - 5.0,
+                "y": b_target["y"] + _pseudo_rand(c.cid, 2) * 10.0 - 5.0
+            }
+            b_target["occupants"].append(c_info)
+
+    # 5. City Walls & Waterways
+    city_wall = None
+    if has_walls:
+        wall_pts = []
+        n_wall_pts = 16
+        for w_i in range(n_wall_pts):
+            w_ang = (w_i / n_wall_pts) * 2 * math.pi
+            w_r = radius * (0.92 + _pseudo_rand(seed, w_i * 19) * 0.08)
+            wall_pts.append((round(w_r * math.cos(w_ang), 1), round(w_r * math.sin(w_ang), 1)))
+        wall_pts.append(wall_pts[0])
+        city_wall = {
+            "type": palette["wall_type"],
+            "color": palette["wall_color"],
+            "points": wall_pts,
+            "gates": gates
+        }
+
+    return {
+        "place_idx": place_idx,
+        "name": name,
+        "realm_key": world_key,
+        "type": ptype,
+        "grade": grade,
+        "radius": radius,
+        "palette": palette,
+        "wards": wards,
+        "roads": roads,
+        "buildings": buildings,
+        "city_wall": city_wall,
+        "total_buildings": len(buildings),
+        "total_occupants": sum(len(b["occupants"]) for b in buildings)
+    }

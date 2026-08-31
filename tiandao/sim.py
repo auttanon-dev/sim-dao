@@ -12,6 +12,10 @@ from . import crafting as CR
 from . import places as PL
 from . import clans as CL
 from . import intent as IN
+from . import travel as TR
+from . import chronicle as CH
+from . import seasons as SEASONS
+from .ai import BrainManager, EventBus
 
 
 class Sim:
@@ -29,7 +33,22 @@ class Sim:
         self.log = []
         self.bounties = {} # cid -> reward amount
         self.queue = []
-        self.next_id = {"c": 0, "i": 0, "k": 0, "o": 0}
+        self.rumors = []
+        self.place_stock = {}     # place_idx -> ปริมาณทรัพยากร/สัตว์อสูรที่เหลืออยู่ตอนนี้ (ระบบนิเวศ)
+        self.eco_scarce = {}      # place_idx -> True ขณะที่ยังอยู่ในสถานะขาดแคลน (ค้างจนกว่าจะฟื้นจริง)
+        self.eco_recovered = set()  # place_idx ที่เพิ่งฟื้นจากขาดแคลน — ใช้เป็นข่าวลือครั้งเดียวแล้วเคลียร์ทิ้ง
+        self.skill_fragments = []   # ชิ้นส่วนวิชาแก้ทางโกลาหลที่ฝังกระจายไว้ทั่วโลกมนุษย์
+        self.next_id = {"c": 0, "i": 0, "k": 0, "o": 0, "r": 0, "f": 0}
+
+        # Cultivator Brain v2 (ai/) — Event Bus + CharacterBrain skeleton, ดู tiandao/ai/__init__.py
+        self.event_bus = EventBus()
+        self.brain_manager = BrainManager()
+        self.event_bus.subscribe(self.brain_manager.on_event)
+
+        # มหาผนึกสะกดหมื่นมาร (แดนลับรอยแยกเชื่อมโลกมนุษย์-แดนมาร)
+        self.mara_seal = getattr(C, "MARA_SEAL_INITIAL", 100.0)
+        self.mara_seal_broken = False
+        self.mara_seal_notified_weak = False
 
         # สร้างโลก: บันไดระดับ + แดนมารอยู่ข้างๆ ชั้นล่างสุด
         self.worlds = []
@@ -53,6 +72,27 @@ class Sim:
         self.worlds[top].lateral.append(chaos.wid)
         chaos.lateral.append(top)
 
+        # อาณาจักรวัฒนธรรมเพื่อนบ้านของโลกมนุษย์ (5 ดินแดนวัฒนธรรม)
+        sister_realms = [
+            ("siam", C.SIAM_WORLD_NAME),
+            ("fusang", getattr(C, "FUSANG_WORLD_NAME", "แดนอาทิตย์อุทัย")),
+            ("steppe", getattr(C, "STEPPE_WORLD_NAME", "แดนทุ่งหญ้าคีตาวายุ")),
+            ("oasis", getattr(C, "OASIS_WORLD_NAME", "แดนโอเอซิสพันราตรี")),
+            ("bharata", getattr(C, "BHARATA_WORLD_NAME", "แดนชมพูทวีป")),
+        ]
+        self.sister_wids = {}
+        self.border_pairs = {}
+        for pkey, wname in sister_realms:
+            sw = World(wid=len(self.worlds), name=wname, tier=0, kind="mortal")
+            sw.place_key = pkey
+            if tiers > 1:
+                sw.up = self.worlds[1].wid   # ผู้บำเพ็ญข้ามฟ้าขึ้นแดนเซียนได้เช่นกัน
+            self.worlds.append(sw)
+            self.sister_wids[pkey] = sw.wid
+            self.border_pairs[sw.wid] = self.worlds[0].wid
+            self.border_pairs[self.worlds[0].wid] = sw.wid
+        self.siam_wid = self.sister_wids["siam"]
+
         for w in self.worlds:
             if w.kind == "chaos":
                 continue
@@ -61,6 +101,9 @@ class Sim:
                 self.spawn(w, age_years=self.rng.randint(8, 45))
         self.spawn_chaos_race()
         self.seed_treasures()
+        self.legend_iids = [iid for iid, it in self.items.items() if it.legend]
+        self.seed_ancient_rumors()
+        self.seed_skill_fragments()
 
     def spawn_chaos_race(self):
         """เผ่าโกลาหล — ผู้นำมีคนเดียว ที่เหลือลดหลั่นลงมา"""
@@ -164,7 +207,37 @@ class Sim:
 
     def spawn(self, world, age_years=0):
         rng = self.rng
+        pkey = world.place_key
         dao = rng.choice(list(C.DAO_POOL.keys()))
+        if pkey == "siam":
+            if rng.random() < 0.5: dao = "วิถีมวยไทย"
+            name = f"{rng.choice(E.THAI_GIVEN)} {rng.choice(E.THAI_SURNAME)}"
+            tribe = "ชาวสยาม"
+        elif pkey == "fusang":
+            if rng.random() < 0.5: dao = "วิถีดาบ"
+            name = f"{rng.choice(E.JAPAN_SURNAME)} {rng.choice(E.JAPAN_GIVEN)}"
+            tribe = "ชาวอาทิตย์อุทัย"
+        elif pkey == "steppe":
+            if rng.random() < 0.5: dao = "วิถีแห่งลม"
+            name = f"{rng.choice(E.STEPPE_SURNAME)} {rng.choice(E.STEPPE_GIVEN)}"
+            tribe = "ชาวทุ่งหญ้า"
+        elif pkey == "oasis":
+            if rng.random() < 0.5: dao = "วิถีแห่งดวงดาว"
+            name = f"{rng.choice(E.ARAB_GIVEN)} {rng.choice(E.ARAB_SURNAME)}"
+            tribe = "ชาวโอเอซิส"
+        elif pkey == "bharata":
+            if rng.random() < 0.5: dao = "วิถีความว่าง"
+            name = f"{rng.choice(E.VEDIC_GIVEN)} {rng.choice(E.VEDIC_SURNAME)}"
+            tribe = "ชาวชมพูทวีป"
+        else:
+            name = rng.choice(E.SURNAME) + rng.choice(E.GIVEN)
+            tr_r, tr_acc, tribe = rng.random(), 0.0, "ชาวตงหยวน"
+            for t, p in getattr(C, "TRIBES", [("ชาวตงหยวน", 1.0)]):
+                tr_acc += p
+                if tr_r <= tr_acc:
+                    tribe = t
+                    break
+
         r, acc, origin = rng.random(), 0.0, "ชาวบ้าน"
         for o, p in E.ORIGINS:
             acc += p
@@ -179,25 +252,14 @@ class Sim:
         greed = round(rng.uniform(0.1, 0.9), 2)
         compassion = round(rng.uniform(0.1, 0.9), 2)
         
-        # Tribe
-        tr_r, tr_acc, tribe = rng.random(), 0.0, "ชาวตงหยวน"
-        for t, p in getattr(C, "TRIBES", [("ชาวตงหยวน", 1.0)]):
-            tr_acc += p
-            if tr_r <= tr_acc:
-                tribe = t
-                break
-                
         # City (only applicable for tier 1)
         city_id = -1
         if world.tier == 1 and hasattr(C, "CITIES") and C.CITIES:
-            # Pick a city based on some logic, or randomly. Here, uniformly random.
-            # But let's weight by tribe if possible? To keep it simple, purely random.
             city = rng.choice(C.CITIES)
             city_id = city["id"]
-        
         ch = Character(
             cid=self.nid("c"),
-            name=rng.choice(E.SURNAME) + rng.choice(E.GIVEN),
+            name=name,
             world_id=world.wid, dao=dao, dao_tags=list(C.DAO_POOL[dao]),
             born_day=self.day - age_years * 365, blood=blood,
             fate=rng.randint(C.FATE_MIN, C.FATE_MAX), origin=origin,
@@ -252,8 +314,24 @@ class Sim:
                     if pp[0] == home:
                         ch.place = i
                         break
-                ch.name = CL.CLANS[ch.clan][0].replace("ตระกูล", "") + \
-                    self.rng.choice(E.GIVEN)
+                if pkey == "siam":
+                    ch.name = f"{self.rng.choice(E.THAI_GIVEN)} " \
+                        f"{CL.CLANS[ch.clan][0].replace('ตระกูล', '').strip()}"
+                elif pkey == "fusang":
+                    ch.name = f"{CL.CLANS[ch.clan][0].replace('ตระกูล', '').strip()} " \
+                        f"{self.rng.choice(E.JAPAN_GIVEN)}"
+                elif pkey == "steppe":
+                    ch.name = f"{CL.CLANS[ch.clan][0].replace('ตระกูล', '').strip()} " \
+                        f"{self.rng.choice(E.STEPPE_GIVEN)}"
+                elif pkey == "oasis":
+                    ch.name = f"{self.rng.choice(E.ARAB_GIVEN)} " \
+                        f"{CL.CLANS[ch.clan][0].replace('ตระกูล', '').strip()}"
+                elif pkey == "bharata":
+                    ch.name = f"{self.rng.choice(E.VEDIC_GIVEN)} " \
+                        f"{CL.CLANS[ch.clan][0].replace('ตระกูล', '').strip()}"
+                else:
+                    ch.name = CL.CLANS[ch.clan][0].replace("ตระกูล", "") + \
+                        self.rng.choice(E.GIVEN)
                 if CL.CLANS[ch.clan][2] == 2 and age_years > 14:
                     ch.realm = min(C.REALM_CAP, ch.realm + CL.HEIR_HEADSTART)
                     ch.peak_realm = ch.realm
@@ -371,6 +449,8 @@ class Sim:
                                                 self.items, rng)
             res = R.apply_defeat(self, self.world(ch.world_id), win, lose, margin, rng)
             d["กับดัก"] = f"{owner.name}แกล้งตายรออยู่ — {lose.name}{res}"
+            d["margin"] = round(margin, 3)
+            d["winner"] = win.cid
             return d
         rot = 1.0 - min(1.0, max(0.0, -R.seal_left(k, self.day) / C.SEAL_BASE)) * C.CACHE_ROT
         got = 0
@@ -384,6 +464,153 @@ class Sim:
         ch.money[tier] = ch.money.get(tier, 0.0) + k.currency * rot
         d["แดนลับ"] = f"มรดกของ{k.owner_name}จากยุคที่ {k.era_sealed} — ได้ของ {got} ชิ้น"
         return d
+
+    def seed_skill_fragments(self):
+        """วิชาแก้ทางเผ่าโกลาหลของเดิมหายากเกินไป — แยกเป็นชิ้นส่วนฝังไว้ทั่วโลกมนุษย์แทน
+        ใครมีโชคก็เจอได้โดยไม่ต้องรอขั้นสูง ต่อครบจึงตรัสรู้วิชาสมบูรณ์ทันที"""
+        rng = self.rng
+        homes = PL.places_in(0)   # กระจายเฉพาะในโลกมนุษย์เท่านั้น
+        if not homes:
+            return
+        for name, _cat, _tier, _grade, _desc, anti_chaos in SK.SKILLS:
+            if not anti_chaos:
+                continue
+            for piece in range(C.FRAGMENTS_PER_SKILL):
+                self.skill_fragments.append({
+                    "fid": self.nid("f"), "skill": name, "piece": piece,
+                    "place": rng.choice(homes), "found": False,
+                })
+
+    # ------------------------------------------------------------ ข่าวลือ
+    def spawn_rumor(self, world, rng):
+        """ข่าวลือเกิดขึ้นเอง — แดนลับที่ยังไม่มีใครเจอ, ของวิเศษที่มีคนเห็น,
+        หรือแหล่งวัตถุดิบที่ขาดแคลน/กลับมาอุดมสมบูรณ์ (เชื่อมกับระบบนิเวศ)"""
+        pool = []
+        for c in self.caches:
+            if c.world_id == world.wid and not c.opened:
+                pool.append(("แดนลับ", c.kid, c.owner_name))
+        for iid in self.legend_iids:
+            it = self.items.get(iid)
+            if it:
+                pool.append(("สมบัติ", iid, it.name))
+        for idx in self.place_stock:
+            p = PL.PLACES[idx]
+            if p[1] != world.place_key:
+                continue
+            if self.eco_scarce.get(idx):
+                pool.append(("ขาดแคลน", idx, p[0]))
+            elif idx in self.eco_recovered:
+                pool.append(("อุดมสมบูรณ์", idx, p[0]))
+        for f in self.skill_fragments:
+            if f["found"] or PL.PLACES[f["place"]][1] != world.place_key:
+                continue
+            pool.append(("ชิ้นส่วนวิชา", f["fid"], f["skill"]))
+        if not pool:
+            return
+        kind, subject, label = rng.choice(pool)
+        if kind == "ขาดแคลน":
+            place = subject
+            text = f"มีคนบ่นว่า{label}เริ่มหาของกินของใช้ยากขึ้นมากในระยะหลัง"
+        elif kind == "อุดมสมบูรณ์":
+            place = subject
+            self.eco_recovered.discard(subject)   # ข่าวฟื้นตัวเป็นข่าวครั้งเดียว ไม่ใช่สถานะค้าง
+            text = f"มีคนเล่าว่า{label}กลับมาอุดมสมบูรณ์อีกครั้งหลังจากเงียบไปพักใหญ่"
+        elif kind == "ชิ้นส่วนวิชา":
+            frag = next(f for f in self.skill_fragments if f["fid"] == subject)
+            place = frag["place"]
+            place_name = PL.PLACES[place][0]
+            text = f"มีคนเล่าลือว่าเคยขุดเจอเศษจารึกวิชาโบราณชิ้นหนึ่งใกล้{place_name} คาดว่าเป็นส่วนหนึ่งของ「{label}」"
+        else:
+            pl = PL.places_in(world.place_key)
+            place = rng.choice(pl) if pl else -1
+            place_name = PL.PLACES[place][0] if place >= 0 else "ที่ใดสักแห่ง"
+            if kind == "แดนลับ":
+                text = f"มีคนเล่าลือว่าเคยเห็นแสงประหลาดใกล้{place_name} คาดว่าเป็นแดนลับของ{label}"
+            else:
+                text = f"ข่าวลือแพร่สะพัดว่า「{label}」ปรากฏตัวแถว{place_name}"
+        self.rumors.append({
+            "id": self.nid("r"), "kind": kind, "subject": subject, "world_id": world.wid,
+            "place": place, "text": text, "day": self.day,
+            "true": rng.random() > C.RUMOR_FALSE_P, "heard": set(),
+        })
+        if len(self.rumors) > C.RUMOR_MAX_ACTIVE:
+            self.rumors.pop(0)
+
+    def seed_ancient_rumors(self):
+        """ตำนานจากรันก่อนหน้า (tiandao/chronicle.json) แทรกเป็นข่าวลือเก่าแก่ในรันนี้"""
+        legends = CH.all_legends(limit=8)
+        if not legends:
+            return
+        for lg in self.rng.sample(legends, min(2, len(legends))):
+            text = (f"คนแก่เล่าตำนานยุคก่อนถึง [{lg['name']}] {lg['race']}สาย{lg['dao']} "
+                    f"ผู้ไปถึง{lg['peak_realm']} เมื่อหลายชั่วอายุคนก่อน ({lg['status']})")
+            self.rumors.append({
+                "id": self.nid("r"), "kind": "ตำนาน", "subject": lg["name"],
+                "world_id": self.worlds[0].wid, "place": -1, "text": text,
+                "day": 0, "true": True, "heard": set(),
+            })
+
+    def try_hear_rumor(self, actor, world, rng):
+        pool_wid = world.wid
+        cross = False
+        border = getattr(self, "border_pairs", {}).get(world.wid)
+        if border is not None and rng.random() < C.RUMOR_CROSS_BORDER_P:
+            pool_wid, cross = border, True
+        active = [r for r in self.rumors if r["world_id"] == pool_wid and actor.cid not in r["heard"]]
+        if not active:
+            return
+        pv = self.place_of(actor)
+        p = C.RUMOR_HEAR_P
+        if pv and pv[3] in ("ตลาด", "เมือง"):
+            p *= C.RUMOR_HEAR_MARKET_MULT
+        if rng.random() >= p:
+            return
+        r = rng.choice(active)
+        r["heard"].add(actor.cid)
+        if r["kind"] != "ตำนาน":
+            leads = [l for l in actor.rumor_leads if l["kind"] != r["kind"] or l["subject"] != r["subject"]]
+            leads.append({"kind": r["kind"], "subject": r["subject"], "true": r["true"]})
+            actor.rumor_leads = leads[-C.RUMOR_LEAD_MAX:]
+        source = "พ่อค้าเร่ร่อนข้ามพรมแดนเล่าว่า" if cross else "ได้ยินข่าวลือ:"
+        self.emit(world, "ได้ยินข่าวลือ", actor, None, ["ข่าวลือ"], "ได้ยินมา",
+                  f"{actor.name}{source} {r['text']}", 0, {})
+
+    # ------------------------------------------------------------ ระบบนิเวศ
+    def eco_ratio(self, place_idx):
+        """สัดส่วนความอุดมสมบูรณ์ของแหล่งนี้ตอนนี้ (0..1)
+        ยิ่งถูกเก็บเกี่ยวหนัก ยิ่งลดลง ฟื้นเองตามเวลาที่ผ่านไป"""
+        if place_idx is None or place_idx < 0:
+            return 1.0
+        stock = self.place_stock.get(place_idx)
+        if stock is None:
+            stock = C.ECO_CAP
+            self.place_stock[place_idx] = stock
+        return max(C.ECO_MIN_YIELD, min(1.0, stock / C.ECO_CAP))
+
+    def eco_regen(self, elapsed_days):
+        if not self.place_stock or elapsed_days <= 0:
+            return
+        grow = C.ECO_REGEN_PER_YEAR * SEASONS.regen_multiplier(self.day) * (elapsed_days / 365.0)
+        for idx in list(self.place_stock):
+            stock = min(C.ECO_CAP, self.place_stock[idx] + grow)
+            self.place_stock[idx] = stock
+            self._update_eco_state(idx, stock)
+
+    def eco_harvest(self, place_idx, amount):
+        if place_idx is None or place_idx < 0:
+            return
+        stock = max(0.0, self.place_stock.get(place_idx, C.ECO_CAP) - amount)
+        self.place_stock[place_idx] = stock
+        self._update_eco_state(place_idx, stock)
+
+    def _update_eco_state(self, idx, stock):
+        """สถานะขาดแคลนค้างอยู่จนกว่าจะฟื้นข้ามเกณฑ์ recover จริง — ไม่ใช่แค่กระเตื้องนิดหน่อยแล้วนับว่าอุดมสมบูรณ์"""
+        ratio = stock / C.ECO_CAP
+        if ratio < C.ECO_SCARCE_RATIO:
+            self.eco_scarce[idx] = True
+        elif self.eco_scarce.get(idx) and ratio >= C.ECO_RECOVER_RATIO:
+            self.eco_scarce[idx] = False
+            self.eco_recovered.add(idx)
 
     # ------------------------------------------------------------ ลูปหลัก
     def step(self):
@@ -653,14 +880,14 @@ class Sim:
                             
                 for w in self.worlds:
                     w.disaster_timer = getattr(w, "disaster_timer", 0) + 1
-                    import random
-                    w.current_disaster = random.choice(["ปกติ", "กบฏราชสำนัก", "โรคระบาดใหญ่", "สมบัติโบราณปรากฏ"])
+                    w.current_disaster = rng.choice(["ปกติ", "กบฏราชสำนัก", "โรคระบาดใหญ่", "สมบัติโบราณปรากฏ"])
                     if w.current_disaster == "กบฏราชสำนัก":
                         print(f"🚨💥 [ภัยพิบัติแผ่นดิน] {w.name} เกิดกบฏราชสำนัก!")
                     elif w.current_disaster == "โรคระบาดใหญ่":
                         print(f"🚨🦠 [ภัยพิบัติแผ่นดิน] {w.name} เกิดโรคระบาด!")
                     elif w.current_disaster == "สมบัติโบราณปรากฏ":
                         print(f"🚨📜 [ภัยพิบัติแผ่นดิน] {w.name} สมบัติปรากฏ!")
+                    SEASONS.maybe_trigger_disaster(self, w, rng)
 
             if ch.hidden:
                 if ch.is_lord:
@@ -684,6 +911,50 @@ class Sim:
                         ch.hidden = False
                     self.schedule(ch, rng.randint(2000, 12000))
                 continue
+
+            if ch.travel_dest >= 0:
+                # กำลังเดินทางอยู่ (ตั้งไว้จาก resolve() "เดินทาง") — เหมือนกับ ch.hidden ด้านบน: ไม่ผ่าน
+                # การเลือก intent ปกติเลยจนกว่าจะถึงจุดหมายจริง แค่ไปโผล่เช็คเป็นระยะระหว่างทางแทน
+                world0 = self.world(ch.world_id)
+                R.age_and_decay(self, ch, world0, self.day - ch.last_day, rng)
+                ch.last_day = self.day
+                if not ch.alive:
+                    continue
+                if self.day >= ch.travel_arrival_day:
+                    dest_name = PL.PLACES[ch.travel_dest][0] if 0 <= ch.travel_dest < len(PL.PLACES) else "?"
+                    ch.place = ch.travel_dest
+                    ch.travel_dest = -1
+                    self.emit(world0, "เดินทาง", ch, None, ["เดินทาง"], "มาถึง",
+                              f"{ch.name}เดินทางมาถึง{dest_name}แล้ว", 0, {})
+                    travel_ev = next(e for e in E.EVENT_TABLE if e["kind"] == "เดินทาง")
+                    self.schedule(ch, rng.randint(*travel_ev["gap"]))
+                    continue
+                hit = TR.roll_enroute_event(rng)
+                if hit is not None:
+                    outcome, deltas = hit
+                    if "hp" in deltas:
+                        ch.hp = max(0, ch.hp + deltas["hp"])
+                    if "mats" in deltas:
+                        ch.mats = ch.mats + deltas["mats"]
+                    text = {
+                        "พบของ": f"{ch.name}พบของมีค่าตกอยู่ระหว่างทาง",
+                        "ถูกปล้น": f"{ch.name}ถูกปล้นระหว่างทาง",
+                        "บาดเจ็บ": f"{ch.name}บาดเจ็บจากอุบัติเหตุระหว่างทาง",
+                    }.get(outcome, f"{ch.name}เจอเหตุการณ์ระหว่างทาง")
+                    fatal = ch.hp <= 0
+                    if fatal:
+                        # ต้อง outcome="ตาย" ไม่ใช่ "บาดเจ็บ" — narrative_factory/config.yaml จำแนก
+                        # scene_type=Death จาก outcome นี้เป๊ะๆ เท่านั้น (death_outcomes: ["ตาย"])
+                        outcome = "ตาย"
+                        text = f"{ch.name}เสียชีวิตจากอุบัติเหตุระหว่างทาง"
+                    self.emit(world0, "เดินทาง", ch, None, ["เดินทาง"], outcome, text, 0, {})
+                    if fatal:
+                        self.kill(ch, "เสียชีวิตระหว่างเดินทาง")
+                if ch.alive and ch.travel_dest >= 0:
+                    next_check = min(C.TRAVEL_ENROUTE_CHECK_DAYS, ch.travel_arrival_day - self.day)
+                    self.schedule(ch, max(1, next_check))
+                continue
+
             actor = ch
             break
         if actor is None:
@@ -691,7 +962,7 @@ class Sim:
 
         elapsed = self.day - self.last_day
         self.last_day = self.day
-        self.seq += 1
+        self.eco_regen(elapsed)
         world = self.world(actor.world_id)
 
         # แก่/เสื่อมคิดเฉพาะตอนตัวละครขยับ (เร็วกว่าไล่ทุกคนทุกเหตุการณ์)
@@ -719,8 +990,28 @@ class Sim:
             return self.emit(world, "สิ้นอายุขัย", actor, None, ["ความตาย"], "ตาย",
                              f"{actor.name}สิ้นอายุขัย", elapsed, {})
 
-        # มารบุกโลกมนุษย์
-        if world.kind == "mortal" and world.lateral and rng.random() < C.MARA_RAID_P:
+        # การเสื่อมสลายของมหาผนึกหมื่นมารตามกาลเวลาและแรงสั่นสะเทือน
+        if elapsed > 0:
+            seal_decay = (elapsed / 365.0) * getattr(C, "MARA_SEAL_DECAY_PER_YEAR", 0.5)
+            if rng.random() < getattr(C, "MARA_SEAL_SHOCK_P", 0.04):
+                shock = rng.uniform(0.5, 3.0)
+                seal_decay += shock
+            if seal_decay > 0:
+                self.mara_seal = max(0.0, self.mara_seal - seal_decay)
+                if self.mara_seal <= getattr(C, "MARA_SEAL_WEAK_THRESHOLD", 30.0) and not self.mara_seal_notified_weak and not self.mara_seal_broken:
+                    self.mara_seal_notified_weak = True
+                    self.emit(self.worlds[0], "มหาผนึกสั่นคลอน", None, None, ["ทำลาย"], "ผนึกอ่อนแอ",
+                              f"⚠️⚡ [มหาผนึกสั่นคลอน] แดนลับรอยแยกผนึกหมื่นมารสะกดโลกเริ่มอ่อนกำลังลง (เหลือ {self.mara_seal:.1f}%) ไอปีศาจเริ่มรั่วไหลสู่โลกมนุษย์!",
+                              0, {"พลังผนึก": f"{self.mara_seal:.1f}%"})
+                if self.mara_seal <= getattr(C, "MARA_SEAL_BROKEN_THRESHOLD", 0.0) and not self.mara_seal_broken:
+                    self.mara_seal_broken = True
+                    self.emit(self.worlds[0], "มหาผนึกแตกพัง", None, None, ["ทำลาย", "ความตาย"], "ผนึกพังทลาย",
+                              f"🚨💀 [มหาผนึกแตกพัง] มหาผนึกสะกดหมื่นมารในแดนลับรอยแยกพังทลายลงแล้ว! แดนมารและโลกมนุษย์เชื่อมต่อถึงกันโดยสมบูรณ์!",
+                              0, {"พลังผนึก": "พังทลาย (0.0%)", "สัญจร": "เปิดทางเชื่อมต่อโลกมนุษย์-แดนมาร"})
+
+        # มารบุกโลกมนุษย์ (หากผนึกแตก โอกาสบุกจะเพิ่มขึ้นอย่างมาก)
+        mara_raid_p = C.MARA_RAID_P * (2.5 if getattr(self, "mara_seal_broken", False) else 1.0)
+        if world.kind == "mortal" and world.lateral and rng.random() < mara_raid_p:
             mw = self.world(world.lateral[0])
             if mw.kind == "mara":
                 self.mara_raid(world, elapsed, rng)
@@ -734,6 +1025,11 @@ class Sim:
 
         others = [c for c in self.living_in(world.wid) if c.cid != actor.cid]
 
+        if world.kind == "mortal":
+            if rng.random() < C.RUMOR_SPAWN_P:
+                self.spawn_rumor(world, rng)
+            self.try_hear_rumor(actor, world, rng)
+
         # มนุษย์มารเป็นที่รังเกียจ — มีคนตามล่าโดยไม่ต้องมีเหตุส่วนตัว
         if actor.hated() and others and rng.random() < C.MARA_HUNT_P:
             hunters = [c for c in others if not c.hated()
@@ -745,7 +1041,8 @@ class Sim:
                 actor.rivals[h.cid] = actor.rivals.get(h.cid, 0) + 2
                 e = self.emit(world, "ล่ามนุษย์มาร", h, actor, ["เลือด", "ทำลาย"], res,
                               f"{h.name}ตามล่า{actor.name}เพราะเป็นมนุษย์มาร — {lose.name}เป็นฝ่ายเสีย",
-                              elapsed, {"เผ่า": actor.race()})
+                              elapsed, {"เผ่า": actor.race(), "margin": round(margin, 3),
+                                        "winner": win.cid})
                 if not actor.alive:
                     return e
 
@@ -757,7 +1054,10 @@ class Sim:
                     break
                     
         # Update pick_event call to include city
-        kind = IN.choose(actor, self, E.EVENT_TABLE, bool(others), rng)
+        # Layer 1 Utility AI (Cultivator Brain v2, Phase 2) ต่อยอด IN.weigh() เดิม ก่อนสุ่มเลือก
+        w = IN.weigh(actor, self, E.EVENT_TABLE, bool(others))
+        w = self.brain_manager.decide(actor, self, w)
+        kind = IN.sample_weighted(w, rng)
         ev = next((e for e in E.EVENT_TABLE if e["kind"] == kind), None) \
             or E.pick_event(actor, rng, bool(others), city=city_dict)
         target = None
@@ -847,12 +1147,24 @@ class Sim:
                     else:
                         return self.emit(world, "เลื่อนขั้นสำนัก", actor, target_ch, ["ชื่อเสียง"], "แพ้ประลอง", f"[{actor.name}] ท้าประลองแย่งตำแหน่ง {new_rank} แต่พ่ายแพ้ต่อ [{target_ch.name}]", elapsed, {})
         gap = rng.randint(*ev["gap"])
+        before = IN.snapshot(actor)
         outcome, text, d = self.resolve(ev, actor, target, world, gap, rng)
+        IN.learn_from_outcome(actor, ev["kind"], before, IN.snapshot(actor))
+        if ev["kind"] == "ค้นแดนลับ" and actor.rumor_leads:
+            actor.rumor_leads = [l for l in actor.rumor_leads if l["kind"] != "แดนลับ"]
         for t in ev["tags"]:
             actor.exp[t] = actor.exp.get(t, 0) + 1
         e = self.emit(world, ev["kind"], actor, target, ev["tags"], outcome, text, elapsed, d)
         if actor.alive:
-            self.schedule(actor, gap if not actor.hidden else rng.randint(2000, 12000))
+            if actor.travel_dest >= 0:
+                # เพิ่งเริ่มเดินทางจริง (resolve() ตั้ง travel_dest/travel_arrival_day ไว้แล้ว) — ต้อง
+                # นัดตื่นครั้งแรกภายใน TRAVEL_ENROUTE_CHECK_DAYS ไม่ใช่กระโดดตรงไปวันถึงเลย ไม่งั้นจะไม่มี
+                # โอกาสได้เช็คเหตุการณ์ระหว่างทางสักครั้งเดียวสำหรับทริปสั้น (บล็อก ch.travel_dest ด้านบน
+                # ใน step() เป็นตัวจัดการรอบเช็คถัดๆ ไปเองหลังจากนี้)
+                first_wake = min(C.TRAVEL_ENROUTE_CHECK_DAYS, actor.travel_arrival_day - self.day)
+                self.schedule(actor, max(1, first_wake))
+            else:
+                self.schedule(actor, gap if not actor.hidden else rng.randint(2000, 12000))
         return e
 
     def chaos_invade(self, world, elapsed, rng):
@@ -895,6 +1207,8 @@ class Sim:
             win, lose, margin = R.resolve_clash(c, v, world, self.items, rng, self.day)
             res = R.apply_defeat(self, world, win, lose, margin, rng)
             d["ผู้ต้านทาน"] = f"{v.name} — {res}"
+            d["margin"] = round(margin, 3)
+            d["winner"] = win.cid
             if R.has_anti_chaos(v):
                 d["แก้ทาง"] = "ผู้ต้านทานรู้วิชาที่แก้ทางเผ่าโกลาหล"
             if win is not c:
@@ -932,7 +1246,7 @@ class Sim:
         v = rng.choice(prey[:3])          # ไล่ล่าผู้แข็งแกร่งก่อน แต่ไม่ใช่คนเดิมทุกครั้ง
         win, lose, margin = R.resolve_clash(c, v, world, self.items, rng, self.day)
         res = R.apply_defeat(self, world, win, lose, margin, rng)
-        d = {"แพ้ทาง": "มนุษย์แพ้ทางเผ่าโกลาหล"}
+        d = {"แพ้ทาง": "มนุษย์แพ้ทางเผ่าโกลาหล", "margin": round(margin, 3), "winner": win.cid}
         if R.has_anti_chaos(v):
             d["แก้ทาง"] = "รู้วิชาที่แก้ทางเผ่าโกลาหลได้"
         if v.alive and not v.thrall and rng.random() < C.CHAOS_THRALL_P:
@@ -1498,27 +1812,31 @@ class Sim:
 
         if k == "ล่าอสูร":
             pv = self.place_of(a)
-            n = rng.randint(*C.CORE_PER_HUNT)
+            eco = self.eco_ratio(a.place)
+            n = max(1, round(rng.randint(*C.CORE_PER_HUNT) * eco))
             if pv and pv[4] == "แก่นพลัง":
                 n += 2
             a.cores += n
-            got = rng.randint(1, 4)
+            got = max(1, round(rng.randint(1, 4) * eco))
             a.mats += got
-            
+            self.eco_harvest(a.place, got + n * 0.3)
+
             if rng.random() < 0.4:
                 a.mat_stock["โลหิตอสูรกลั่น"] = a.mat_stock.get("โลหิตอสูรกลั่น", 0) + rng.randint(1, 2)
                 d["ของพิเศษ"] = "โลหิตอสูรกลั่น"
             if rng.random() < 0.3:
                 a.mat_stock["ศิลาปราณห้าธาตุ"] = a.mat_stock.get("ศิลาปราณห้าธาตุ", 0) + rng.randint(1, 3)
                 d["ของพิเศษ"] = (d.get("ของพิเศษ", "") + " ศิลาปราณห้าธาตุ").strip()
-                
+
             if pv and pv[4] in ("แร่", "สมุนไพร"):
                 table = PL.ORE_PRICE if pv[4] == "แร่" else PL.HERB_PRICE
                 tier_names = [x for x in table
                               if (PL.ORE_PRICE if pv[4] == "แร่" else PL.HERB_PRICE)[x] > 0]
                 pick = rng.choice(tier_names)
                 a.mat_stock[pick] = a.mat_stock.get(pick, 0) + 1
-                d["เก็บได้"] = f"{pick} ที่{self.place_name(a)}"
+                self.eco_harvest(a.place, 1.0)
+                tail = " (แหล่งนี้เริ่มร่อยหรอ)" if eco < 0.5 else ""
+                d["เก็บได้"] = f"{pick} ที่{self.place_name(a)}{tail}"
             a.money[w.tier] = a.money.get(w.tier, 0.0) + n * 2.0
             if rng.random() < 0.10 and a.fate <= 0:
                 self.kill(a, "ตายในการล่าอสูร")
@@ -1594,18 +1912,42 @@ class Sim:
             return "สำเร็จ", f"{a.name}หลอม{recipe[0]}สำเร็จ", d
 
         if k == "ค้นแดนลับ":
+            frag = next((f for f in self.skill_fragments
+                         if f["place"] == a.place and not f["found"]
+                         and f["piece"] not in a.fragments.get(f["skill"], [])), None)
+            if frag and rng.random() < C.FRAGMENT_FIND_P * (1.0 + a.fate * C.FRAGMENT_FATE_BONUS):
+                frag["found"] = True
+                got = a.fragments.setdefault(frag["skill"], [])
+                got.append(frag["piece"])
+                need = C.FRAGMENTS_PER_SKILL
+                if len(got) >= need and frag["skill"] not in a.skills:
+                    a.skills.append(frag["skill"])
+                    sk = SK.SKILL_INDEX.get(frag["skill"])
+                    d["ต่อวิชาสำเร็จ"] = f"ต่อชิ้นส่วนครบ {need}/{need} — ได้วิชา「{frag['skill']}」ขั้นสูงสุดทันที"
+                    if sk:
+                        d["วิชา"] = f"{SK.GRADE_NAME[sk[3]]} · สาย{sk[1]} — {sk[4]}"
+                        if sk[5]:
+                            d["แก้ทางโกลาหล"] = "วิชานี้แก้ทางเผ่าโกลาหลได้"
+                    return "ต่อวิชาโบราณสำเร็จ", \
+                        f"{a.name}ต่อเศษจารึกวิชาโบราณครบทุกชิ้น ตรัสรู้「{frag['skill']}」ในทันที!", d
+                d["ชิ้นส่วนวิชา"] = f"พบเศษวิชา「{frag['skill']}」ชิ้นที่ {frag['piece']+1}/{need} (มีแล้ว {len(got)}/{need})"
+                return "พบชิ้นส่วนวิชา", \
+                    f"{a.name}ขุดพบเศษจารึกวิชาโบราณชิ้นหนึ่งซ่อนอยู่ที่{self.place_name(a)}", d
             found = [c for c in self.caches if c.world_id == w.wid and not c.opened
                      and R.seal_left(c, self.day) <= 0]
             if not found:
                 return "ไม่พบ", f"{a.name}ออกค้นหาแดนลับแต่ไม่พบร่องรอย", d
-            cache = rng.choice(found)
+            led_kids = {l["subject"] for l in getattr(a, "rumor_leads", ()) if l["kind"] == "แดนลับ"}
+            led = [c for c in found if c.kid in led_kids]
+            cache = led[0] if led else rng.choice(found)
+            tail = " ตามรอยข่าวลือที่เคยได้ยินมา" if led else ""
             if a.race() == "อสูร":
                 a.insight += cache.seal * 0.2
                 d["วิวัฒนาการ"] = f"{a.name}ดูดซับพลังแดนลับเพื่อวิวัฒนาการก้าวกระโดด"
                 self.caches.remove(cache)
-                return "ค้นพบ", f"{a.name}พบแดนลับของ{cache.owner_name} กลืนกินแก่นพลัง", d
+                return "ค้นพบ", f"{a.name}พบแดนลับของ{cache.owner_name} กลืนกินแก่นพลัง{tail}", d
             d.update(self.open_cache(a, cache, rng))
-            return "ค้นพบ", f"{a.name}เปิดแดนลับของ{cache.owner_name}ได้", d
+            return "ค้นพบ", f"{a.name}เปิดแดนลับของ{cache.owner_name}ได้{tail}", d
 
         if k == "ซ่อนตัว":
             if a.realm >= C.CACHE_MIN_REALM:
@@ -1718,6 +2060,8 @@ class Sim:
                         win, lose, margin = R.resolve_clash(f, v, w, self.items, rng, self.day)
                         res = R.apply_defeat(self, w, win, lose, margin, rng)
                         d["เปิดทาง"] = f"{f.name}เข้าโจมตี{v.name} — {res}"
+                        d["margin"] = round(margin, 3)
+                        d["winner"] = win.cid
             a.inner += 1.0
             R.add_debt(a, "ทรยศ", host.founder, host.name, self.day)
             return "ไส้ศึกลงมือ", f"{a.name}ลงมือให้{master.name}จากในไส้ของ{host.name}", d
@@ -1754,12 +2098,40 @@ class Sim:
             return "ก่อตั้ง", f"{a.name}ก่อตั้ง{org.name}", d
 
         if k == "เดินทาง":
-            pl = PL.places_in(w.place_key)
+            # เดินทางจริงบนกราฟภูมิศาสตร์ (tiandao/geo.py + travel.py) แทนการ teleport ทันทีแบบเดิม —
+            # เลือกจุดหมายด้วย logic เดิมเป๊ะ (seek/avoid จากข่าวลือ) แค่ไม่ใส่ a.place ทันที เปลี่ยนเป็น
+            # ตั้ง travel_dest/travel_arrival_day แล้วให้ Sim.step() (บล็อกเดียวกับ ch.hidden) จัดการ
+            # เดินทางหลายวันจริง + เหตุการณ์ระหว่างทางแทน (ดู sim.py ใกล้ "elif ch.travel_dest >= 0:")
+            pl = [p for p in PL.places_in(w.place_key) if p != a.place]
             if pl:
                 old = self.place_name(a)
-                a.place = rng.choice(pl)
-                d["เดินทาง"] = f"{old} → {self.place_name(a)}"
-                return "เดินทาง", f"{a.name}ออกเดินทางจาก{old}ไปยัง{self.place_name(a)}", d
+                seek = {l["subject"] for l in getattr(a, "rumor_leads", ()) if l["kind"] == "อุดมสมบูรณ์"}
+                avoid = {l["subject"] for l in getattr(a, "rumor_leads", ()) if l["kind"] == "ขาดแคลน"}
+                frag_place = {f["fid"]: f["place"] for f in self.skill_fragments}
+                seek |= {frag_place[l["subject"]] for l in getattr(a, "rumor_leads", ())
+                         if l["kind"] == "ชิ้นส่วนวิชา" and l["subject"] in frag_place}
+                seek_pl = [p for p in pl if p in seek]
+                safe_pl = [p for p in pl if p not in avoid] or pl
+                if seek_pl and rng.random() < 0.6:
+                    dest = rng.choice(seek_pl)
+                else:
+                    dest = rng.choice(safe_pl)
+                allow_barrier = getattr(self, "mara_seal_broken", False) or (getattr(self, "mara_seal", 100.0) <= getattr(C, "MARA_SEAL_WEAK_THRESHOLD", 30.0) and rng.random() < getattr(C, "MARA_SEAL_LEAK_P", 0.15))
+                days = TR.shortest_path_days(a.place, dest, a.realm, allow_mara_barrier=allow_barrier)
+                if days is None:
+                    # ไม่ควรเกิดจริง (pl มาจาก world_key เดียวกันซึ่งเชื่อมกันหมดในตัว geo.py เสมอ)
+                    # กันไว้เผื่อข้อมูลกราฟผิดพลาดในอนาคต — ไม่เดินทาง แทนที่จะพัง
+                    return "ผ่านไป", f"{a.name}ยังหาทางไปไม่เจอ", d
+                a.travel_dest = dest
+                a.travel_arrival_day = self.day + days
+                dest_name = PL.PLACES[dest][0]
+                tail = ""
+                if dest in frag_place.values() and dest in seek:
+                    tail = " (ตามข่าวลือไปตามหาเศษวิชาโบราณ)"
+                elif dest in seek:
+                    tail = " (ตามข่าวลือว่าที่นี่กลับมาอุดมสมบูรณ์)"
+                d["เดินทาง"] = f"{old} → {dest_name} (คาดว่าใช้เวลา {days} วัน)"
+                return "ออกเดินทาง", f"{a.name}ออกเดินทางจาก{old}มุ่งหน้าสู่{dest_name}{tail}", d
             return "ผ่านไป", f"{a.name}ออกเดินทาง", d
 
         if k == "ค้าขาย":
@@ -1904,6 +2276,8 @@ class Sim:
                 return "ไม่มีของ", f"{a.name}หมายตาสมบัติของ{t.name} แต่ไม่มีอะไรให้ชิง", d
             win, lose, margin = R.resolve_clash(a, t, w, self.items, rng)
             res = R.apply_defeat(self, w, win, lose, margin, rng)
+            d["margin"] = round(margin, 3)
+            d["winner"] = win.cid
             if win is a and lose.alive:
                 iid = treas[0]
                 t.items.remove(iid)
@@ -1991,16 +2365,23 @@ class Sim:
             d["อคติ"] = f"{lose.name} เกลียดพวกหน้าใหม่ที่กำเริบเสิบสาน"
         lose.rivals[win.cid] = lose.rivals.get(win.cid, 0) + dmg
         d["ผล"] = f"{win.name}({win.realm_name()}) เหนือกว่า {lose.name}({lose.realm_name()})"
+        d["margin"] = round(margin, 3)
+        d["winner"] = win.cid
         verb = {"ตาย": f"{lose.name}ดับดิ้น", "รอดตายด้วยชะตา": f"{lose.name}รอดด้วยชะตา",
                 "พ่ายแพ้": f"{lose.name}เป็นฝ่ายพ่าย"}.get(res, f"{lose.name}{res}")
         return res, f"{a.name}{k}กับ{t.name} — {verb}", d
 
     def emit(self, world, kind, a, t, tags, outcome, text, gap, d):
+        self.seq += 1   # เดิม increment ที่ step() ครั้งเดียวต่อทิก แต่ step()เดียวเรียก emit() ได้
+                         # มากกว่า 1 ครั้ง (เช่น เหตุการณ์ผลพวง) ทำให้ seq ซ้ำกันได้ — ย้ายมาที่นี่
+                         # ให้ seq เป็น ID ไม่ซ้ำจริงต่อหนึ่ง Event เสมอ (พบจาก narrative_factory
+                         # Phase E ที่ scene_id ชนกันเพราะ seq ซ้ำ)
         e = Event(seq=self.seq, day=self.day, gap_days=gap, world_id=world.wid,
-                  era=world.era, kind=kind, actor=a.cid,
+                  era=world.era, kind=kind, actor=a.cid if a else -1,
                   target=t.cid if t else None, tags=list(tags),
-                  outcome=outcome, text=text, deltas=d)
+                  outcome=outcome, text=text, deltas=d, place=a.place if a else -1, realm=a.realm if a else 0)
         self.log.append(e)
+        self.event_bus.publish(e, self)
         return e
 
     def run(self, n):

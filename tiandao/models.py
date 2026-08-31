@@ -142,6 +142,9 @@ class Character:
     inner_art: bool = False
     debts: List[dict] = field(default_factory=list)   # หนี้ค้างคา
     exp: Dict[str, int] = field(default_factory=dict)
+    learn: Dict[str, float] = field(default_factory=dict)   # เจตนา -> ค่าประสบการณ์สะสม (EMA ของผลลัพธ์ที่เจอ)
+    rumor_leads: List[dict] = field(default_factory=list)   # ข่าวลือที่ยังตามอยู่ (แดนลับ/สมบัติที่ได้ยินมา)
+    fragments: Dict[str, List[int]] = field(default_factory=dict)  # ชื่อวิชาแก้ทางโกลาหล -> ชิ้นส่วนที่เก็บได้แล้ว
     forge: float = 0.0
     alchemy: float = 0.0
     cores: int = 0
@@ -172,7 +175,10 @@ class Character:
     forge_rank: int = -1
     alch_rank: int = -1
     mats: int = 0               # วัตถุดิบที่เก็บสะสมไว้
-    place: int = -1             # สถานที่ที่อยู่ตอนนี้ (ดัชนีใน places.PLACES)
+    place: int = -1             # สถานที่ที่อยู่ตอนนี้ (ดัชนีใน places.PLACES) — ระหว่างเดินทางยังคงเป็น
+                                 # จุดออกเดินทางเดิม จะเปลี่ยนเป็นปลายทางตอนถึงจริงเท่านั้น
+    travel_dest: int = -1       # กำลังเดินทางไปไหน (ดัชนีใน places.PLACES) — -1 = ไม่ได้เดินทางอยู่
+    travel_arrival_day: int = 0 # จะถึงจุดหมายวันไหน (มีความหมายเฉพาะตอน travel_dest >= 0)
     mat_stock: Dict[str, int] = field(default_factory=dict)   # วัตถุดิบแยกชนิด
     clan: int = -1              # ตระกูลที่สังกัด (ดัชนีใน clans.CLANS)
     parents: List[int] = field(default_factory=list)
@@ -274,6 +280,13 @@ class Character:
     def to_dict(self):
         return asdict(self)
 
+    def __setstate__(self, state: dict) -> None:
+        """save เก่าที่เซฟไว้ก่อนมีระบบเดินทางจริง (tiandao/travel.py) ยัง unpickle ได้ — เติมค่า default
+        แทน (ไม่ได้เดินทางอยู่) เหมือนที่ Event ทำไว้แล้วด้านล่างตอนเพิ่ม place/realm"""
+        self.__dict__.update(state)
+        self.__dict__.setdefault("travel_dest", -1)
+        self.__dict__.setdefault("travel_arrival_day", 0)
+
 
 @dataclass
 class Event:
@@ -289,6 +302,16 @@ class Event:
     outcome: str
     text: str
     deltas: Dict[str, str] = field(default_factory=dict)
+    place: int = -1   # ที่ตั้งตอนเกิดเหตุ (ดัชนีใน places.PLACES) — -1 = ไม่ทราบ, เติมโดย Sim.emit()
+    realm: int = -1   # ขั้นของ actor ตอนเกิดเหตุจริง (realm ย้อนถอยได้จาก decay แบบไม่ถูก log เป็น
+                       # event เลย — เก็บตรงนี้เป็นหลักฐานเดียวที่แม่นสำหรับ validator ตรวจ "Realm ต้องตรง")
 
     def to_dict(self):
         return asdict(self)
+
+    def __setstate__(self, state: dict) -> None:
+        """log/save เก่าที่เซฟไว้ก่อนมี field "place"/"realm" ยัง unpickle ได้ — เติมค่า default แทน
+        (dataclass ไม่เรียก __init__ ตอน unpickle เอง)"""
+        self.__dict__.update(state)
+        self.__dict__.setdefault("place", -1)
+        self.__dict__.setdefault("realm", -1)
