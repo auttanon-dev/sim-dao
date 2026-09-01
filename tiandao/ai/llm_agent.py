@@ -11,6 +11,7 @@ tiandao.ai ต้องพึ่ง httpx แม้ตอนไม่ได้�
 """
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
@@ -71,7 +72,8 @@ def build_prompt(ch: "Character", brain: "CharacterBrain", sim: "Sim", ev: "Even
     system = (
         "คุณคือนักเขียนนิยายกำลังภายในแนวเซียนหรูสไตล์จีน กำลังคิดแทนตัวละครหนึ่งตัวในสถานการณ์หนึ่ง "
         'ตอบเป็น JSON เท่านั้นตามรูปแบบ {"dialogue": "...", "thought": "..."} '
-        "ห้ามมีข้อความอื่นนอกเหนือจาก JSON และห้ามใส่ markdown code fence"
+        "ห้ามมีข้อความอื่นนอกเหนือจาก JSON และห้ามใส่ markdown code fence "
+        "เขียนเป็นภาษาไทยล้วนเท่านั้น ห้ามมีอักษรจีนหรือภาษาอื่นปนอยู่ในคำตอบแม้แต่คำเดียว"
     )
     user = (
         f"[ตัวละคร] {ch.name} — {ch.race()} สาย{ch.dao} ({ch.archetype}) ขั้น {ch.realm_name()}\n"
@@ -98,7 +100,23 @@ def _strip_code_fence(content: str) -> str:
     return content.strip()
 
 
+_DIALOGUE_RE = re.compile(r'"dialogue"\s*:\s*"((?:[^"\\]|\\.)*)"')
+_THOUGHT_RE = re.compile(r'"thought"\s*:\s*"((?:[^"\\]|\\.)*)"')
+
+
+def _unescape_json_string(s: str) -> str:
+    try:
+        return json.loads(f'"{s}"')
+    except json.JSONDecodeError:
+        return s
+
+
 def _parse_response(content: str) -> Dict[str, str]:
+    """โมเดลจริง (แม้เปิด format=json แล้ว) ยังพัง JSON บ่อย — comma ห้อยท้ายก่อนปิดวงเล็บ, ตัดขาด
+    กลางคัน (ชนเพดาน token), หรือโครงสร้างเพี้ยน (วงเล็บเกิน/ขาด) เจอจริงตอนรัน --llm ครั้งแรกที่ scale
+    (dry run 3000 เหตุการณ์) ก่อนแก้ตรงนี้ ทุก parse ที่พังจะได้ dialogue="" thought=<JSON ดิบที่พัง>
+    ซึ่งเอาไปเทรน LoRA ต่อจะสอนให้โมเดลเขียน "ความคิด" เป็นไวยากรณ์ JSON พัง — จึงต้องกู้เท่าที่กู้ได้
+    ก่อนยอมแพ้ และตอนยอมแพ้จริงๆ ต้องคืนค่าว่าง ไม่ใช่ข้อความดิบ"""
     content = _strip_code_fence(content)
     try:
         data = json.loads(content)
@@ -107,8 +125,30 @@ def _parse_response(content: str) -> Dict[str, str]:
             "thought": str(data.get("thought", "")).strip(),
         }
     except (json.JSONDecodeError, AttributeError):
-        logger.warning("llm_agent: parse JSON จาก Ollama ไม่สำเร็จ เก็บข้อความดิบไว้แทน: %.120s", content)
-        return {"dialogue": "", "thought": content[:200]}
+        pass
+
+    repaired = re.sub(r",\s*}", "}", content)  # comma ห้อยท้าย — ข้อผิดพลาดที่พบบ่อยที่สุด
+    if repaired != content:
+        try:
+            data = json.loads(repaired)
+            return {
+                "dialogue": str(data.get("dialogue", "")).strip(),
+                "thought": str(data.get("thought", "")).strip(),
+            }
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
+    d_match = _DIALOGUE_RE.search(content)
+    t_match = _THOUGHT_RE.search(content)
+    if d_match or t_match:
+        logger.warning("llm_agent: JSON พังทั้งก้อน แต่กู้ field ได้บางส่วนด้วย regex: %.120s", content)
+        return {
+            "dialogue": _unescape_json_string(d_match.group(1)).strip() if d_match else "",
+            "thought": _unescape_json_string(t_match.group(1)).strip() if t_match else "",
+        }
+
+    logger.warning("llm_agent: parse JSON จาก Ollama ไม่สำเร็จ กู้ field ไม่ได้เลย ทิ้งข้อความนี้: %.120s", content)
+    return {"dialogue": "", "thought": ""}
 
 
 class OllamaAgent:
@@ -121,7 +161,7 @@ class OllamaAgent:
         self.timeout = timeout
 
     def _post_chat(self, system: str, user: str, timeout: Optional[float] = None,
-                    num_ctx: Optional[int] = None) -> Optional[str]:
+                    num_ctx: Optional[int] = None, response_format: Optional[str] = None) -> Optional[str]:
         """เรียก /api/chat ดิบๆ คืนข้อความ (ยังไม่ parse) หรือ None ถ้าเรียกไม่สำเร็จ — ใช้ร่วมกัน
         ทั้ง chat() (Layer 3 บทพูด/ความคิดสั้นๆ), tiandao/ai/history.py (Phase 6 ร้อยแก้วยาว) และ
         narrative_factory/style_distill.py (Phase K6 วิเคราะห์ตอนนิยายยาว)
@@ -143,18 +183,25 @@ class OllamaAgent:
         if num_ctx is not None:
             options["num_ctx"] = num_ctx
 
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            "stream": False,
+            "options": options,
+        }
+        if response_format is not None:
+            # Ollama's structured-output mode (constrains sampling to valid JSON) — cuts down on
+            # trailing-comma/truncated output a lot, but not to zero, so _parse_response() still
+            # has to repair/gracefully-degrade on top of this
+            payload["format"] = response_format
+
         try:
             resp = httpx.post(
                 f"{self.host}/api/chat",
-                json={
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                    "stream": False,
-                    "options": options,
-                },
+                json=payload,
                 timeout=timeout if timeout is not None else self.timeout,
             )
             resp.raise_for_status()
@@ -167,7 +214,7 @@ class OllamaAgent:
 
     def chat(self, system: str, user: str) -> Optional[Dict[str, str]]:
         """Layer 3 (Phase 5): ขอผลลัพธ์เป็น JSON {"dialogue","thought"} สั้นๆ"""
-        content = self._post_chat(system, user)
+        content = self._post_chat(system, user, response_format="json")
         if content is None:
             return None
         return _parse_response(content)

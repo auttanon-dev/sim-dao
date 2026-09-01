@@ -6,7 +6,8 @@ City Walls, Waterways, and Living Character Occupants) for all 182 places in Sim
 """
 import math
 import random
-from typing import Dict, List, Any, Tuple
+from functools import lru_cache
+from typing import Dict, List, Any, Optional, Tuple
 
 from . import places as PL
 from . import config as C
@@ -102,42 +103,83 @@ def _pseudo_rand(seed: int, idx: int) -> float:
     return n - math.floor(n)
 
 
+def _settlement_sizing(ptype: str, grade: int) -> Tuple[float, int, int, bool]:
+    """ขนาด/จำนวนวอร์ดและอาคารตามประเภทและระดับชั้นสถานที่ — จุดเดียวที่กำหนดค่านี้ ใช้ร่วมกันทั้ง
+    get_building_skeleton (เอนจินซิม) และ generate_settlement_layout (เรนเดอร์เต็ม) กันไม่ให้เพี้ยนกัน"""
+    if ptype == "เมือง":
+        return 280.0 + grade * 60.0, 6 + grade * 2, 7 + grade * 3, True
+    elif ptype == "สำนัก":
+        return 240.0 + grade * 40.0, 4 + grade, 5 + grade * 2, True
+    elif ptype == "ตลาด":
+        return 220.0 + grade * 30.0, 4, 6, False
+    elif ptype == "ด่านชายแดน" or ptype == "ประตูมิติ":
+        return 180.0, 3, 4, True
+    else:  # ลานฝึก / แหล่งวัตถุดิบ / แดนลับ
+        return 160.0, 3, 3, False
+
+
+def _building_type_for_ward(ward_id: int) -> str:
+    if ward_id == 1:
+        return "market"
+    elif ward_id == 2:
+        return "dojo"
+    elif ward_id == 3:
+        return "craft"
+    elif ward_id == 5:
+        return "temple"
+    return "house"
+
+
+@lru_cache(maxsize=256)
+def get_building_skeleton(place_idx: int) -> Tuple[Dict[str, Any], ...]:
+    """รายการอาคารแบบเบา (id/type/ward_id/b_i เท่านั้น ไม่มีเรขาคณิต) ของสถานที่หนึ่งๆ — deterministic
+    เต็มที่ (ผูกกับ place_idx เท่านั้น) ใช้ทั้งฝั่งเรนเดอร์ผังเมืองเต็ม (generate_settlement_layout) และฝั่ง
+    เอนจินซิม (Sim.route_to_building) ให้ตรงกันเป๊ะเสมอ — ห้ามคำนวณรายการอาคารซ้ำที่อื่น"""
+    if place_idx < 0 or place_idx >= len(PL.PLACES):
+        place_idx = 0
+    _, _, grade, ptype, _, _, _, _ = PL.PLACES[place_idx]
+    _, n_districts, n_buildings_per_ward, _ = _settlement_sizing(ptype, grade)
+
+    buildings: List[Dict[str, Any]] = [{"id": 0, "type": "citadel", "ward_id": 0, "b_i": -1}]
+    b_id = 1
+    for ward_id in range(n_districts):
+        for b_i in range(n_buildings_per_ward):
+            buildings.append({"id": b_id, "type": _building_type_for_ward(ward_id),
+                               "ward_id": ward_id, "b_i": b_i})
+            b_id += 1
+    return tuple(buildings)
+
+
+def find_building_of_type(place_idx: int, types: Tuple[str, ...]) -> Optional[int]:
+    """หาอาคารแรกที่ตรงกับประเภทที่ต้องการในสถานที่นี้ (deterministic) — คืน None ถ้าไม่มีอาคารประเภทนั้นเลย"""
+    for b in get_building_skeleton(place_idx):
+        if b["type"] in types:
+            return b["id"]
+    return None
+
+
+@lru_cache(maxsize=256)
+def _building_type_by_id(place_idx: int) -> Dict[int, str]:
+    return {b["id"]: b["type"] for b in get_building_skeleton(place_idx)}
+
+
+def building_type_of(place_idx: int, building_id: int) -> Optional[str]:
+    """หาประเภทของอาคาร id นี้แบบ O(1) — ใช้เช็ค "อยู่อาคารที่ต้องการอยู่แล้วหรือยัง" ที่ถูกเรียกทุกครั้ง
+    ที่มีการพยายามหลอมยา/ฝึกวิชา/ค้าขาย (บ่อยกว่า find_building_of_type ที่เรียกแค่ตอนต้องเดินใหม่)"""
+    return _building_type_by_id(place_idx).get(building_id)
+
+
 def generate_settlement_layout(place_idx: int, sim=None) -> Dict[str, Any]:
     """สร้างโครงสร้างผังเมืองเสมือนจริง (Watabou Procedural Settlement) สำหรับสถานที่ใดๆ"""
     if place_idx < 0 or place_idx >= len(PL.PLACES):
         place_idx = 0
     p = PL.PLACES[place_idx]
     name, world_key, grade, ptype, res, furn, sec_parent, is_sealed = p
-    
+
     palette = CULTURAL_PALETTES.get(world_key, CULTURAL_PALETTES[0])
     seed = place_idx * 1009 + grade * 37 + len(name)
-    
-    # กำหนดขนาดและจำนวนอาคารตามประเภทและระดับชั้น
-    if ptype == "เมือง":
-        radius = 280.0 + grade * 60.0
-        n_districts = 6 + grade * 2
-        n_buildings_per_ward = 7 + grade * 3
-        has_walls = True
-    elif ptype == "สำนัก":
-        radius = 240.0 + grade * 40.0
-        n_districts = 4 + grade
-        n_buildings_per_ward = 5 + grade * 2
-        has_walls = True
-    elif ptype == "ตลาด":
-        radius = 220.0 + grade * 30.0
-        n_districts = 4
-        n_buildings_per_ward = 6
-        has_walls = False
-    elif ptype == "ด่านชายแดน" or ptype == "ประตูมิติ":
-        radius = 180.0
-        n_districts = 3
-        n_buildings_per_ward = 4
-        has_walls = True
-    else:  # ลานฝึก / แหล่งวัตถุดิบ / แดนลับ
-        radius = 160.0
-        n_districts = 3
-        n_buildings_per_ward = 3
-        has_walls = False
+
+    radius, n_districts, n_buildings_per_ward, has_walls = _settlement_sizing(ptype, grade)
 
     # 1. Generate City Center and Wards (Districts)
     wards = []
@@ -197,83 +239,81 @@ def generate_settlement_layout(place_idx: int, sim=None) -> Dict[str, Any]:
             "points": [(0.0, 0.0), (w["x"], w["y"])]
         })
 
-    # 3. Generate Building Parcels
-    buildings = []
-    b_id = 0
-
-    # Central Landmark Palace / Main Hall
+    # 3. Generate Building Parcels — id/type/ward_id มาจาก get_building_skeleton (จุดเดียวที่กำหนด
+    # รายชื่ออาคาร ใช้ร่วมกับเอนจินซิมด้วย) ที่นี่เติมแค่เรขาคณิต/ชื่อ/สีสำหรับเรนเดอร์
+    building_name_pool = {
+        "market": "ร้านค้าโอสถและวัตถุดิบ",
+        "dojo": "ลานประลองยุทธ์",
+        "craft": "เตาหลอมศาสตรา",
+        "temple": "หอคัมภีร์และสมาธิ",
+        "house": "เรือนพักผู้บำเพ็ญ",
+    }
     special_names = palette["special_buildings"]
-    central_name = special_names[0] if special_names else "ตำหนักใหญ่"
-    buildings.append({
-        "id": b_id,
-        "name": central_name,
-        "type": "citadel",
-        "x": 0.0,
-        "y": 0.0,
-        "width": 46.0,
-        "height": 46.0,
-        "rotation": 0.0,
-        "roof_color": palette["roof_colors"][0],
-        "ward_id": 0,
-        "capacity": 10,
-        "occupants": []
-    })
-    b_id += 1
+    wards_by_id = {w["id"]: w for w in wards}
+    buildings = []
 
-    # Buildings per ward
-    for w in wards:
-        for b_i in range(n_buildings_per_ward):
-            b_seed = seed + w["id"] * 100 + b_i * 17
-            b_ang = _pseudo_rand(b_seed, 1) * 2 * math.pi
-            b_dist = _pseudo_rand(b_seed, 2) * (w["radius"] * 0.75) + 12.0
-            bx = round(w["x"] + b_dist * math.cos(b_ang), 1)
-            by = round(w["y"] + b_dist * math.sin(b_ang), 1)
-            
-            b_w = round(16.0 + _pseudo_rand(b_seed, 3) * 14.0, 1)
-            b_h = round(14.0 + _pseudo_rand(b_seed, 4) * 12.0, 1)
-            rot = round(_pseudo_rand(b_seed, 5) * math.pi, 2)
-            
-            # Determine Building Type & Name
-            if w["id"] == 1:
-                b_type = "market"
-                b_name = f"ร้านค้าโอสถและวัตถุดิบ #{b_id}"
-            elif w["id"] == 2:
-                b_type = "dojo"
-                b_name = f"ลานประลองยุทธ์ #{b_id}"
-            elif w["id"] == 3:
-                b_type = "craft"
-                b_name = f"เตาหลอมศาสตรา #{b_id}"
-            elif w["id"] == 5:
-                b_type = "temple"
-                b_name = f"หอคัมภีร์และสมาธิ #{b_id}"
-            else:
-                b_type = "house"
-                b_name = f"เรือนพักผู้บำเพ็ญ #{b_id}"
-                
-            roof_col = palette["roof_colors"][b_id % len(palette["roof_colors"])]
-            
+    for sk in get_building_skeleton(place_idx):
+        b_id = sk["id"]
+        if sk["type"] == "citadel":
+            central_name = special_names[0] if special_names else "ตำหนักใหญ่"
             buildings.append({
                 "id": b_id,
-                "name": b_name,
-                "type": b_type,
-                "x": bx,
-                "y": by,
-                "width": b_w,
-                "height": b_h,
-                "rotation": rot,
-                "roof_color": roof_col,
-                "ward_id": w["id"],
-                "capacity": 4,
+                "name": central_name,
+                "type": "citadel",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 46.0,
+                "height": 46.0,
+                "rotation": 0.0,
+                "roof_color": palette["roof_colors"][0],
+                "ward_id": 0,
+                "capacity": 10,
                 "occupants": []
             })
-            b_id += 1
+            continue
+
+        w = wards_by_id[sk["ward_id"]]
+        b_seed = seed + w["id"] * 100 + sk["b_i"] * 17
+        b_ang = _pseudo_rand(b_seed, 1) * 2 * math.pi
+        b_dist = _pseudo_rand(b_seed, 2) * (w["radius"] * 0.75) + 12.0
+        bx = round(w["x"] + b_dist * math.cos(b_ang), 1)
+        by = round(w["y"] + b_dist * math.sin(b_ang), 1)
+
+        b_w = round(16.0 + _pseudo_rand(b_seed, 3) * 14.0, 1)
+        b_h = round(14.0 + _pseudo_rand(b_seed, 4) * 12.0, 1)
+        rot = round(_pseudo_rand(b_seed, 5) * math.pi, 2)
+
+        b_name = f"{building_name_pool[sk['type']]} #{b_id}"
+        roof_col = palette["roof_colors"][b_id % len(palette["roof_colors"])]
+
+        buildings.append({
+            "id": b_id,
+            "name": b_name,
+            "type": sk["type"],
+            "x": bx,
+            "y": by,
+            "width": b_w,
+            "height": b_h,
+            "rotation": rot,
+            "roof_color": roof_col,
+            "ward_id": w["id"],
+            "capacity": 4,
+            "occupants": []
+        })
 
     # 4. Populate with Living Cultivators (if Sim instance provided)
     if sim is not None:
         living = [c for c in sim.living() if getattr(c, "place", -1) == place_idx]
         for c_idx, c in enumerate(living):
-            # Assign character to building
-            target_b_idx = 0 if getattr(c, "is_lord", False) else (c_idx % len(buildings))
+            # ใช้อาคารจริงที่เอนจิน route ไปแล้ว (Sim.route_to_building) ถ้ามี — สุ่มแบบเดิมเฉพาะตัวละคร
+            # ที่ยังไม่เคยถูก route ไปอาคารเฉพาะเจาะจง (building == -1)
+            real_b_id = getattr(c, "building", -1)
+            if getattr(c, "is_lord", False):
+                target_b_idx = 0
+            elif real_b_id >= 0 and any(b["id"] == real_b_id for b in buildings):
+                target_b_idx = next(i for i, b in enumerate(buildings) if b["id"] == real_b_id)
+            else:
+                target_b_idx = c_idx % len(buildings)
             b_target = buildings[target_b_idx]
             
             c_info = {

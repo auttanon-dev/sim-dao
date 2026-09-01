@@ -179,6 +179,10 @@ class Character:
                                  # จุดออกเดินทางเดิม จะเปลี่ยนเป็นปลายทางตอนถึงจริงเท่านั้น
     travel_dest: int = -1       # กำลังเดินทางไปไหน (ดัชนีใน places.PLACES) — -1 = ไม่ได้เดินทางอยู่
     travel_arrival_day: int = 0 # จะถึงจุดหมายวันไหน (มีความหมายเฉพาะตอน travel_dest >= 0)
+    building: int = -1          # อาคารที่อยู่ตอนนี้ภายใน place ปัจจุบัน (ดัชนีใน settlement ของ place นั้น)
+                                 # — -1 = ยังไม่ระบุ/อยู่ในเมืองทั่วไป, รีเซ็ตเป็น -1 ทุกครั้งที่ place เปลี่ยน
+    building_dest: int = -1     # กำลังเดินไปอาคารไหนภายในเมือง — -1 = ไม่ได้เดินอยู่
+    building_arrival_day: int = 0 # จะถึงอาคารวันไหน (มีความหมายเฉพาะตอน building_dest >= 0)
     mat_stock: Dict[str, int] = field(default_factory=dict)   # วัตถุดิบแยกชนิด
     clan: int = -1              # ตระกูลที่สังกัด (ดัชนีใน clans.CLANS)
     parents: List[int] = field(default_factory=list)
@@ -286,6 +290,9 @@ class Character:
         self.__dict__.update(state)
         self.__dict__.setdefault("travel_dest", -1)
         self.__dict__.setdefault("travel_arrival_day", 0)
+        self.__dict__.setdefault("building", -1)
+        self.__dict__.setdefault("building_dest", -1)
+        self.__dict__.setdefault("building_arrival_day", 0)
 
 
 @dataclass

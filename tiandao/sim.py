@@ -13,6 +13,7 @@ from . import places as PL
 from . import clans as CL
 from . import intent as IN
 from . import travel as TR
+from . import settlement as SETTLE
 from . import chronicle as CH
 from . import seasons as SEASONS
 from .ai import BrainManager, EventBus
@@ -26,6 +27,11 @@ class Sim:
         self.last_day = 0
         self.seq = 0
         self.cast = []
+        self.alive_cids = set()   # cid ของคนที่ยังมีชีวิตอยู่ตอนนี้ — self.cast โตขึ้นเรื่อยๆ ไม่มีวันหด
+                                    # (ต้องคง index==cid ไว้เสมอ ห้ามลบออกจาก cast) ดังนั้น living()/
+                                    # living_in() ต้องสแกนจากตัวนี้แทน ไม่งั้นจะช้าลงเรื่อยๆ ตามอายุซิม
+                                    # (สแกนคนตายสะสมทั้งหมดซ้ำทุกครั้ง — บั๊กจริงที่เจอตอนรัน --llm scale
+                                    # ยาวหลายแสนเหตุการณ์ ยิ่งรันนานยิ่งช้าลงจนแทบไม่ขยับ)
         self.items = {}
         self.caches = []
         self.ruined = {}          # place_idx -> วันที่ฟื้นคืน
@@ -164,6 +170,20 @@ class Sim:
             return (p[0] + " (ซากปรักหักพัง)", p[1], p[2], "ซากปรักหักพัง", None, -1)
         return PL.PLACES[ch.place]
 
+    def route_to_building(self, ch, building_types):
+        """เช็คว่าตัวละครยืนอยู่ในอาคารประเภทที่ต้องการภายใน place ปัจจุบันหรือยัง — คืน True ถ้าใช่ (ทำ
+        กิจกรรมต่อได้เลย) ถ้ายัง ตั้ง building_dest/building_arrival_day ให้เดินไปแล้วคืน False (ผู้เรียกควร
+        return ทันทีให้ตัวละครเดินก่อน — เหมือน resolve() ของ "เดินทาง" ที่แค่ตั้ง travel_dest แล้วคืนเลย
+        ไม่ทำอะไรต่อ ปล่อยให้ step()/การนัดตื่นครั้งถัดไปจัดการที่เหลือ)"""
+        if SETTLE.building_type_of(ch.place, ch.building) in building_types:
+            return True
+        target = SETTLE.find_building_of_type(ch.place, building_types)
+        if target is None:
+            return True  # เมืองนี้ไม่มีอาคารประเภทนี้เลย — ปล่อยให้ตรรกะระดับ place เดิมตัดสินใจต่อ
+        ch.building_dest = target
+        ch.building_arrival_day = self.day + C.SETTLEMENT_TRAVEL_DAYS
+        return False
+
     def nid(self, k):
         self.next_id[k] += 1
         return self.next_id[k] - 1
@@ -172,10 +192,11 @@ class Sim:
         return self.worlds[wid]
 
     def living(self):
-        return [c for c in self.cast if c.alive]
+        return [self.cast[cid] for cid in self.alive_cids]
 
     def living_in(self, wid):
-        return [c for c in self.cast if c.alive and c.world_id == wid and c.sentient]
+        return [self.cast[cid] for cid in self.alive_cids
+                if self.cast[cid].world_id == wid and self.cast[cid].sentient]
 
     # ------------------------------------------------------------ ประชากร
     def roll_blood(self, world):
@@ -337,6 +358,7 @@ class Sim:
                     ch.peak_realm = ch.realm
         ch.last_day = self.day
         self.cast.append(ch)
+        self.alive_cids.add(ch.cid)
         world.n_alive += 1
         if ch.realm == 0:
             world.n_mortal += 1
@@ -384,6 +406,7 @@ class Sim:
             ch.return_day = self.day + self.rng.randint(*C.LORD_RETURN_DAYS)
             self.schedule(ch, ch.return_day - self.day)
             return
+        self.alive_cids.discard(ch.cid)
         w = self.world(ch.world_id)
         w.n_alive -= 1
         if ch.realm == 0:
@@ -401,8 +424,8 @@ class Sim:
             ch.items = []
             self.org_avenge(ch, killer)
             if ch.clan >= 0 and killer.clan != ch.clan:
-                for m in self.cast:
-                    if m.alive and m.clan == ch.clan:
+                for m in self.living():
+                    if m.clan == ch.clan:
                         m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + 2
         elif ch.realm >= C.CACHE_MIN_REALM or any(
                 self.items[i].legend for i in ch.items):
@@ -712,7 +735,7 @@ class Sim:
                 org = self.orgs[ch.org]
                 if hasattr(org, "facilities") and "หอโอสถ" in org.facilities:
                     master_cid = org.facilities["หอโอสถ"]
-                    if master_cid in self.cast and self.cast[master_cid].alive:
+                    if 0 <= master_cid < len(self.cast) and self.cast[master_cid].alive:
                         master = self.cast[master_cid]
                         ch.hp = getattr(ch, "max_hp", 100)
                         # Add to debts/relations to show gratitude
@@ -737,7 +760,7 @@ class Sim:
                         earned = rng.randint(10, 50) * max(1, ch.realm)
                         ch.money[self.world(ch.world_id).tier] = ch.money.get(self.world(ch.world_id).tier, 0.0) + earned
                         # Send cut to master
-                        if ch.master_cid != -1 and ch.master_cid in self.cast:
+                        if ch.master_cid != -1 and 0 <= ch.master_cid < len(self.cast):
                             master = self.cast[ch.master_cid]
                             if master.alive:
                                 cut = int(earned * 0.6)
@@ -773,16 +796,17 @@ class Sim:
                     if org.alive and org.members:
                         # Assign Facilities
                         if not hasattr(org, "facilities"): org.facilities = {}
-                        if "หอโอสถ" not in org.facilities or org.facilities["หอโอสถ"] not in self.cast or not self.cast[org.facilities["หอโอสถ"]].alive:
-                            alchs = [c for c in org.members if c in self.cast and self.cast[c].alive and getattr(self.cast[c], "alch_rank", 0) > 0]
+                        cast_len = len(self.cast)
+                        if "หอโอสถ" not in org.facilities or not (0 <= org.facilities["หอโอสถ"] < cast_len) or not self.cast[org.facilities["หอโอสถ"]].alive:
+                            alchs = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and getattr(self.cast[c], "alch_rank", 0) > 0]
                             if alchs: org.facilities["หอโอสถ"] = max(alchs, key=lambda c: getattr(self.cast[c], "alch_rank", 0))
-                        
-                        if "หอศาสตรา" not in org.facilities or org.facilities["หอศาสตรา"] not in self.cast or not self.cast[org.facilities["หอศาสตรา"]].alive:
-                            smiths = [c for c in org.members if c in self.cast and self.cast[c].alive and getattr(self.cast[c], "forge_rank", 0) > 0]
+
+                        if "หอศาสตรา" not in org.facilities or not (0 <= org.facilities["หอศาสตรา"] < cast_len) or not self.cast[org.facilities["หอศาสตรา"]].alive:
+                            smiths = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and getattr(self.cast[c], "forge_rank", 0) > 0]
                             if smiths: org.facilities["หอศาสตรา"] = max(smiths, key=lambda c: getattr(self.cast[c], "forge_rank", 0))
-                        
-                        if "ลานฝึกยุทธ" not in org.facilities or org.facilities["ลานฝึกยุทธ"] not in self.cast or not self.cast[org.facilities["ลานฝึกยุทธ"]].alive:
-                            fighters = [c for c in org.members if c in self.cast and self.cast[c].alive and self.cast[c].realm >= 4]
+
+                        if "ลานฝึกยุทธ" not in org.facilities or not (0 <= org.facilities["ลานฝึกยุทธ"] < cast_len) or not self.cast[org.facilities["ลานฝึกยุทธ"]].alive:
+                            fighters = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and self.cast[c].realm >= 4]
                             if fighters: org.facilities["ลานฝึกยุทธ"] = max(fighters, key=lambda c: self.cast[c].realm)
                         
                         org.monthly_resource = getattr(org, "monthly_resource", 10000)
@@ -797,21 +821,22 @@ class Sim:
                         if cd:
                             share = int(pool_c / len(cd))
                             for cid in cd:
-                                if cid in self.cast and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                                if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
                         if id_:
                             share = int(pool_i / len(id_))
                             for cid in id_:
-                                if cid in self.cast and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                                if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
                         if od:
                             share = int(pool_o / len(od))
                             for cid in od:
-                                if cid in self.cast and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                                if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
 
                 # ------------------------------------------------
                 # Divine Spirits Hunting Demons
                 # ------------------------------------------------
-                spirits = [c for c in self.cast if c.alive and getattr(c, "is_spirit", False)]
-                demons = [c for c in self.cast if c.alive and getattr(c, "is_demon", False)]
+                living_now = self.living()
+                spirits = [c for c in living_now if getattr(c, "is_spirit", False)]
+                demons = [c for c in living_now if getattr(c, "is_demon", False)]
                 if spirits and demons:
                     if self.rng.random() < 0.3: # 30% chance for a holy crusade
                         hunter = self.rng.choice(spirits)
@@ -820,25 +845,29 @@ class Sim:
                         import tiandao.combat as combat
                         combat.resolve_combat(hunter, target, self.worlds[0], self)
                 
-                # Demon Temptation (Possession)
-                for ch in self.cast:
-                    if ch.alive and not getattr(ch, "is_demon", False) and not getattr(ch, "is_spirit", False) and not getattr(ch, "is_beast", False):
-                        if getattr(ch, "karmic_debt", 0) > 1000 or getattr(ch, "ambition", 0) > 80:
+                # Demon Temptation (Possession) — ตัวแปรลูปตั้งชื่อ pc ตั้งใจ ห้ามใช้ ch ซ้ำ: บั๊กจริงที่เจอ
+                # ตอนรัน --llm scale ยาว — "for ch in living_now" เดิมทับตัวแปร ch ของตัวละครที่เพิ่ง pop
+                # จากคิวด้านบน (line ~697) ทำให้โค้ดหลังจากนี้ (ch.hidden ฯลฯ จนถึง actor=ch) กลาย
+                # เป็นอ้างอิงถึงคนละคนไปเลย ทุก ~30 วันที่บล็อกนี้ทำงาน — เจ้าของ turn จริงไม่เคยถูก
+                # schedule ต่อเลย ทำให้หลุดจากคิวถาวรทีละคน สะสมจนคิวว่างหมดทั้งที่ยังมีคนเป็นๆ อยู่
+                for pc in living_now:
+                    if not getattr(pc, "is_demon", False) and not getattr(pc, "is_spirit", False) and not getattr(pc, "is_beast", False):
+                        if getattr(pc, "karmic_debt", 0) > 1000 or getattr(pc, "ambition", 0) > 80:
                             if self.rng.random() < 0.05: # 5% chance every 30 days
-                                ch.is_demon = True
-                                ch.dao = "วิถีมาร"
-                                if ch.org is not None and ch.org < len(self.orgs):
+                                pc.is_demon = True
+                                pc.dao = "วิถีมาร"
+                                if pc.org is not None and pc.org < len(self.orgs):
                                     # Leave current sect
-                                    org = self.orgs[ch.org]
-                                    if ch.cid in org.members: org.members.remove(ch.cid)
-                                    if ch.cid in org.core_disciples: org.core_disciples.remove(ch.cid)
-                                    if ch.cid in org.inner_disciples: org.inner_disciples.remove(ch.cid)
-                                    if ch.cid in org.outer_disciples: org.outer_disciples.remove(ch.cid)
-                                ch.org = None
-                                print(f"\n🩸 [มารสิงสู่] [{ch.name}] ถูกจิตมารเข้าครอบงำเพราะกิเลสหนา! กลายเป็นเผ่ามารอย่างสมบูรณ์แบบ!")
+                                    org = self.orgs[pc.org]
+                                    if pc.cid in org.members: org.members.remove(pc.cid)
+                                    if pc.cid in org.core_disciples: org.core_disciples.remove(pc.cid)
+                                    if pc.cid in org.inner_disciples: org.inner_disciples.remove(pc.cid)
+                                    if pc.cid in org.outer_disciples: org.outer_disciples.remove(pc.cid)
+                                pc.org = None
+                                print(f"\n🩸 [มารสิงสู่] [{pc.name}] ถูกจิตมารเข้าครอบงำเพราะกิเลสหนา! กลายเป็นเผ่ามารอย่างสมบูรณ์แบบ!")
 
                 # Beast Horde Siege
-                beast_kings = [c for c in self.cast if c.alive and getattr(c, "is_beast", False) and c.realm >= 4]
+                beast_kings = [c for c in living_now if getattr(c, "is_beast", False) and c.realm >= 4]
                 for king in beast_kings:
                     if not getattr(king, "has_human_form", False):
                         king.has_human_form = True
@@ -858,10 +887,12 @@ class Sim:
                                     if king.realm > ruler.realm:
                                         print(f" -> 🔴 เมืองแตก! [{ruler.name}] พ่ายแพ้ต่อราชันย์อสูรและสิ้นชีพ! กฎหมายเมืองล่มสลาย!")
                                         ruler.alive = False
+                                        self.alive_cids.discard(ruler.cid)
                                         target["law_strictness"] = 0
                                     else:
                                         print(f" -> 🟢 ป้องกันเมืองสำเร็จ! [{ruler.name}] สังหารราชันย์อสูรได้ เมืองสงบสุข!")
                                         king.alive = False
+                                        self.alive_cids.discard(king.cid)
                                         ruler.max_hp = getattr(ruler, "max_hp", 100) + 50
                                         print(f" -> 🔮 [{ruler.name}] ดูดซับแก่นอสูร พลังชีวิตสูงสุดเพิ่มขึ้น!")
 
@@ -924,6 +955,7 @@ class Sim:
                     dest_name = PL.PLACES[ch.travel_dest][0] if 0 <= ch.travel_dest < len(PL.PLACES) else "?"
                     ch.place = ch.travel_dest
                     ch.travel_dest = -1
+                    ch.building = -1  # place ใหม่ = ยังไม่ระบุอาคาร ต้อง route ใหม่ถ้าจำเป็น
                     self.emit(world0, "เดินทาง", ch, None, ["เดินทาง"], "มาถึง",
                               f"{ch.name}เดินทางมาถึง{dest_name}แล้ว", 0, {})
                     travel_ev = next(e for e in E.EVENT_TABLE if e["kind"] == "เดินทาง")
@@ -953,6 +985,24 @@ class Sim:
                 if ch.alive and ch.travel_dest >= 0:
                     next_check = min(C.TRAVEL_ENROUTE_CHECK_DAYS, ch.travel_arrival_day - self.day)
                     self.schedule(ch, max(1, next_check))
+                continue
+
+            if ch.building_dest >= 0:
+                # กำลังเดินข้ามเมืองไปอาคารเป้าหมาย (ตั้งไว้จาก resolve() ผ่าน Sim.route_to_building) —
+                # สั้นกว่าเดินทางข้าม place มาก (SETTLEMENT_TRAVEL_DAYS วัน) เลยไม่ต้องเช็คเหตุการณ์ระหว่าง
+                # ทางแบบ ch.travel_dest ด้านบน แค่รอถึงวันแล้วปล่อยให้เลือกเทิร์นปกติทำงานต่อ
+                world0 = self.world(ch.world_id)
+                R.age_and_decay(self, ch, world0, self.day - ch.last_day, rng)
+                ch.last_day = self.day
+                if not ch.alive:
+                    continue
+                if self.day >= ch.building_arrival_day:
+                    ch.building = ch.building_dest
+                    ch.building_dest = -1
+                    travel_ev = next(e for e in E.EVENT_TABLE if e["kind"] == "เดินทาง")
+                    self.schedule(ch, rng.randint(*travel_ev["gap"]))
+                    continue
+                self.schedule(ch, max(1, ch.building_arrival_day - self.day))
                 continue
 
             actor = ch
@@ -1109,7 +1159,7 @@ class Sim:
                 
             if target_list:
                 target_cid = rng.choice(target_list)
-                if target_cid in self.cast and self.cast[target_cid].alive:
+                if 0 <= target_cid < len(self.cast) and self.cast[target_cid].alive:
                     target_ch = self.cast[target_cid]
                     import tiandao.combat as combat
                     # Law Enforcement Check
@@ -1120,7 +1170,7 @@ class Sim:
                             if rng.random() * 100 < city_dict["law_strictness"]:
                                 blocked = True
                                 r_cid = city_dict.get("ruler_cid", -1)
-                                if r_cid in self.cast and self.cast[r_cid].alive:
+                                if 0 <= r_cid < len(self.cast) and self.cast[r_cid].alive:
                                     ruler = self.cast[r_cid]
                                     return self.emit(world, "กฎหมายเมือง", actor, target_ch, ["กฎหมาย"], "ถูกสกัด", f"[{ruler.title} {ruler.name}] ผู้ปกครองเมืองเข้ามาสกัดการต่อสู้! ผิดกฎเมืองที่มีความเข้มงวด {city_dict['law_strictness']}/100", elapsed, {})
                     
@@ -1163,6 +1213,10 @@ class Sim:
                 # ใน step() เป็นตัวจัดการรอบเช็คถัดๆ ไปเองหลังจากนี้)
                 first_wake = min(C.TRAVEL_ENROUTE_CHECK_DAYS, actor.travel_arrival_day - self.day)
                 self.schedule(actor, max(1, first_wake))
+            elif actor.building_dest >= 0:
+                # เพิ่งเริ่มเดินในเมืองไปอาคารเป้าหมาย (resolve() เรียก route_to_building ตั้ง
+                # building_dest ไว้แล้ว) — นัดตื่นตรงวันถึงเลย เดินในเมืองสั้นมากไม่ต้องเช็คระหว่างทาง
+                self.schedule(actor, max(1, actor.building_arrival_day - self.day))
             else:
                 self.schedule(actor, gap if not actor.hidden else rng.randint(2000, 12000))
         return e
@@ -1720,7 +1774,7 @@ class Sim:
                 
             if res is True:
                 # evaluate_master_relationship
-                if a.master_cid != -1 and a.master_cid in self.cast:
+                if a.master_cid != -1 and 0 <= a.master_cid < len(self.cast):
                     master = self.cast[a.master_cid]
                     if master.alive and a.realm > master.realm:
                         loyalty = getattr(a, "loyalty", 50)
@@ -1762,6 +1816,8 @@ class Sim:
             if grade == 2 and not (pv and pv[3] in ("ลานฝึก", "สำนัก", "แดนต้องห้าม")):
                 R.cultivate(a, gap)
                 return "ไม่มีที่ฝึก", f"{a.name}หาที่ฝึกวิชาขั้นสูงไม่ได้ที่{self.place_name(a)}", d
+            if grade == 2 and not self.route_to_building(a, ("dojo",)):
+                return "เดินไปลานฝึก", f"{a.name}มุ่งหน้าไปยังลานประลองยุทธ์กลาง{self.place_name(a)}", d
             sk = rng.choice(pool)
             p = C.LEARN_BASE_P + 0.05 * (a.realm - SK.GRADE_REALM_BAR[grade]) \
                 - 0.12 * grade - a.decay * 0.05
@@ -1874,6 +1930,8 @@ class Sim:
             furnace = pv[5] if pv else -1
             if furnace < 0:
                 return "ไม่มีเตา", f"{a.name}อยากลง{k} แต่{self.place_name(a)}ไม่มีเตาหลอม", d
+            if not self.route_to_building(a, ("craft",)):
+                return "เดินไปเตาหลอม", f"{a.name}มุ่งหน้าไปยังเตาหลอมกลาง{self.place_name(a)}", d
             d["เตาที่ใช้"] = f"{self.place_name(a)} (เตาระดับ {furnace})"
             if a.mats < CR.CRAFT_MAT_COST or a.cores < C.CRAFT_CORE_COST:
                 return "ขาดวัตถุดิบ", f"{a.name}อยากลง{k}แต่วัตถุดิบไม่พอ", d
@@ -2136,7 +2194,10 @@ class Sim:
 
         if k == "ค้าขาย":
             pv = self.place_of(a)
-            mult = 3.0 if pv and pv[3] in ("ตลาด", "เมือง") else 1.0
+            at_market_place = bool(pv and pv[3] in ("ตลาด", "เมือง"))
+            if at_market_place and not self.route_to_building(a, ("market",)):
+                return "เดินไปตลาด", f"{a.name}มุ่งหน้าไปยังตลาดกลาง{self.place_name(a)}", d
+            mult = 3.0 if at_market_place else 1.0
             gain = rng.uniform(0.5, 3.0) * mult
             # ขายวัตถุดิบที่สะสมไว้ตามราคาประเมิน
             sold = []
@@ -2323,13 +2384,14 @@ class Sim:
                         m.fate -= 1
                     else:
                         m.alive = False
+                        self.alive_cids.discard(m.cid)
                         m.place = None
                         m.org = None
                         casualties += 1
                         
             # ผู้รอดชีวิตจากสำนักที่แพ้กลายเป็นผู้พเนจร, สำนักล่มสลาย
             lose_org.alive = False
-            for c in self.cast:
+            for c in self.living():
                 if c.org == lose_org.oid:
                     c.org = None
                     c.origin = "ผู้พเนจร"

@@ -32,3 +32,7 @@ def _backfill_new_attrs(sim):
         sim.event_bus = EventBus()
         sim.brain_manager = BrainManager()
         sim.event_bus.subscribe(sim.brain_manager.on_event)
+    if not hasattr(sim, "alive_cids"):
+        # save เก่าก่อนมี alive_cids index (ดู sim.py) — คำนวณครั้งเดียวตอนโหลด (O(cast) ครั้งเดียว
+        # ยอมรับได้ ต่างจากการสแกน cast ทั้งก้อนซ้ำทุกครั้งที่ living()/living_in() ถูกเรียก)
+        sim.alive_cids = {c.cid for c in sim.cast if c.alive}
