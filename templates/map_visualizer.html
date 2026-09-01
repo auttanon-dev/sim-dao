@@ -229,10 +229,12 @@
 
   /* Map Controls Bottom Left */
   #view-controls {
+    position: absolute;
     bottom: 1rem;
     left: 1rem;
     display: flex;
     gap: 0.4rem;
+    z-index: 50;
   }
   .view-btn {
     background: var(--panel-bg);
@@ -282,6 +284,8 @@
   </div>
   <div class="nav-links">
     <a href="/" class="nav-btn">📊 กลับหน้า Dashboard</a>
+    <a href="/godview" class="nav-btn">👁️ มุมมองพระเจ้า</a>
+    <a href="/settlement/0" class="nav-btn">🏘️ ผังเมือง</a>
     <button class="nav-btn active" id="btn-reset-view">🗺️ รีเซ็ตมุมมอง</button>
   </div>
 </header>
@@ -334,6 +338,7 @@
     <div class="stat-row"><span>พิกัดสามมิติ (X, Y, Z)</span><span id="insp-coords">-</span></div>
     <div class="stat-row"><span>ทรัพยากรหลัก</span><span id="insp-res">-</span></div>
     <div class="stat-row"><span>เตาหลอม / สิ่งอำนวย</span><span id="insp-furn">-</span></div>
+    <a id="insp-settlement-link" href="#" style="display:none; margin-top:0.8rem; text-align:center; padding:0.5rem; background:var(--gold); color:#12100e; font-weight:700; border-radius:6px; text-decoration:none; font-size:0.85rem;">🏘️ ดูผังเมืองที่นี่ →</a>
   </div>
 
   <!-- Status Bar -->
@@ -658,12 +663,15 @@
 
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
     const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
-    const mouseWBefore = screenToWorld(e.clientX, e.clientY);
+    const mouseWBefore = screenToWorld(cx, cy);
 
     camera.scale = Math.max(0.2, Math.min(3.5, camera.scale * zoomFactor));
 
-    const mouseWAfter = screenToWorld(e.clientX, e.clientY);
+    const mouseWAfter = screenToWorld(cx, cy);
     camera.x += (mouseWAfter.x - mouseWBefore.x) * camera.scale;
     camera.y += (mouseWAfter.y - mouseWBefore.y) * camera.scale;
 
@@ -672,7 +680,8 @@
 
   // Place Selection (Click)
   canvas.addEventListener('click', e => {
-    const mouseW = screenToWorld(e.clientX, e.clientY);
+    const rect = canvas.getBoundingClientRect();
+    const mouseW = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
     let nearest = null;
     let minDist = 18.0 / camera.scale;
 
@@ -702,6 +711,10 @@
     document.getElementById('insp-coords').innerText = `(${p.x}, ${p.y}, Z: +${p.z})`;
     document.getElementById('insp-res').innerText = p.resource || 'ไม่มี';
     document.getElementById('insp-furn').innerText = p.furnace >= 0 ? `เตาหลอมขั้น ${p.furnace}` : 'ไม่มี';
+
+    const settleLink = document.getElementById('insp-settlement-link');
+    settleLink.href = `/settlement/${p.idx}`;
+    settleLink.style.display = 'block';
 
     render();
   }
