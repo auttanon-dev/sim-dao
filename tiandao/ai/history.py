@@ -123,7 +123,8 @@ def generate_episode(sim: "Sim", cid: int, max_scenes: Optional[int] = None,
         return _fallback_episode(ch, scenes)
 
     system, user = build_episode_prompt(ch, sim, brain, scenes)
-    agent = agent or LLM.OllamaAgent(timeout=ACFG.HISTORY_TIMEOUT)
+    # ร้อยแก้วเล่าเรื่อง — ใช้โมเดลสายสำนวน (ACFG.OLLAMA_PROSE_MODEL) ไม่ใช่ตัว Layer 3 ที่เน้นเร็ว
+    agent = agent or LLM.OllamaAgent(model=ACFG.OLLAMA_PROSE_MODEL, timeout=ACFG.HISTORY_TIMEOUT)
     text = agent.complete(system, user, timeout=ACFG.HISTORY_TIMEOUT)
     if text is None:
         logger.warning("history: เรียก Ollama ไม่สำเร็จสำหรับ cid=%s — คืนโครงเรื่องดิบแทน", cid)

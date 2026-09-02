@@ -91,8 +91,24 @@ def build_prompt(ch: "Character", brain: "CharacterBrain", sim: "Sim", ev: "Even
     return system, user
 
 
+_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+_OPEN_THINK_RE = re.compile(r"<think>.*", re.DOTALL)
+
+
+def _strip_think(content: str) -> str:
+    """ตัด <think>...</think> ของโมเดลสาย reasoning (Qwen3 — ทั้ง typhoon2.5 และ pathumma) ทิ้ง
+
+    ต่อให้ส่ง /no_think ไปแล้วโมเดลก็ยังพ่น think block ออกมาได้เป็นครั้งคราว ถ้าไม่ตัดทิ้งตรงนี้
+    เหตุผลของโมเดล (บ่อยครั้งเป็นภาษาอังกฤษ) จะไหลลง dataset ตรงๆ — เจอจริงตอนทดสอบ pathumma
+    ครั้งแรก: ตอนนิยายที่ได้เป็นภาษาไทยแค่ 39% ที่เหลือเป็น chain-of-thought อังกฤษ
+    (เคสที่ยังเปิด <think> ค้างไว้ไม่ปิด ตัดตั้งแต่แท็กเปิดจนจบข้อความ)"""
+    content = _THINK_RE.sub("", content)
+    content = _OPEN_THINK_RE.sub("", content)
+    return content.strip()
+
+
 def _strip_code_fence(content: str) -> str:
-    content = content.strip()
+    content = _strip_think(content)
     if content.startswith("```"):
         content = content.strip("`")
         if "\n" in content:
@@ -182,6 +198,11 @@ class OllamaAgent:
         options = {"temperature": ACFG.OLLAMA_TEMPERATURE}
         if num_ctx is not None:
             options["num_ctx"] = num_ctx
+
+        # โมเดลสาย reasoning ต้องสั่งปิดโหมดคิดก่อน ไม่งั้นจะเสียเวลา (และโควตา token) ไปกับ
+        # chain-of-thought ที่เราไม่ได้ใช้ แถม JSON พังและมีภาษาอังกฤษปนออกมา
+        if self.model in ACFG.NO_THINK_MODELS and "/no_think" not in user:
+            user = f"{user}\n/no_think"
 
         payload = {
             "model": self.model,

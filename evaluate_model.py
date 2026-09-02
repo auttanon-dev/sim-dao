@@ -55,7 +55,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--save-path", default=None, help="ดีฟอลต์ tiandao/persist.DEFAULT_PATH")
     ap.add_argument("--event-log-path", default=None)
-    ap.add_argument("--base-model", default="Qwen/Qwen2.5-7B-Instruct")
+    ap.add_argument("--base-model", default="scb10x/typhoon2.5-qwen3-4b")
     ap.add_argument("--candidate-lora", required=True, help="เช่น loras/v1 — ตัวที่จะพิจารณา deploy")
     ap.add_argument("--baseline-lora", default=None,
                      help="LoRA เวอร์ชันก่อนหน้าที่ deploy อยู่ตอนนี้ (ไม่ใส่ = เทียบกับโมเดลฐานเปล่า "

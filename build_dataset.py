@@ -29,6 +29,7 @@ from narrative_factory import parser as P
 from narrative_factory import scene_extractor as SE
 from tiandao import event_log as EL
 from tiandao import persist as PS
+from tiandao.ai import config_ai as ACFG
 from tiandao.ai import llm_agent as LLM
 
 
@@ -81,7 +82,8 @@ def main():
               "ขึ้นพอ ลอง run.py/daemon.py --save เพิ่มก่อน)")
         return
 
-    agent = LLM.OllamaAgent() if a.llm else None
+    # Dataset A เป็นร้อยแก้วบรรยายฉาก — ใช้โมเดลสายสำนวนเหมือน history.py
+    agent = LLM.OllamaAgent(model=ACFG.OLLAMA_PROSE_MODEL) if a.llm else None
     if a.llm:
         print(f"[build_dataset] เปิด --llm จำกัดที่ {a.llm_limit} ฉากแรก (ที่เหลือใช้ template)")
 

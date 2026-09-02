@@ -214,7 +214,7 @@ def main() -> None:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--examples-file", required=True, help="jsonl ของ {'messages': [...]} (ดู narrative_factory/dataset_formatter.py)")
-    ap.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
+    ap.add_argument("--model", default="scb10x/typhoon2.5-qwen3-4b")
     ap.add_argument("--output-dir", required=True)
     ap.add_argument("--epochs", type=int, default=1)
     ap.add_argument("--batch-size", type=int, default=1)

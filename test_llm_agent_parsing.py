@@ -57,6 +57,32 @@ def test_code_fence_stripped_before_parsing():
     print("  ✓ markdown code fence ถูกตัดออกก่อน parse")
 
 
+def test_think_block_stripped():
+    """โมเดลสาย reasoning (Qwen3: typhoon2.5-4b, pathumma) พ่น <think>...</think> ออกมาก่อนคำตอบ
+    ถ้าไม่ตัดทิ้ง เหตุผลภาษาอังกฤษจะไหลลง dataset ตรงๆ — เจอจริงตอนทดสอบ pathumma ครั้งแรก
+    (ตอนนิยายที่ได้เป็นไทยแค่ 39% ที่เหลือเป็น chain-of-thought อังกฤษ)"""
+    from tiandao.ai.llm_agent import _strip_think
+    assert _strip_think("<think>Okay, let me think...</think>\nผลลัพธ์ไทย") == "ผลลัพธ์ไทย"
+    assert _strip_think("<think>ยังไม่ปิดแท็ก ไหลยาวไปเรื่อยๆ") == ""
+    assert _strip_think("ไม่มี think เลย") == "ไม่มี think เลย"
+    print("  ✓ ตัด <think> ทิ้งได้ทั้งแบบปิดแท็กครบและแบบเปิดค้าง")
+
+
+def test_think_block_stripped_before_json_parse():
+    r = _parse_response('<think>reasoning in english</think>{"dialogue": "ก", "thought": "ข"}')
+    assert r == {"dialogue": "ก", "thought": "ข"}
+    print("  ✓ <think> ถูกตัดก่อน parse JSON ทำให้ยัง parse ผ่านปกติ")
+
+
+def test_no_think_models_are_configured():
+    """โมเดลที่เลือกใช้จริงทั้งสองตัวเป็นสาย Qwen3 ต้องอยู่ใน NO_THINK_MODELS ไม่งั้นจะเสียเวลา
+    ไปกับ chain-of-thought ที่ไม่ได้ใช้ทุกครั้งที่เรียก"""
+    from tiandao.ai import config_ai as ACFG
+    assert ACFG.OLLAMA_MODEL in ACFG.NO_THINK_MODELS
+    assert ACFG.OLLAMA_PROSE_MODEL in ACFG.NO_THINK_MODELS
+    print("  ✓ โมเดล Layer 3 และ prose อยู่ใน NO_THINK_MODELS ครบ")
+
+
 if __name__ == "__main__":
     print("=== ทดสอบความทนทานของ _parse_response ต่อ JSON ที่พังจริงจาก Ollama ===")
     test_valid_json_passthrough()
@@ -65,4 +91,7 @@ if __name__ == "__main__":
     test_truncated_missing_close_brace_recovered()
     test_totally_unrecoverable_returns_empty_not_garbage()
     test_code_fence_stripped_before_parsing()
+    test_think_block_stripped()
+    test_think_block_stripped_before_json_parse()
+    test_no_think_models_are_configured()
     print("\n\U0001f389 LLM AGENT PARSING TESTS PASSED!")

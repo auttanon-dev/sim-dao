@@ -53,7 +53,7 @@ def _run(cmd, **kwargs):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base-model", default="Qwen/Qwen2.5-7B-Instruct")
+    ap.add_argument("--base-model", default="scb10x/typhoon2.5-qwen3-4b")
     ap.add_argument("--adapter", required=True, help="เช่น loras/v1")
     ap.add_argument("--version", required=True, help="ชื่อเวอร์ชันโมเดล เช่น v1 -> cultivator-brain:v1")
     ap.add_argument("--eval-result", default=None, help="path ผล JSON จาก evaluate_model.py")

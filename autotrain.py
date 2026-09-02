@@ -43,7 +43,7 @@ def main() -> None:
     ap.add_argument("--loras-dir", default="loras")
     ap.add_argument("--threshold", type=int, default=2000,
                      help="จำนวนฉากสะสมใหม่ (ตั้งแต่เทรนครั้งล่าสุด) ที่ต้องครบก่อนเทรน (ตาม ROLE (2).MD)")
-    ap.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct")
+    ap.add_argument("--model", default="scb10x/typhoon2.5-qwen3-4b")
     ap.add_argument("--check", action="store_true", help="แค่เช็คว่าครบโควต้าหรือยัง ไม่เทรนจริง")
     ap.add_argument("--force", action="store_true", help="เทรนทันทีไม่สนโควต้า (ใช้ทดสอบ pipeline)")
     ap.add_argument("--max-steps", type=int, default=None, help="จำกัด step ต่อรอบ (สำหรับ smoke test)")

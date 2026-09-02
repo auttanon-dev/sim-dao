@@ -36,7 +36,7 @@ def main():
     ap.add_argument("--cid", type=int, default=None,
                      help="ตัวละครที่จะเขียนตอน — ไม่ใส่ = เลือกตัวเด่นสุดอัตโนมัติด้วย story.rank")
     ap.add_argument("--max-scenes", type=int, default=None)
-    ap.add_argument("--model", default=ACFG.OLLAMA_MODEL,
+    ap.add_argument("--model", default=ACFG.OLLAMA_PROSE_MODEL,
                      help=f"โมเดล Ollama ที่จะใช้ (ดีฟอลต์ {ACFG.OLLAMA_MODEL} ใน config_ai.py) "
                           "ลองตัวอื่นได้ เช่น qwen3-coder:30b, deepseek-r1:8b")
     ap.add_argument("--out", default="out/episodes")

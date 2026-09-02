@@ -46,7 +46,39 @@ EPISODIC_MEMORY_CAP = 30
 # อย่างน้อย 1 ครั้งหลุด raw state text ภาษาจีนยาวปนออกมาใน thought — ตรงกับที่คาดไว้ตอนเปลี่ยน (loras/v4
 # ไม่เคยเห็น Dataset B/C ตอนเทรนเพราะ world ที่ใช้เทรนไม่เคยรันด้วย --llm) รายละเอียดเต็มดู
 # CULTIVATOR_BRAIN_STATUS.md ปัญหาข้อ 10
-OLLAMA_MODEL = "qwen2.5vl:7b"
+# ---------------------------------------------------------------- โมเดลแยกตามหน้าที่
+# วัดจริงด้วย tools/ab_full_capability.py บน prompt จริงจาก world.save (T1=20 T2=30 T3=10 T4=15
+# ทุกโมเดล n เท่ากันหมด) — ผลเต็มอยู่ใน out/ab_full_results.json สรุปที่ใช้ตัดสิน:
+#
+#   โมเดล                 T1 json  T2 gate  T2 score  T3 style  T4 ตัวอักษร  T4 cjk  T1 วิ/ครั้ง
+#   qwen2.5vl:7b (เดิม)   20/20    23/30    93.3      6/10      3586        34 ⚠     3.4
+#   typhoon2.5-qwen3-4b   20/20    26/30    85.0      5/10      2058         0       3.2
+#   llama3.1-typhoon2-8b  18/20    30/30    95.2      3/10       843         0       3.4
+#   pathumma-8b-think     19/20    27/30    92.7      4/10      1856         0       7.6
+#
+# qwen2.5vl:7b เป็นตัวเดียวที่มีอักษรจีนปนในร้อยแก้วไทย (34 ตัวใน 15 ตอน ตัวอื่น 0 ทุกตัว) จึงเลิกใช้
+# ทั้งสองงานหลัก ส่วน T2 score ของ llama3.1-typhoon2-8b ที่สูงสุดเป็นผลข้างเคียงของการ "ไม่แต่งเพิ่ม"
+# (มันเขียนสั้นมาก 843 ตัวอักษร เหมือนกรอกฟอร์มมากกว่าร้อยแก้ว) validator วัดความตรงข้อเท็จจริง
+# ไม่ได้วัดสำนวน จึงไม่ใช้คะแนนนั้นตัดสินงานเขียน
+OLLAMA_MODEL = "scb10x/typhoon2.5-qwen3-4b"
+# Layer 3 (บทพูด/ความคิด JSON สั้น) — งานปริมาณมหาศาล (คิวระดับ 8,000+ งาน) เลือกตัวที่เร็วที่สุดและ
+# JSON เต็ม 20/20 ไม่มีอักษรจีนปน
+
+OLLAMA_PROSE_MODEL = "hf.co/nectec/pathumma-thaillm-8b-think-3.0.0-GGUF:Q4_K_M"
+# ร้อยแก้วบรรยายตอน/ฉาก (history.py, exporter.py) — ช้ากว่า 2.4 เท่าแต่จำนวนครั้งน้อยมากเมื่อเทียบกับ
+# Layer 3 และสำนวนดีที่สุดจากการอ่านเทียบตัวต่อตัวบนตัวละครเดียวกัน (ดู out/episode_compare.json)
+
+OLLAMA_STYLE_MODEL = "qwen2.5vl:7b"
+# Style Distillation (style_distill.py) — งานนี้ output เป็น "บทวิเคราะห์เชิงเทคนิค" ไม่ใช่ร้อยแก้วเล่า
+# เรื่อง ปัญหาอักษรจีนปนจึงกระทบน้อย และตัวนี้ยังทำ yield ได้สูงสุด (6/10 เทียบ 5/10 และ 3/10)
+
+# โมเดลสาย reasoning (Qwen3) จะพ่น <think>...</think> ออกมาก่อนคำตอบเสมอถ้าไม่สั่งปิด — ทำให้ JSON
+# พังและมีเหตุผลภาษาอังกฤษปนเข้า dataset (เจอจริง: pathumma รอบแรกได้ไทยแค่ 39% เพราะ think ภาษาอังกฤษ)
+NO_THINK_MODELS = frozenset({
+    "scb10x/typhoon2.5-qwen3-4b",
+    "hf.co/nectec/pathumma-thaillm-8b-think-3.0.0-GGUF:Q4_K_M",
+})
+
 OLLAMA_HOST = "http://localhost:11434"
 OLLAMA_TIMEOUT = 30.0
 OLLAMA_TEMPERATURE = 0.8

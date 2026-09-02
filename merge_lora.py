@@ -46,7 +46,7 @@ def merge(base_model_name: str, adapter_path: str, output_dir: str) -> str:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--base-model", default="Qwen/Qwen2.5-7B-Instruct")
+    ap.add_argument("--base-model", default="scb10x/typhoon2.5-qwen3-4b")
     ap.add_argument("--adapter", required=True, help="เช่น loras/v1")
     ap.add_argument("--output-dir", required=True, help="เช่น merged/v1")
     a = ap.parse_args()
