@@ -74,6 +74,11 @@ def main():
                           "โมเดลที่ตั้งไว้ใน tiandao/ai/config_ai.py (ดีฟอลต์ qwen2.5vl:7b) "
                           "(Phase G) sim.run() เองไม่บล็อกอีกต่อไป — งาน LLM เข้าคิวไว้แล้วประมวลผล "
                           "ทั้งหมดหลัง sim.run() จบครั้งเดียว (ยังกินเวลารวมเท่าเดิม แค่ไม่บล็อกระหว่างเดิน)")
+    ap.add_argument("--llm-budget", type=int, default=0,
+                     help="จำกัดจำนวนงาน LLM ที่จะ drain หลัง sim.run() จบ (0 = ทั้งคิวเหมือนเดิม) — "
+                          "สำคัญมากตอนรันยาว: คิวโตตามจำนวนเหตุการณ์ (341,000 เหตุการณ์เคยได้ 121,302 งาน) "
+                          "ถ้า drain ทั้งคิวจะใช้เวลาระดับสัปดาห์และ --save จะไม่ได้ทำงานเลยเพราะยังไม่ถึง "
+                          "บรรทัดนั้น ตั้ง budget ไว้เพื่อให้ได้ dataset จริงพร้อมเซฟในเวลาที่คุมได้")
     a = ap.parse_args()
 
     if a.llm:
@@ -101,8 +106,14 @@ def main():
     sim.run(a.events)
 
     if a.llm:
-        n = sim.brain_manager.drain_llm_queue(sim, budget=0)
-        print(f"[llm] ประมวลผลคิว Layer 3 แล้ว {n} งาน (Phase G — แยกจากลูปหลักของ sim.run() แล้ว)")
+        queued = len(sim.brain_manager.llm_queue)
+        print(f"[llm] คิว Layer 3 มีทั้งหมด {queued} งาน — จะประมวลผล "
+              f"{'ทั้งหมด' if a.llm_budget <= 0 else f'{a.llm_budget} งานแรก'} "
+              f"(~20 วินาที/งาน โดยประมาณ)")
+        n = sim.brain_manager.drain_llm_queue(sim, budget=a.llm_budget)
+        left = len(sim.brain_manager.llm_queue)
+        print(f"[llm] ประมวลผลคิว Layer 3 แล้ว {n} งาน (เหลือค้างคิว {left} งาน — งานที่เหลือถูกเซฟ "
+              f"ไปกับ world.save ด้วย ถ้าใช้ --save จึง drain ต่อได้ทีหลังด้วย --resume)")
 
     if a.save:
         save_dir = os.path.dirname(a.save_path)

@@ -77,6 +77,11 @@ class CharacterBrain:
             del self.episodic[: len(self.episodic) - ACFG.EPISODIC_MEMORY_CAP]
 
     def is_notable(self, ev: "Event") -> bool:
+        """kind ที่เป็นดราม่า หรือ outcome ที่น่าจดจำในตัวเอง (ตาย) — แต่ต้องไม่ใช่ outcome กลุ่ม
+        "สุดท้ายไม่มีอะไรเกิดขึ้น" (ดู ACFG.NON_EVENT_OUTCOMES) เพราะ kind ดราม่าจำนวนมากจบลงแบบ
+        ไม่มีเนื้อเรื่อง เช่น "ค้นแดนลับ → ไม่พบ" / "ข้ามฟ้า → ยังไม่ถึง" ซึ่งไม่มีอะไรให้ Layer 3 เล่า"""
+        if ev.outcome in ACFG.NON_EVENT_OUTCOMES:
+            return False
         return ev.kind in ACFG.NOTABLE_KINDS or ev.outcome in ACFG.NOTABLE_OUTCOMES
 
     def observe_place(self, place_idx: int, ev: "Event") -> None:
