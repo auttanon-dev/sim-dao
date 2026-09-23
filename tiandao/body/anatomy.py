@@ -19,6 +19,7 @@ import math
 
 from . import constants as K
 from . import genetics as G
+from .skeleton import Skeleton
 
 
 class MuscleGroup:
@@ -62,7 +63,7 @@ class Body:
     """
 
     __slots__ = ("gen", "bone_mass", "muscle_mass", "organ_mass", "fat_mass",
-                 "mass", "muscles")
+                 "mass", "muscles", "skeleton")
 
     def __init__(self, gen: G.Genetics):
         self.gen = gen
@@ -86,6 +87,10 @@ class Body:
             mass = self.muscle_mass * K.MUSCLE_GROUP_SHARE[name]
             fiber = segment_for[name] * K.FIBER_LENGTH_RATIO[name]
             self.muscles[name] = MuscleGroup(name, mass, fiber, gen.specific_tension)
+
+        # ---- 5. โครงกระดูก: งบมวลจากข้อ 1 แจกตามส่วนแบ่ง แล้วรัศมีถูกแก้ย้อนจากมวล+ความยาว
+        # จึงไม่มีความจริงสองชุดเรื่องมวลกระดูก (ดู skeleton.py)
+        self.skeleton = Skeleton(gen, self.bone_mass)
 
     # ---------------------------------------------------------------- มวลและน้ำ
     @property
@@ -171,6 +176,7 @@ class Body:
                     "แรงที่ใช้ได้ (N)": round(m.available_force(self.gen.neuro_efficiency)),
                 } for name, m in sorted(self.muscles.items())
             },
+            "โครงกระดูก": self.skeleton.explain(),
             "ทอร์กข้อต่อ (N·m)": {
                 j: round(self.joint_torque(j)) for j in sorted(_JOINT_SOURCE)
             },

@@ -28,14 +28,16 @@
 migrate เซฟเก่า ไม่ต้องขยับ SAVE_VERSION และเซฟไม่บวม แคชเก็บไว้ในหน่วยความจำของโปรเซส
 เท่านั้น (ไม่ติดไปกับ pickle ของ Sim) และไม่มีจุดใดแตะ RNG หลักของโลก
 """
-from . import capability, constants, genetics
+from . import balance, capability, constants, genetics, skeleton
 from .anatomy import Body, MuscleGroup
+from .skeleton import Bone, Skeleton
 from .genetics import Genetics
 
-__all__ = ["Body", "Genetics", "MuscleGroup", "capability", "constants", "genetics",
+__all__ = ["Body", "Genetics", "MuscleGroup", "Bone", "Skeleton",
+           "balance", "capability", "constants", "genetics", "skeleton",
            "body_of", "explain", "strength_of", "mass_of", "estimated_max_speed",
            "can_outrun", "can_jump", "can_lift", "carry_capacity", "reaction_time",
-           "BODY_POWER_WEIGHT"]
+           "can_stand_with", "balance_margin", "fracture_risk", "BODY_POWER_WEIGHT"]
 
 BODY_POWER_WEIGHT = constants.BODY_POWER_WEIGHT
 
@@ -112,7 +114,27 @@ def reaction_time(character, body_seed: int = 0, fatigue: float = 0.0) -> float:
     return capability.reaction_time(body_of(character, body_seed), fatigue)
 
 
-def explain(character, body_seed: int = 0, friction=None, fatigue: float = 0.0) -> dict:
+def can_stand_with(character, load_kg: float, load_arm=None, body_seed: int = 0) -> bool:
+    """ถือของหนักเท่านี้ไว้ข้างหน้าแล้วยังยืนอยู่ได้ไหม — เกณฑ์สมดุล ไม่ใช่เกณฑ์แรง"""
+    return balance.is_stable(body_of(character, body_seed), load_kg, load_arm)
+
+
+def balance_margin(character, load_kg: float = 0.0, load_arm=None,
+                   body_seed: int = 0) -> float:
+    """ระยะเหลือถึงขอบฐานรองรับ (m) — ลบแปลว่าล้ม"""
+    return balance.balance_margin(body_of(character, body_seed), load_kg, load_arm)
+
+
+def fracture_risk(character, bone: str, force: float, mode: str = "compressive",
+                  body_seed: int = 0) -> float:
+    """โอกาสที่กระดูกชิ้นหนึ่งจะหักเมื่อรับแรงเท่านี้ (0..1) — เส้นโค้ง ไม่ใช่เกณฑ์ตัด"""
+    piece = body_of(character, body_seed).skeleton[bone]
+    stress = piece.bending_stress(force) if mode == "bending" else piece.stress(force)
+    return piece.fracture_risk(stress, mode)
+
+
+def explain(character, body_seed: int = 0, friction=None, fatigue: float = 0.0,
+            load_kg: float = 0.0) -> dict:
     """คำอธิบายร่างกายทั้งก้อนสำหรับดีบัก — ทุกตัวเลขย้อนไปหาที่มาได้ (พรอมต์ §44)"""
     body = body_of(character, body_seed)
     mu = constants.DEFAULT_FRICTION if friction is None else friction
@@ -120,4 +142,5 @@ def explain(character, body_seed: int = 0, friction=None, fatigue: float = 0.0) 
         "ตัวละคร": getattr(character, "name", f"cid {character.cid}"),
         "กายวิภาค": body.explain(),
         "ความสามารถ": capability.summary(body, mu, fatigue),
+        "การทรงตัว": balance.explain(body, load_kg),
     }

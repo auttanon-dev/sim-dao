@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
-"""ร่างกายต้องเป็นต้นเหตุของความสามารถ ไม่ใช่ผลลัพธ์ของค่าพลังที่ตั้งไว้ — Phase 1
+"""ร่างกายต้องเป็นต้นเหตุของความสามารถ ไม่ใช่ผลลัพธ์ของค่าพลังที่ตั้งไว้ — Phase 1–2
 
     python -m unittest test_body -v
 
-ข้อที่ไฟล์นี้ล็อกไว้ ตรงกับชุดทดสอบที่สเปกกำหนด (พรอมต์ §43) เท่าที่ Phase 1 ครอบคลุม:
+    Phase 1  องค์ประกอบมวล · กล้ามเนื้อ · ข้อต่อ · ความสามารถทางกาย
+    Phase 2  โครงกระดูกที่รับแรงและหักได้ (§4–5) · จุดศูนย์กลางมวลและการทรงตัว (§10)
+
+ข้อที่ไฟล์นี้ล็อกไว้ ตรงกับชุดทดสอบที่สเปกกำหนด (พรอมต์ §43) เท่าที่สองเฟสนี้ครอบคลุม:
 
     TEST 1  PCSA เพิ่ม  ->  แรงสูงสุดต้องเพิ่ม
     TEST 2  แขนโมเมนต์เปลี่ยน  ->  ทอร์กที่ข้อต้องเปลี่ยนตาม
@@ -24,7 +27,8 @@ import unittest
 from tiandao import body as B
 from tiandao import rules as R
 from tiandao import sim as S
-from tiandao.body import anatomy, capability, constants as K, genetics
+from tiandao.body import (anatomy, balance, capability, constants as K,
+                          genetics, skeleton)
 from tiandao.models import Character
 
 
@@ -236,6 +240,123 @@ class PowerIntegrationTests(unittest.TestCase):
         self.assertLess(max(span) / min(span), 1.35,
                         "ร่างกายขยับพลังมากเกินไปจนระบบเดิมถูกกลืน")
         self.assertGreater(base, 0.0)
+
+
+class SkeletonTests(unittest.TestCase):
+    """โครงกระดูกต้องเป็นโครงสร้างรับแรงจริง (พรอมต์ §4–5)"""
+
+    def test_bone_mass_has_exactly_one_source_of_truth(self):
+        for body in bodies(60):
+            self.assertAlmostEqual(body.skeleton.total_mass, body.bone_mass, places=9,
+                                   msg="มวลกระดูกจากชิ้นส่วนไม่ตรงกับงบขององค์ประกอบร่างกาย")
+
+    def test_radius_is_solved_back_from_mass_and_length(self):
+        """m = ρπr²L ต้องกลับไปกลับมาได้ — รัศมีไม่ใช่ค่าที่ตั้งขึ้นแยกต่างหาก"""
+        for body in bodies(40):
+            for bone in body.skeleton.bones.values():
+                volume = math.pi * bone.radius ** 2 * bone.length
+                self.assertAlmostEqual(K.BONE_DENSITY * volume * bone.count, bone.mass,
+                                       places=9)
+
+    def test_stress_is_force_over_area(self):
+        bone = B.body_of(person()).skeleton["femur"]
+        self.assertAlmostEqual(bone.stress(10_000.0),
+                               (10_000.0 / bone.count) / bone.area, places=6)
+        # เชิงเส้นตรงตามสูตร ไม่ใช่เส้นโค้งที่เดาเอา
+        self.assertAlmostEqual(bone.stress(20_000.0) / bone.stress(10_000.0), 2.0, places=9)
+
+    def test_a_taller_frame_gets_thinner_bones_and_more_stress(self):
+        """ข้ออ้างในเอกสารของ skeleton.py ต้องเป็นจริง ไม่ใช่คำบรรยายลอยๆ"""
+        short = B.body_of(person())
+        tall = copy.deepcopy(short)
+        tall.gen.height *= 1.15          # สูงขึ้นแต่มวลกระดูกเท่าเดิม
+        tall.skeleton = B.Skeleton(tall.gen, short.bone_mass)
+        a, b = short.skeleton["femur"], tall.skeleton["femur"]
+        self.assertGreater(b.length, a.length)
+        self.assertLess(b.radius, a.radius, "กระดูกยาวขึ้นที่มวลเท่าเดิมต้องเรียวลง")
+        self.assertGreater(b.stress(8000.0), a.stress(8000.0))
+
+    def test_fracture_risk_is_a_curve_that_starts_at_zero(self):
+        bone = B.body_of(person()).skeleton["femur"]
+        self.assertEqual(bone.fracture_risk(0.0), 0.0, "ไม่มีแรงต้องไม่มีโอกาสหัก")
+        at_yield = bone.fracture_risk(K.BONE_YIELD_COMPRESSIVE)
+        self.assertGreater(at_yield, 0.45)
+        self.assertLess(at_yield, 0.55, "ที่เกณฑ์พอดีต้องราวครึ่งๆ ไม่ใช่ 0 หรือ 1")
+        self.assertLess(bone.fracture_risk(K.BONE_YIELD_COMPRESSIVE * 3), 1.0000001)
+        # ต้องเพิ่มแบบไม่ลดลงเลยตลอดช่วง และไม่ใช่ขั้นบันได 0/1
+        seen = [bone.fracture_risk(K.BONE_YIELD_COMPRESSIVE * r / 10.0) for r in range(0, 31)]
+        self.assertEqual(seen, sorted(seen))
+        self.assertGreater(len({round(x, 3) for x in seen}), 8, "เส้นโค้งแบนเกินไป")
+
+    def test_bending_breaks_a_long_bone_long_before_compression_does(self):
+        """ความจริงทางกลศาสตร์: กระดูกยาวหักจากการดัด ไม่ใช่จากการกดตามแนวแกน"""
+        bone = B.body_of(person()).skeleton["femur"]
+        force = 9000.0
+        self.assertGreater(bone.bending_stress(force), bone.stress(force) * 10)
+        self.assertGreater(bone.fracture_risk(bone.bending_stress(force), "bending"),
+                           bone.fracture_risk(bone.stress(force), "compressive"))
+
+    def test_every_bone_has_a_plausible_cross_section(self):
+        for body in bodies(200):
+            for name, bone in body.skeleton.bones.items():
+                self.assertGreater(bone.radius, 0.002, name)
+                self.assertLess(bone.radius, 0.060, name)
+                self.assertGreater(bone.length, 0.05, name)
+
+
+class BalanceTests(unittest.TestCase):
+    """จุดศูนย์กลางมวลและการทรงตัว (พรอมต์ §10)"""
+
+    def test_segment_masses_add_up_to_the_whole_body(self):
+        for body in bodies(60):
+            self.assertAlmostEqual(sum(balance.segment_masses(body).values()),
+                                   body.mass, places=9)
+
+    def test_centre_of_mass_emerges_near_the_measured_human_value(self):
+        """ไม่ได้ตั้งไว้ — รวมจากมวล×ตำแหน่งของทุกส่วนแล้วออกมาเองราว 0.54 ของส่วนสูง"""
+        for body in bodies(80):
+            frac = balance.com_height(body) / body.gen.height
+            self.assertTrue(0.50 < frac < 0.60, f"COM อยู่ที่ {frac:.3f} ของส่วนสูง")
+
+    def test_com_is_the_mass_weighted_average_of_body_and_load(self):
+        body = B.body_of(person())
+        load, arm = 30.0, 0.40
+        expected = (body.mass * K.COM_AHEAD_OF_ANKLE + load * arm) / (body.mass + load)
+        self.assertAlmostEqual(balance.com_offset(body, load, arm), expected, places=12)
+
+    def test_a_heavier_load_in_front_eats_the_balance_margin(self):
+        body = B.body_of(person())
+        margins = [balance.balance_margin(body, kg, 0.45) for kg in (0, 20, 40, 80, 160)]
+        self.assertEqual(margins, sorted(margins, reverse=True))
+        self.assertGreater(margins[0], 0.0)
+
+    def test_max_stable_load_is_solved_not_searched(self):
+        """คำตอบต้องอยู่บนขอบพอดี — เอาค่ากลับไปแทนในสมการสมดุลแล้วต้องได้ศูนย์"""
+        body = B.body_of(person())
+        arm = 0.55
+        limit = balance.max_stable_load(body, arm)
+        self.assertTrue(0.0 < limit < 1e6)
+        self.assertAlmostEqual(balance.balance_margin(body, limit, arm), 0.0, places=9)
+        self.assertFalse(balance.is_stable(body, limit * 1.05, arm))
+        self.assertTrue(balance.is_stable(body, limit * 0.95, arm))
+
+    def test_holding_a_load_close_is_limited_by_the_back_not_by_balance(self):
+        """สองเกณฑ์อยู่ร่วมกันจริง และเกณฑ์ไหนบีบก่อนขึ้นกับว่าถือไว้ไกลแค่ไหน"""
+        body = B.body_of(person())
+        torque_limit = capability.carry_capacity(body)
+        near = balance.max_stable_load(body, K.CARRY_LEVER_ARM)
+        self.assertGreater(near, torque_limit, "ถือใกล้ตัว หลังต้องเป็นตัวจำกัดก่อนสมดุล")
+        far = balance.max_stable_load(body, 0.75)
+        self.assertLess(far, near, "ยิ่งถือไกล สมดุลยิ่งบีบเร็วขึ้น")
+
+    def test_a_longer_foot_makes_it_harder_to_tip_forward(self):
+        small = B.body_of(person())
+        big = copy.deepcopy(small)
+        big.gen.height *= 1.2           # เท้ายาวขึ้นตามส่วนสูง
+        self.assertGreater(balance.support_polygon(big)["front"],
+                           balance.support_polygon(small)["front"])
+        self.assertGreater(balance.balance_margin(big, 40.0),
+                           balance.balance_margin(small, 40.0))
 
 
 if __name__ == "__main__":

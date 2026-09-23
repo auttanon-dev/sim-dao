@@ -23,6 +23,7 @@ if sys.platform == "win32":
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tiandao import body as B                          # noqa: E402
+from tiandao.body import balance as BAL                # noqa: E402
 from tiandao.body import capability, constants as K    # noqa: E402
 from tiandao.models import Character                   # noqa: E402
 
@@ -68,6 +69,30 @@ def one(cid, seed, gender, friction, fatigue):
     print("\n  ความสามารถบนพื้นแต่ละแบบ (m/s):")
     for name, mu in sorted(K.TERRAIN_FRICTION.items(), key=lambda kv: -kv[1]):
         print(f"    {name:<10} μ={mu:.2f}   {capability.max_running_speed(body, mu, fatigue):5.2f}")
+
+    print("\n  โครงกระดูกรับแรงได้แค่ไหน (กระดูกต้นขา · แรงผ่านตัวมันเอง):")
+    femur = body.skeleton["femur"]
+    print(f"    ยาว {femur.length:.3f} m · รัศมี {femur.radius:.4f} m · "
+          f"หน้าตัด {femur.area * 1e4:.2f} cm² · {femur.count} ชิ้น")
+    print(f"    {'แรง':>14}{'แนวแกน MPa':>13}{'โอกาสหัก':>11}{'ดัด MPa':>11}{'โอกาสหัก':>11}")
+    for mult in (1, 3, 8, 14, 25):
+        f_n = weight * mult
+        ax, bd = femur.stress(f_n), femur.bending_stress(f_n)
+        print(f"    {f'{mult}x นน.ตัว':>14}{ax / 1e6:>13.1f}"
+              f"{femur.fracture_risk(ax, 'compressive'):>11.3f}"
+              f"{bd / 1e6:>11.1f}{femur.fracture_risk(bd, 'bending'):>11.3f}")
+
+    print("\n  การทรงตัวเมื่อถือของไว้ข้างหน้า:")
+    show(BAL.explain(body), indent=4)
+    print(f"    {'ของที่ถือ':>11}{'ระยะถือ':>9}{'COM (m)':>10}{'เหลือถึงขอบ':>13}{'ยืนได้':>8}")
+    for load, arm in ((0, 0.30), (20, 0.30), (40, 0.30), (40, 0.60), (80, 0.60)):
+        print(f"    {f'{load} kg':>11}{f'{arm:.2f} m':>9}"
+              f"{BAL.com_offset(body, load, arm):>10.4f}"
+              f"{BAL.balance_margin(body, load, arm):>13.4f}"
+              f"{str(BAL.is_stable(body, load, arm)):>8}")
+    print(f"    เกณฑ์ที่บีบก่อน: หลังรับไหว {capability.carry_capacity(body):.1f} kg"
+          f" · สมดุลที่ 0.30 m {BAL.max_stable_load(body, 0.30):.1f} kg"
+          f" · สมดุลที่ 0.60 m {BAL.max_stable_load(body, 0.60):.1f} kg")
 
     print("\n  ถ้าความล้าเพิ่มขึ้น (Phase 5 จะเป็นผู้จ่ายค่านี้เข้ามาจริง):")
     for f in (0.0, 0.25, 0.50, 0.75):
