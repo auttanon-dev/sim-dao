@@ -4,8 +4,20 @@
 from . import config as C
 
 
-def summarize(sim, events_run: int) -> dict:
-    normal = [c for c in sim.cast if not c.is_chaos() and not c.thrall]
+def checkpoint(sim) -> dict:
+    """Counters at the start of a round; independent of event-log trimming."""
+    return {
+        "eras": {w.wid: w.era for w in sim.worlds},
+        "orgs": len(sim.orgs), "caches": len(sim.caches), "seq": sim.seq,
+    }
+
+
+def summarize(sim, events_run: int, baseline=None) -> dict:
+    # Balance the living universe, not the cemetery of every character ever
+    # spawned. Using ``sim.cast`` made advancement_rate drift toward 1.0 over
+    # long daemon runs as dead characters accumulated, so online tuning kept
+    # weakening breakthrough even when the active population was stable.
+    normal = [c for c in sim.living() if not c.is_chaos() and not c.thrall]
     total = len(normal) or 1
 
     pyramid = [0] * (C.REALM_CAP + 1)
@@ -21,13 +33,16 @@ def summarize(sim, events_run: int) -> dict:
     advancement_rate = 1.0 - (pyramid[0] / total)
 
     mortal_worlds = [w for w in sim.worlds if w.kind == "mortal"]
-    era_gain = sum(max(0, w.era - 1) for w in mortal_worlds) / max(1, len(mortal_worlds))
+    baseline = baseline or {"eras": {}, "orgs": 0, "caches": 0, "seq": -1}
+    era_gain = sum(max(0, w.era - baseline["eras"].get(w.wid, 1))
+                   for w in mortal_worlds) / max(1, len(mortal_worlds))
     era_rate = era_gain / max(1, events_run) * 100000.0
 
-    org_rate = len(sim.orgs) / max(1, events_run) * 100000.0
-    cache_rate = len(sim.caches) / max(1, events_run) * 100000.0
+    org_rate = (len(sim.orgs) - baseline["orgs"]) / max(1, events_run) * 100000.0
+    cache_rate = (len(sim.caches) - baseline["caches"]) / max(1, events_run) * 100000.0
 
-    invasions = [e for e in sim.log if e.kind == "โกลาหลบุกโลกมนุษย์"]
+    invasions = [e for e in sim.log if e.kind == "โกลาหลบุกโลกมนุษย์"
+                 and e.seq > baseline["seq"]]
     repelled = sum(1 for e in invasions if e.outcome in ("ถูกขับไล่", "ถูกสกัดกั้น"))
     chaos_defense_rate = (repelled / len(invasions)) if invasions else None
 

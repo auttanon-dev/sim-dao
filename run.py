@@ -79,6 +79,13 @@ def main():
                           "สำคัญมากตอนรันยาว: คิวโตตามจำนวนเหตุการณ์ (341,000 เหตุการณ์เคยได้ 121,302 งาน) "
                           "ถ้า drain ทั้งคิวจะใช้เวลาระดับสัปดาห์และ --save จะไม่ได้ทำงานเลยเพราะยังไม่ถึง "
                           "บรรทัดนั้น ตั้ง budget ไว้เพื่อให้ได้ dataset จริงพร้อมเซฟในเวลาที่คุมได้")
+    ap.add_argument("--decision", action="store_true",
+                     help="เปิด Decision Engine แบบ Hybrid (tiandao/decision) — Utility+Softmax+Belief+"
+                          "Memory+Social+GOAP ตัดสินใจแทนการสุ่มตามน้ำหนักสำหรับทุกคนที่ไม่มีจิตใจ LLM")
+    ap.add_argument("--decision-mode", choices=("stochastic", "deterministic"), default=None,
+                     help="stochastic = จำลองจริง (softmax) · deterministic = argmax สำหรับดีบัก")
+    ap.add_argument("--explain", type=int, default=None, metavar="CID",
+                     help="พิมพ์คำอธิบายการตัดสินใจล่าสุดของตัวละคร cid นี้ (ต้องใช้กับ --decision)")
     a = ap.parse_args()
 
     if a.llm:
@@ -103,7 +110,24 @@ def main():
             print(f"[persist] ไม่พบไฟล์ {a.save_path} — เริ่มโลกใหม่จาก seed {a.seed} แทน")
     if sim is None:
         sim = Sim(seed=a.seed, tiers=a.tiers)
+    if a.decision or a.explain is not None:
+        from tiandao import decision as DE
+        if getattr(sim, "decision_engine", None) is None:
+            DE.attach(sim, mode=a.decision_mode,
+                      focus=(a.explain,) if a.explain is not None else ())
+        elif a.decision_mode:
+            sim.decision_engine.mode = a.decision_mode
+        if a.explain is not None:
+            sim.decision_engine.focus.add(a.explain)
     sim.run(a.events)
+    if getattr(sim, "decision_engine", None) is not None:
+        print(f"[decision] {sim.decision_engine.summary()}")
+        if a.explain is not None:
+            print(sim.decision_engine.explain_text(a.explain, n=3) or
+                  f"[decision] ตัวละคร {a.explain} ยังไม่ได้ตัดสินใจผ่าน engine ในรอบนี้")
+    if getattr(sim, "last_run_steps", a.events) < a.events:
+        print(f"[warning] scheduler stopped early after {sim.last_run_steps}/{a.events} events "
+              "— ตรวจไฟล์ save/log ก่อนเดินต่อ")
 
     if a.llm:
         queued = len(sim.brain_manager.llm_queue)

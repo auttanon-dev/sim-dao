@@ -1,0 +1,374 @@
+# =====================================================================================
+# Sim Dao — metadata ของ event kind (tiandao/events.py:EVENT_TABLE) สำหรับ Decision Engine
+#
+# ไม่ได้แทน EVENT_TABLE หรือ Sim.resolve — แค่ "อธิบาย" แต่ละ kind ให้ระบบประเมินกลางใช้:
+#   rewards (หมวด 0..1) · costs · risk · personality · social · goap · relevant_goals
+# kind ที่ไม่มีในนี้จะได้ spec อัตโนมัติจาก tag_defaults ตาม tags ของมันใน EVENT_TABLE
+# ความเป็นไปได้ (requirement) หลักยังมาจาก intent.weigh() เดิม: kind ที่ weigh ตัดทิ้ง (น้ำหนัก 0)
+# ไม่ถูกส่งมาเป็น candidate เลย
+# หน่วยเวลา = วัน (ตาม gap ใน EVENT_TABLE) · stamina = หน่วยสมมติ 0..100
+# =====================================================================================
+simdao:
+  # เรื่องที่ "ฟ้าลิขิต" ไม่มีใครเลือกเอง — เกิดตามน้ำหนักเดิมก่อนถาม engine (เหมือน mind layer)
+  involuntary: [ภัยธรรมชาติ, เหตุการณ์เมือง]
+  # kind ที่ engine เลือกเป้าเองได้ (ที่เหลือให้ Sim เลือกเป้าตามตรรกะเดิม เช่น กำเนิดทายาทต้องหาคู่ที่เข้ากันได้)
+  engine_targets: [ประลอง, ล้างแค้น, ชิงสมบัติ, ให้สัญญา, ถ่ายทอดวิชา]
+  profile_by_archetype:
+    นักล่าบ้าพลัง: reckless
+    พ่อค้าวาณิช: merchant
+    ช่างหลอม: artisan
+    มารหิวกระหาย: demon
+    ผู้พเนจร: default
+  cautious_trait: ขลาดกลัว        # มีนิสัยนี้ = ใช้ profile cautious เสมอ
+  mundane_training_scale: 0.2      # อาชีพสามัญ: แรงขับบำเพ็ญ × ค่านี้ (สอดคล้องกับ intent.weigh ที่กด ×0.1)
+  money_epsilon: 1.0               # ε ของ relative deprivation (กันหารศูนย์ในโลกที่ไม่มีใครมีเงิน)
+  ally_danger_ratio: 1.2           # เพื่อน "ตกอยู่ในอันตราย" ถ้าพลัง (ตามความเชื่อ) ของคนแค้นเขา ≥ ratio × พลังเพื่อน
+  max_entities: 12                 # รับรู้คนรอบตัวได้สูงสุด (คนสนิท/คู่แค้นก่อน)
+  prune_every: 2000                # ล้างจิตใจของคนที่ตายแล้วทุกกี่การตัดสินใจ
+
+  explain_lod_max: 1               # สร้าง explanation เฉพาะ LOD ≤ ค่านี้ (+ ตัวละครที่จับตา) — ประหยัดเวลา
+  # สัญญาณ "ปลุก" ให้ประเมินเป้าหมายใหม่ทันที = ถูกกระทำด้วยเหตุการณ์กลุ่มนี้
+  wake_kinds: [ประลอง, ล้างแค้น, ชิงสมบัติ, ทรยศ, ลอบสังหาร, ดักปล้น, จับกุมอาชญากร, ล่ามนุษย์มาร]
+  outcomes:
+    good: [สำเร็จ, ชนะ, ได้แก่นพลัง, ปล้นสำเร็จ, ชิงสมบัติสำเร็จ, เก็บได้, ค้าขาย, ชนะประมูล, ผูกพัน,
+           ถ่ายทอด, ขัดเกลา, บุญบารมี, พบของ, พบชิ้นส่วนวิชา, พบซากแดนลับ, ข้ามขั้นสำเร็จ,
+           สำเร็จทะลวง, ก่อตั้ง, เข้าสังกัด, สังหาร, ทำลายสำเร็จ, ปราบสำเร็จ, ปราบมารได้]
+    bad: [ตาย, พ่ายแพ้, ล้มเหลว, รอดตายด้วยชะตา, ฝึกพลาด, บาดเจ็บ, บาดเจ็บสาหัส, ถูกปล้น,
+          ถูกสกัดกั้น, พลาดประมูล, คุมขัง, ถูกครอบงำ, หักหลัง, ตกเป็นมาร]
+    near_death: [รอดตายด้วยชะตา, บาดเจ็บสาหัส]
+  combat_damage_loser: 0.6          # HP ที่ผู้แพ้เสีย (สัดส่วน) ถ้าเหตุการณ์ไม่ได้บอกไว้
+  beast_learning: 0.5               # หลังล่าอสูร: ความเชื่อพลังอสูร = พลังตัวเอง × e^(∓k) (ชนะ=อ่อนกว่า, แพ้=แข็งกว่า)
+  beast_prior_confidence: 0.3       # ความมั่นใจของการคาดเดาพลังอสูรครั้งแรก (inference)
+  # fact ที่ "เป็นจริง" เมื่อ need ต่ำกว่า goal_selection.satisfied_below (satisficing)
+  need_facts: {rich: wealth, respected: status, explored: exploration, bonded: social}
+  kin_affection: {spouse: 0.8, parent: 0.7, child: 0.7, master: 0.6, disciple: 0.5, org: 0.25, clan: 0.3}
+
+  # LOD: เงื่อนไขเลือกระดับ
+  lod_statistical_unsentient: true
+  lod_statistical_mundane_alone: true
+
+  tag_defaults:
+    ต่อสู้: {rewards: {status: 0.3, loot: 0.2}, risk: {injury: 0.35, death: 0.08, combat: true},
+             personality: {bravery: 0.6, aggression: 0.4, caution: -0.5}}
+    เลือด: {risk: {injury: 0.2, death: 0.05}, personality: {aggression: 0.4, kindness: -0.3}}
+    ทำลาย: {personality: {aggression: 0.4, kindness: -0.4}}
+    อดทน: {rewards: {training: 0.3}, personality: {patience: 0.5}}
+    หลอมรวม: {rewards: {training: 0.2, wealth: 0.2}, personality: {curiosity: 0.3, patience: 0.3}}
+    เดินทาง: {rewards: {exploration: 0.4}, risk: {injury: 0.08, death: 0.02}, personality: {curiosity: 0.5}}
+    คน: {rewards: {social: 0.3}, personality: {kindness: 0.2}}
+    แลกเปลี่ยน: {rewards: {wealth: 0.5}, personality: {greed: 0.4}}
+    ทรัพย์: {rewards: {wealth: 0.5}, personality: {greed: 0.4}}
+    สัญญา: {rewards: {social: 0.4}, personality: {loyalty: 0.3, honor: 0.3}}
+    ทรยศ: {rewards: {loot: 0.4}, personality: {selfishness: 0.6, loyalty: -0.6, honor: -0.5}}
+    รักษา: {rewards: {social: 0.3, status: 0.2}, personality: {kindness: 0.5}}
+    รักษาความสงบ: {rewards: {status: 0.3, wealth: 0.2}, personality: {honor: 0.5}}
+    ชิงทรัพย์: {rewards: {loot: 0.6}, risk: {injury: 0.25, death: 0.05, combat: true},
+                 personality: {greed: 0.6, honor: -0.5, kindness: -0.4}}
+    รู้แจ้ง: {rewards: {exploration: 0.3, status: 0.2}, personality: {curiosity: 0.4}}
+    เมตตา: {rewards: {status: 0.3, social: 0.3}, personality: {kindness: 0.6}}
+    ตัดสินใจ: {personality: {ambition: 0.3}}
+    สูญเสีย: {rewards: {safety: 0.4}}
+    เมือง: {}
+
+  defaults:
+    # ความจำผูกกับ "ทำอะไร" และ "ทำอะไรที่ไหน" — ไม่ใช่สถานที่ลอยๆ (ไม่งั้นค้าขายดีที่ไหน
+    # จะทำให้อยากทำทุกอย่างที่นั่น) · อันตรายของสถานที่มาจาก environment.danger แทน
+    memory_tags: ["action:{id}", "at:{location}:{id}"]
+
+  actions:
+    บำเพ็ญ:
+      rewards: {training: 0.6, longevity: 0.5, safety: 0.2}
+      costs: {time: 1200}
+      relevant_goals: [become_stronger, recover]
+      personality: {patience: 0.7, ambition: 0.3, curiosity: -0.2}
+      goap: {eff: {at_bottleneck: true, believe_can_win: true, recovered: true}, cost: 3.5}
+    ขัดเกลาสายเลือด:
+      rewards: {training: 0.5, longevity: 0.2}
+      costs: {time: 1400}
+      relevant_goals: [become_stronger]
+      personality: {patience: 0.6}
+      goap: {eff: {at_bottleneck: true}, cost: 4}
+    ฝึกวิชา:
+      rewards: {training: 0.6, status: 0.1}
+      costs: {stamina: 30, time: 180}
+      relevant_goals: [become_stronger, revenge]
+      personality: {patience: 0.3, ambition: 0.4, curiosity: 0.3}
+      goap: {eff: {believe_can_win: true}, cost: 3}
+    ปิดด่าน:
+      rewards: {training: 1.0}
+      costs: {time: 2000}
+      risk: {injury: 0.05}
+      relevant_goals: [become_stronger]
+      personality: {patience: 0.8, ambition: 0.4}
+      goap: {pre: {at_bottleneck: true}, eff: {realm_up: true}, cost: 4}
+    ข้ามขั้น:
+      rewards: {training: 1.0, status: 0.4}
+      costs: {time: 800}
+      risk: {injury: 0.3, death: 0.12}
+      relevant_goals: [become_stronger]
+      personality: {ambition: 0.6, bravery: 0.4, caution: -0.4}
+      goap: {pre: {at_bottleneck: true, has_pill: true}, eff: {realm_up: true}, cost: 1.5}
+    ข้ามฟ้า:
+      rewards: {status: 1.0, training: 0.8}
+      costs: {time: 1000}
+      risk: {injury: 0.4, death: 0.2}
+      relevant_goals: [become_stronger, gain_status]
+      personality: {ambition: 0.8, bravery: 0.4, caution: -0.4}
+    สงครามเบิกฟ้า:
+      rewards: {status: 1.0, exploration: 0.5}
+      costs: {stamina: 80, time: 900}
+      risk: {injury: 0.6, death: 0.35}
+      relevant_goals: [gain_status]
+      personality: {ambition: 0.7, bravery: 0.7, caution: -0.6, aggression: 0.3}
+    ล่าอสูร:
+      rewards: {loot: 0.5, wealth: 0.3, training: 0.2}
+      costs: {stamina: 40, time: 90}
+      risk: {injury: 0.35, death: 0.08, combat: true, threat_key: "beast:{location}"}
+      relevant_goals: [earn_money, become_stronger]
+      personality: {bravery: 0.6, aggression: 0.3, caution: -0.5}
+      memory_tags: ["action:{id}", "foe:beast", "at:{location}:{id}"]
+      goap: {eff: {has_materials: true, rich: true}, cost: 2}
+    เก็บวัตถุดิบ:
+      rewards: {wealth: 0.3}
+      costs: {stamina: 20, time: 70}
+      risk: {injury: 0.08, death: 0.01}
+      relevant_goals: [earn_money]
+      personality: {patience: 0.4}
+      environment: {danger: -0.6, eco: 0.5}
+      goap: {eff: {has_materials: true}, cost: 1.5}
+    หลอมยา:
+      rewards: {wealth: 0.4, training: 0.2, longevity: 0.3}
+      costs: {stamina: 20, time: 120}
+      relevant_goals: [become_stronger, earn_money, recover]
+      personality: {patience: 0.5, curiosity: 0.4}
+      goap: {pre: {at_furnace: true, has_materials: true}, eff: {has_pill: true, recovered: true}, cost: 1}
+    หลอมอาวุธ:
+      rewards: {wealth: 0.5, training: 0.2}
+      costs: {stamina: 30, time: 120}
+      relevant_goals: [earn_money]
+      personality: {patience: 0.5, curiosity: 0.3}
+      goap: {pre: {at_furnace: true, has_materials: true}, eff: {rich: true}, cost: 1.5}
+    หลอมค่ายกล:
+      rewards: {wealth: 0.4, safety: 0.3}
+      costs: {stamina: 30, time: 150}
+      relevant_goals: [earn_money, survive]
+      personality: {patience: 0.5, curiosity: 0.4}
+    เดินทาง:
+      rewards: {exploration: 0.5, safety: 0.2}
+      costs: {stamina: 30, time: 100}
+      risk: {injury: 0.1, death: 0.02}
+      relevant_goals: [explore, survive, earn_money, become_stronger]
+      personality: {curiosity: 0.6, patience: -0.2}
+      environment: {danger: 0.5}
+      goap: {eff: {at_market: true, at_furnace: true, safe: true, explored: true}, cost: 2.5}
+    ค้าขาย:
+      requirements: ["fact:has_trade_goods"]
+      rewards: {wealth: 0.7}
+      costs: {time: 15}
+      relevant_goals: [earn_money]
+      personality: {greed: 0.5}
+      environment: {crowd: 0.4}
+      goap: {pre: {at_market: true}, eff: {rich: true}, cost: 1}
+    เปิดประมูล:
+      rewards: {wealth: 0.5, loot: 0.3}
+      costs: {time: 25, resources: 100}
+      relevant_goals: [earn_money, become_stronger]
+      personality: {greed: 0.5}
+      goap: {pre: {at_market: true, has_money: true}, eff: {has_pill: true}, cost: 1.5}
+    ค้นแดนลับ:
+      rewards: {exploration: 0.9, loot: 0.5, training: 0.2}
+      costs: {stamina: 40, time: 160}
+      risk: {injury: 0.3, death: 0.1}
+      relevant_goals: [explore, become_stronger]
+      personality: {curiosity: 0.7, bravery: 0.4, caution: -0.4}
+      goap: {eff: {explored: true, has_pill: true}, cost: 3}
+    ซ่อนตัว:
+      rewards: {safety: 1.0, survival: 0.4, longevity: 0.3}
+      costs: {time: 1900}
+      relevant_goals: [survive, recover]
+      personality: {caution: 0.7, bravery: -0.5, ambition: -0.3}
+      environment: {danger: 0.6}
+      goap: {eff: {safe: true, recovered: true}, cost: 3}
+    ลงโลกล่าง:
+      rewards: {safety: 0.5}
+      costs: {time: 160, resources: 50}
+      risk: {injury: 0.1}
+      relevant_goals: [survive]
+      personality: {caution: 0.4, ambition: -0.5}
+    ตั้งสำนัก:
+      rewards: {status: 0.9, social: 0.4}
+      costs: {time: 200, resources: 300}
+      relevant_goals: [gain_status]
+      personality: {ambition: 0.8, honor: 0.2}
+      goap: {eff: {respected: true, bonded: true}, cost: 3}
+    เข้าสำนัก:
+      rewards: {social: 0.6, safety: 0.3, training: 0.3}
+      costs: {time: 100}
+      relevant_goals: [belong, become_stronger]
+      personality: {loyalty: 0.5}
+      goap: {eff: {bonded: true}, cost: 1.5}
+    ประลอง:
+      target: any
+      rewards: {status: 0.5, training: 0.3, reputation: 0.3}
+      costs: {stamina: 40, time: 10}
+      risk: {injury: 0.3, death: 0.05, combat: true}
+      relevant_goals: [gain_status, protect_friend]
+      personality: {bravery: 0.6, ambition: 0.5, caution: -0.5, aggression: 0.2}
+      social: harm
+      memory_tags: ["action:{id}", "entity:{target}"]
+      goap: {eff: {respected: true, friend_safe: true}, cost: 2}
+    ล้างแค้น:
+      target: enemy
+      rewards: {revenge: 1.0, safety: 0.2}
+      costs: {stamina: 50, time: 10}
+      risk: {injury: 0.5, death: 0.2, combat: true}
+      relevant_goals: [revenge, protect_friend]
+      personality: {aggression: 0.7, bravery: 0.4, caution: -0.4, patience: -0.3}
+      social: harm
+      memory_tags: ["action:{id}", "entity:{target}"]
+      goap: {pre: {enemy_near: true, believe_can_win: true}, eff: {enemy_defeated: true, friend_safe: true}, cost: 1}
+    ชิงสมบัติ:
+      target: loot
+      rewards: {loot: 0.9}
+      costs: {stamina: 40, time: 10}
+      risk: {injury: 0.4, death: 0.12, combat: true}
+      relevant_goals: [earn_money, become_stronger]
+      personality: {greed: 0.8, bravery: 0.3, honor: -0.5, kindness: -0.3}
+      social: harm
+      memory_tags: ["action:{id}", "entity:{target}"]
+      goap: {eff: {has_pill: true, rich: true}, cost: 2}
+    ทรยศ:
+      target: any
+      target_select: external
+      rewards: {loot: 0.6, wealth: 0.3}
+      costs: {time: 12}
+      risk: {injury: 0.15, death: 0.03}
+      personality: {selfishness: 0.7, greed: 0.5, loyalty: -0.7, honor: -0.6}
+      social: betray
+    ให้สัญญา:
+      target: any
+      rewards: {social: 0.6}
+      costs: {time: 8}
+      relevant_goals: [belong]
+      personality: {loyalty: 0.4, honor: 0.4, kindness: 0.2}
+      social: bond
+      memory_tags: ["action:{id}", "entity:{target}"]
+      goap: {eff: {bonded: true}, cost: 1}
+    ถ่ายทอดวิชา:
+      target: any
+      rewards: {social: 0.4, status: 0.4}
+      costs: {stamina: 15, time: 15}
+      relevant_goals: [gain_status, belong]
+      personality: {kindness: 0.5, patience: 0.3}
+      social: bond
+      goap: {pre: {has_skills: true}, eff: {respected: true, bonded: true}, cost: 1.5}
+    กำเนิดทายาท:
+      target: any
+      target_select: external
+      rewards: {social: 0.8}
+      costs: {time: 250}
+      relevant_goals: [belong]
+      personality: {kindness: 0.3, loyalty: 0.3}
+      goap: {eff: {bonded: true}, cost: 2}
+    สะสางเรื่องเก่า:
+      target: any
+      target_select: external
+      rewards: {social: 0.4, safety: 0.3}
+      costs: {time: 10}
+      personality: {honor: 0.6, patience: 0.2}
+    ปกป้องชาวบ้าน:
+      rewards: {status: 0.5, social: 0.4}
+      costs: {stamina: 30, time: 15}
+      risk: {injury: 0.2, death: 0.03}
+      relevant_goals: [gain_status, protect_friend]
+      personality: {kindness: 0.6, honor: 0.5, bravery: 0.3}
+      goap: {eff: {respected: true}, cost: 1.5}
+    ขูดรีดชาวบ้าน:
+      rewards: {wealth: 0.6}
+      costs: {stamina: 10, time: 15}
+      risk: {injury: 0.1}
+      relevant_goals: [earn_money]
+      personality: {greed: 0.6, selfishness: 0.5, kindness: -0.7, honor: -0.6}
+      goap: {eff: {rich: true}, cost: 2}
+    สะสมบุญบารมี:
+      rewards: {status: 0.4, longevity: 0.2, social: 0.2}
+      costs: {time: 100}
+      relevant_goals: [gain_status]
+      personality: {kindness: 0.5, honor: 0.4, patience: 0.3}
+      goap: {eff: {respected: true}, cost: 2}
+    จับกุมอาชญากร:
+      target: any
+      target_select: external
+      rewards: {status: 0.4, wealth: 0.3}
+      costs: {stamina: 30, time: 10}
+      risk: {injury: 0.3, death: 0.05, combat: true}
+      personality: {honor: 0.7, bravery: 0.4}
+    ลอบสังหาร:
+      target: any
+      target_select: external
+      rewards: {wealth: 0.6, revenge: 0.4}
+      costs: {stamina: 30, time: 10}
+      risk: {injury: 0.35, death: 0.15, combat: true}
+      personality: {aggression: 0.5, honor: -0.6, kindness: -0.6}
+    ดักปล้น:
+      target: any
+      target_select: external
+      rewards: {loot: 0.7}
+      costs: {stamina: 20, time: 8}
+      risk: {injury: 0.25, death: 0.05, combat: true}
+      personality: {greed: 0.6, honor: -0.5, kindness: -0.4}
+      goap: {eff: {rich: true}, cost: 2}
+    ทำนา:
+      rewards: {wealth: 0.3, hunger: 0.5}
+      costs: {stamina: 20, time: 9}
+      relevant_goals: [earn_money]
+      personality: {patience: 0.5}
+      goap: {eff: {rich: true}, cost: 3}
+    ค้าขายทั่วไป:
+      rewards: {wealth: 0.4}
+      costs: {time: 9}
+      relevant_goals: [earn_money]
+      personality: {greed: 0.3}
+      goap: {eff: {rich: true}, cost: 2}
+
+  # ---- Goals (Utility AI เลือก "ต้องการอะไร") → GOAP หาทางไป desired ----
+  goals:
+    survive:
+      needs: {survival: 1.0, safety: 0.9}
+      personality: {caution: 0.3}
+      desired: {safe: true}
+    recover:
+      needs: {longevity: 1.0, survival: 0.5}
+      personality: {patience: 0.3}
+      desired: {recovered: true}
+    become_stronger:
+      needs: {training: 1.0}
+      personality: {ambition: 0.6}
+      desired: {realm_up: true}
+    earn_money:
+      needs: {wealth: 1.0}
+      personality: {greed: 0.6}
+      desired: {rich: true}
+    revenge:
+      needs: {revenge: 1.0}
+      personality: {aggression: 0.5}
+      requires: [has_rival]
+      desired: {enemy_defeated: true}
+    protect_friend:
+      social: protect
+      needs: {social: 0.3}
+      personality: {loyalty: 0.6, kindness: 0.4}
+      requires: [ally_danger]
+      desired: {friend_safe: true}
+    gain_status:
+      needs: {status: 1.0}
+      personality: {ambition: 0.6}
+      desired: {respected: true}
+    explore:
+      needs: {exploration: 1.0}
+      personality: {curiosity: 0.6}
+      desired: {explored: true}
+    belong:
+      needs: {social: 1.0}
+      personality: {loyalty: 0.3, kindness: 0.3}
+      desired: {bonded: true}

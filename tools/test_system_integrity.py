@@ -51,8 +51,8 @@ def check(name, fn):
 
 # 1. Check Places & Graph Consistency
 def test_places_and_graph():
-    assert len(PL.PLACES) == 182, f"PLACES count mismatch: {len(PL.PLACES)}"
-    assert len(GEO.COORDS) == 182, f"COORDS count mismatch: {len(GEO.COORDS)}"
+    assert len(PL.PLACES) >= 182, f"PLACES หายไป: {len(PL.PLACES)}"
+    assert len(GEO.COORDS) == len(PL.PLACES), f"COORDS ไม่ตรงกับ PLACES: {len(GEO.COORDS)}"
     
     # Check that all gate target realms exist
     for gname, gdata in PL.GATES.items():
@@ -62,8 +62,8 @@ def test_places_and_graph():
         
     # Check all edges reference valid node indices
     for e in GEO.EDGES:
-        assert 0 <= e[0] < 182, f"Invalid edge start: {e}"
-        assert 0 <= e[1] < 182, f"Invalid edge end: {e}"
+        assert 0 <= e[0] < len(PL.PLACES), f"Invalid edge start: {e}"
+        assert 0 <= e[1] < len(PL.PLACES), f"Invalid edge end: {e}"
         assert e[2] >= 0, f"Negative edge distance: {e}"
 
 

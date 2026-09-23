@@ -47,6 +47,8 @@ class ParsedEvent:
     deltas: Dict[str, str]
     place: int = -1
     realm: int = -1
+    building: int = -1      # อาคารที่เกิดเหตุภายในเมือง (ฉากหนังต้องรู้ว่าอยู่ในโรงตีเหล็กหรือลานกลางเมือง)
+    snap: tuple = ()        # ลายนิ้วมือสถานะของ actor — scene_extractor ใช้หาจุดเปลี่ยนจริงจากตรงนี้
 
 
 def participants_of(ev: ParsedEvent) -> Set[int]:
@@ -78,6 +80,7 @@ def parse_event(ev: "Event", config: Optional[dict] = None) -> ParsedEvent:
         scene_type=classify_scene_type(ev.kind, ev.outcome, cfg),
         actor=ev.actor, target=ev.target, tags=list(ev.tags),
         outcome=ev.outcome, text=ev.text, deltas=dict(ev.deltas),
+        building=getattr(ev, "building", -1), snap=tuple(getattr(ev, "snap", ()) or ()),
         place=getattr(ev, "place", -1), realm=getattr(ev, "realm", -1),
     )
 

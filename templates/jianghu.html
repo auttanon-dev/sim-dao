@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="ชมชีวิตผู้คนในโลกเทียนเต้า ผ่านฉากยุทธภพที่เคลื่อนไหว">
+<title>ท่องยุทธจักร — ชมโลกเทียนเต้า</title>
+<link rel="stylesheet" href="/jianghu-assets/jianghu.css">
+<link rel="preload" as="image" href="/jianghu-assets/river-inn.png">
+<script type="module" src="/jianghu-assets/jianghu.js"></script>
+</head>
+<body><main id="viewer">
+<section id="stage" aria-label="ชมยุทธจักร">
+<canvas id="townCanvas" tabindex="0" aria-label="ฉากโรงเตี๊ยม ใช้ลูกศรเลื่อนกล้อง บวกหรือลบเพื่อซูม หรือเลือกผู้คนจากรายชื่อ"></canvas>
+<div id="mapScene" hidden><svg id="worldMap" role="group" aria-label="แผนที่สถานที่และเส้นทาง"></svg></div>
+<div class="vignette" aria-hidden="true"></div>
+</section>
+<header class="topbar">
+<a class="brand" href="/" title="แดชบอร์ดเทียนเต้า"><span class="seal">道</span><span>เทียนเต้า<small>บันทึกแห่งยุทธจักร</small></span></a>
+<nav aria-label="มุมมอง"><button id="townTab" aria-pressed="true">ชมโรงเตี๊ยม</button><button id="mapTab" aria-pressed="false">แผนที่ดินแดน</button></nav>
+<div class="clock"><span aria-hidden="true">☼</span><span id="worldClock">กำลังอ่านบันทึก…</span></div>
+<button id="cinemaToggle" aria-pressed="false" title="ซ่อนข้อมูลเพื่อชมฉาก">ชมเต็มฉาก</button>
+</header>
+<div class="location-banner"><div class="eyebrow" id="locationType">โลกมนุษย์</div><h1 id="locationName">โรงเตี๊ยมสยบพยัคฆ์</h1><p id="locationPopulation"></p></div>
+<div class="edge-controls"><button id="placesToggle" aria-expanded="false" aria-controls="placesPanel">สถานที่</button><button id="peopleToggle" aria-expanded="true" aria-controls="peoplePanel">ผู้คน <span id="residentCount">—</span></button><button id="worldToggle" disabled>กำลังเชื่อมโลก…</button></div>
+<aside id="placesPanel" class="panel places" aria-label="เลือกสถานที่" hidden>
+<div class="panel-title"><h2>ดินแดนทั้งปวง</h2><button id="closePlaces" aria-label="ปิดรายชื่อสถานที่">×</button></div>
+<label class="sr-only" for="worldSelect">เลือกดินแดน</label><select id="worldSelect"></select>
+<label class="search"><input id="placeSearch" placeholder="ค้นหาสถานที่" aria-label="ค้นหาสถานที่"></label>
+<div id="placeList" class="place-list"></div>
+<p class="small-note">ชมฉากโรงเตี๊ยม สำนักกระบี่ และป่าไผ่ หรือเลือกสถานที่อื่นเพื่อดูผู้คนและเหตุการณ์</p>
+</aside>
+<aside id="peoplePanel" class="panel people" aria-label="ผู้คนและเหตุการณ์">
+<div class="panel-title"><h2>ผู้คนที่พบ</h2><button id="closePeople" aria-label="ปิดรายชื่อผู้คน">×</button></div>
+<p id="populationDetail" class="small-note"></p><div id="residentList" class="resident-list"></div>
+<section class="journal"><div class="panel-title"><h2>เสียงจากยุทธจักร</h2><span aria-hidden="true">記</span></div><div id="eventList"></div></section>
+</aside>
+<article id="characterCard" class="panel character-card" hidden>
+<canvas id="portraitCanvas" width="180" height="250" aria-hidden="true"></canvas>
+<div class="character-info"><div id="characterOrg" class="eyebrow"></div><h2 id="characterName"></h2><p id="characterDao"></p>
+<div class="vitals"><label>กาย <meter id="hpMeter" min="0" max="100"></meter><span id="hpValue"></span></label><label>ปราณ <meter id="mpMeter" min="0" max="100"></meter><span id="mpValue"></span></label></div>
+<div id="characterSkills" class="skill-list"></div><p id="characterRelations" class="small-note"></p>
+<button id="followToggle" aria-pressed="false">กล้องติดตาม</button>
+</div><button id="closeCard" class="close" aria-label="ปิดข้อมูลตัวละคร">×</button>
+</article>
+<div class="view-tools" aria-label="ปรับมุมมอง"><button id="moodToggle" aria-pressed="false">แสงยามค่ำ</button><button id="motionToggle" aria-pressed="false">พักภาพเคลื่อนไหว</button><button id="zoomOut" aria-label="ย่อภาพ">−</button><button id="zoomIn" aria-label="ขยายภาพ">＋</button><button id="resetView" aria-label="ปรับภาพให้พอดี">⌖</button></div>
+<div id="notice" class="notice" role="status">กำลังเปิดฉากยุทธจักร…</div>
+<footer><div><span id="sourceLabel">กำลังอ่านโลก</span><span class="divider">/</span><span id="sceneCredit">ท่าทางประกอบ · ผู้คนจากโลกจำลอง</span></div><div><span id="refreshStatus" aria-live="polite"></span><button id="refreshToggle" aria-pressed="false">พักการอัปเดต</button><button id="refreshNow">อ่านบันทึกล่าสุด ↻</button></div></footer>
+</main></body></html>

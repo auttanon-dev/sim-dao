@@ -63,7 +63,10 @@ def extract_lightweight_snapshot(sim) -> Dict[str, Any]:
             "text": e.text
         })
         
-    # 4. ข้อมูลโครงสร้างสถานที่ 182 แห่ง และเส้นทางเชื่อม 356 เส้น
+    # 4. ข้อมูลโครงสร้างสถานที่ และเส้นทางเชื่อม
+    # ผูกภูมิประเทศกับ seed ของโลกที่กำลังดูอยู่ ไม่งั้นแผนที่ที่วาดจะเป็นของโลกอื่น
+    # (terrain เก็บสนามไว้ระดับโมดูล — ดู terrain.use_seed)
+    TERRAIN.use_seed(getattr(sim, "seed", 0))
     places_3d = TERRAIN.get_all_places_data()
     
     return {

@@ -5,6 +5,7 @@ Generates real-time weather phenomena, particle overlays, and gameplay modifiers
 for all 10 realms and 182 places based on seasonal cycles and regional climates.
 """
 import math
+import zlib
 from typing import Dict, List, Any
 
 from . import seasons as SEASONS
@@ -89,7 +90,9 @@ def get_current_weather(day: int, realm_key: Any) -> Dict[str, Any]:
     season_name, _, _, _ = SEASONS.season_of(day)
     
     # Deterministic weather hash from day and realm
-    seed = (day // 7) * 31 + hash(str(realm_key)) % 100
+    # zlib.crc32 แทน hash() — hash() ของสตริงใน Python สุ่ม seed ใหม่ทุกโปรเซส ทำให้อากาศของ
+    # "วันเดียวกันในดินแดนเดียวกัน" เปลี่ยนไปมาทุกครั้งที่เจนนิยายใหม่ ทั้งที่ควรคงที่ตลอดกาล
+    seed = (day // 7) * 31 + zlib.crc32(str(realm_key).encode("utf-8")) % 100
     
     weather_key = "golden_sunshine"
     
@@ -109,6 +112,10 @@ def get_current_weather(day: int, realm_key: Any) -> Dict[str, Any]:
         weather_key = "crimson_ember"
     elif realm_key == "chaos":
         weather_key = "celestial_aurora"
+    elif realm_key == "abyss":          # แดนใต้พิภพไม่มีแดด มีแต่ไฟกับหมอกวิญญาณ
+        weather_key = "crimson_ember"
+    elif realm_key == "ocean":          # ใต้สมุทร — แสงเรืองจากปะการังและฝนใต้น้ำ
+        weather_key = "celestial_aurora" if (seed % 2 == 0) else "lotus_rain"
     else:  # โลกมนุษย์
         if season_name == "ฤดูหนาว":
             weather_key = "heavy_snow"

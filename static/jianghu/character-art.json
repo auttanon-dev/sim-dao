@@ -1,0 +1,482 @@
+[
+  {
+    "id": "original-0",
+    "label": "จอมกระบี่ชุดหยก",
+    "gender": "ชาย",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      0,
+      24,
+      314,
+      600
+    ]
+  },
+  {
+    "id": "original-1",
+    "label": "กระบี่อาภรณ์ขาว",
+    "gender": "หญิง",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      320,
+      35,
+      302,
+      592
+    ]
+  },
+  {
+    "id": "original-2",
+    "label": "เถ้าแก่โรงเตี๊ยม",
+    "gender": "ชาย",
+    "role": "trade",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      630,
+      40,
+      302,
+      580
+    ]
+  },
+  {
+    "id": "original-3",
+    "label": "นักดาบชุดคราม",
+    "gender": "ชาย",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      946,
+      30,
+      308,
+      596
+    ]
+  },
+  {
+    "id": "original-4",
+    "label": "นักพรตจีวรทอง",
+    "gender": "ชาย",
+    "role": "staff",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      0,
+      632,
+      313,
+      606
+    ]
+  },
+  {
+    "id": "original-5",
+    "label": "หมอยาสมุนไพร",
+    "gender": "หญิง",
+    "role": "healer",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      320,
+      646,
+      302,
+      589
+    ]
+  },
+  {
+    "id": "original-6",
+    "label": "ปรมาจารย์ชุดม่วง",
+    "gender": "ชาย",
+    "role": "elder",
+    "age_group": "elder",
+    "sheet": "characters.png",
+    "source": [
+      634,
+      648,
+      304,
+      591
+    ]
+  },
+  {
+    "id": "original-7",
+    "label": "พ่อค้าหมวกสาน",
+    "gender": "ชาย",
+    "role": "travel",
+    "age_group": "adult",
+    "sheet": "characters.png",
+    "source": [
+      943,
+      646,
+      303,
+      591
+    ]
+  },
+  {
+    "id": "characters-martial-0",
+    "label": "พลทวนคราม",
+    "gender": "ชาย",
+    "role": "spear",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 0,
+    "source": [
+      16,
+      8,
+      297,
+      619
+    ]
+  },
+  {
+    "id": "characters-martial-1",
+    "label": "กระบี่อาภรณ์ขาว",
+    "gender": "ชาย",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 1,
+    "source": [
+      313,
+      27,
+      299,
+      600
+    ]
+  },
+  {
+    "id": "characters-martial-2",
+    "label": "นักดาบเงาดำ",
+    "gender": "ชาย",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 2,
+    "source": [
+      647,
+      30,
+      292,
+      597
+    ]
+  },
+  {
+    "id": "characters-martial-3",
+    "label": "จอมยุทธ์ไม้พลอง",
+    "gender": "ชาย",
+    "role": "staff",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 3,
+    "source": [
+      939,
+      44,
+      312,
+      583
+    ]
+  },
+  {
+    "id": "characters-martial-4",
+    "label": "ทวนแดงชาด",
+    "gender": "หญิง",
+    "role": "spear",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 4,
+    "source": [
+      8,
+      627,
+      305,
+      619
+    ]
+  },
+  {
+    "id": "characters-martial-5",
+    "label": "กระบี่สีน้ำเงิน",
+    "gender": "หญิง",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 5,
+    "source": [
+      313,
+      650,
+      298,
+      596
+    ]
+  },
+  {
+    "id": "characters-martial-6",
+    "label": "ดาบคู่รัตติกาล",
+    "gender": "หญิง",
+    "role": "blade",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 6,
+    "source": [
+      626,
+      648,
+      313,
+      597
+    ]
+  },
+  {
+    "id": "characters-martial-7",
+    "label": "พลองอำพัน",
+    "gender": "หญิง",
+    "role": "staff",
+    "age_group": "adult",
+    "sheet": "characters-martial.png",
+    "cell": 7,
+    "source": [
+      939,
+      634,
+      304,
+      605
+    ]
+  },
+  {
+    "id": "characters-civilian-0",
+    "label": "ช่างตีเหล็ก",
+    "gender": "ชาย",
+    "role": "craft",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 0,
+    "source": [
+      31,
+      23,
+      272,
+      604
+    ]
+  },
+  {
+    "id": "characters-civilian-1",
+    "label": "คนแบกสัมภาระ",
+    "gender": "ชาย",
+    "role": "travel",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 1,
+    "source": [
+      338,
+      22,
+      244,
+      605
+    ]
+  },
+  {
+    "id": "characters-civilian-2",
+    "label": "พ่อค้าผ้าไหม",
+    "gender": "ชาย",
+    "role": "trade",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 2,
+    "source": [
+      641,
+      31,
+      298,
+      595
+    ]
+  },
+  {
+    "id": "characters-civilian-3",
+    "label": "บัณฑิตพัดพับ",
+    "gender": "ชาย",
+    "role": "scholar",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 3,
+    "source": [
+      973,
+      20,
+      246,
+      600
+    ]
+  },
+  {
+    "id": "characters-civilian-4",
+    "label": "หมอยาตะกร้าสมุนไพร",
+    "gender": "หญิง",
+    "role": "healer",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 4,
+    "source": [
+      23,
+      635,
+      267,
+      604
+    ]
+  },
+  {
+    "id": "characters-civilian-5",
+    "label": "เถ้าแก่เนี้ย",
+    "gender": "หญิง",
+    "role": "trade",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 5,
+    "source": [
+      334,
+      635,
+      292,
+      606
+    ]
+  },
+  {
+    "id": "characters-civilian-6",
+    "label": "ผู้เดินทางหมวกสาน",
+    "gender": "หญิง",
+    "role": "travel",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 6,
+    "source": [
+      626,
+      640,
+      299,
+      600
+    ]
+  },
+  {
+    "id": "characters-civilian-7",
+    "label": "นักดนตรีผีผา",
+    "gender": "หญิง",
+    "role": "scholar",
+    "age_group": "adult",
+    "sheet": "characters-civilian.png",
+    "cell": 7,
+    "source": [
+      947,
+      634,
+      281,
+      604
+    ]
+  },
+  {
+    "id": "characters-elders-0",
+    "label": "ผู้อาวุโสสายกระบี่",
+    "gender": "ชาย",
+    "role": "blade",
+    "age_group": "elder",
+    "sheet": "characters-martial.png",
+    "cell": 1,
+    "source": [
+      313,
+      27,
+      299,
+      600
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-1",
+    "label": "ผู้อาวุโสสายพลอง",
+    "gender": "ชาย",
+    "role": "staff",
+    "age_group": "elder",
+    "sheet": "characters-martial.png",
+    "cell": 3,
+    "source": [
+      939,
+      44,
+      312,
+      583
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-2",
+    "label": "ผู้อาวุโสสายทวน",
+    "gender": "ชาย",
+    "role": "spear",
+    "age_group": "elder",
+    "sheet": "characters-martial.png",
+    "cell": 0,
+    "source": [
+      16,
+      8,
+      297,
+      619
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-3",
+    "label": "ผู้อาวุโสสายอักษร",
+    "gender": "ชาย",
+    "role": "scholar",
+    "age_group": "elder",
+    "sheet": "characters-civilian.png",
+    "cell": 3,
+    "source": [
+      973,
+      20,
+      246,
+      600
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-4",
+    "label": "ผู้อาวุโสหญิงสายกระบี่",
+    "gender": "หญิง",
+    "role": "blade",
+    "age_group": "elder",
+    "sheet": "characters-martial.png",
+    "cell": 5,
+    "source": [
+      313,
+      650,
+      298,
+      596
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-5",
+    "label": "ผู้อาวุโสหญิงสายพลอง",
+    "gender": "หญิง",
+    "role": "staff",
+    "age_group": "elder",
+    "sheet": "characters-martial.png",
+    "cell": 7,
+    "source": [
+      939,
+      634,
+      304,
+      605
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-6",
+    "label": "ผู้อาวุโสหญิงสายทวน",
+    "gender": "หญิง",
+    "role": "spear",
+    "age_group": "elder",
+    "sheet": "characters-martial.png",
+    "cell": 4,
+    "source": [
+      8,
+      627,
+      305,
+      619
+    ],
+    "art_pending": "characters-elders.png"
+  },
+  {
+    "id": "characters-elders-7",
+    "label": "ผู้อาวุโสหญิงสายอักษร",
+    "gender": "หญิง",
+    "role": "scholar",
+    "age_group": "elder",
+    "sheet": "characters-civilian.png",
+    "cell": 7,
+    "source": [
+      947,
+      634,
+      281,
+      604
+    ],
+    "art_pending": "characters-elders.png"
+  }
+]

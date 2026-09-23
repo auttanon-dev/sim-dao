@@ -1,18 +1,10 @@
 ﻿# -*- coding: utf-8 -*-
 from tiandao import rules as R
+from tiandao import config as C
 import random
 
-DAO_ADVANTAGE = {
-    "วิถีสายน้ำ": ["วิถีเปลวไฟ", "วิถีเลือด"],
-    "วิถีเปลวไฟ": ["วิถีเหล็ก", "วิถียา"],
-    "วิถีเหล็ก": ["วิถีดาบ", "วิถีพเนจร"],
-    "วิถีดาบ": ["วิถีความว่าง", "วิถีสายน้ำ"],
-    "วิถีโกลาหล": ["วิถีสายน้ำ", "วิถีเปลวไฟ", "วิถีเหล็ก", "วิถีดาบ", "วิถียา", "วิถีพเนจร", "วิถีเลือด", "วิถีความว่าง"],
-    "วิถีแห่งเวลา": ["วิถีความว่าง", "วิถีสายฟ้า", "วิถีดาบ"],
-    "วิถีแห่งมิติ": ["วิถีเหล็ก", "วิถีเปลวไฟ", "วิถีสายน้ำ"],
-    "วิถีหยินหยาง": ["วิถีเลือด", "วิถียา", "วิถีโกลาหล"],
-    "วิถีสายฟ้า": ["วิถีหยินหยาง", "วิถีโกลาหล", "วิถีความว่าง"]
-}
+DAO_ADVANTAGE = C.DAO_ADVANTAGE   # ตารางย้ายไปอยู่ config.py แล้ว (rules.py ก็ต้องใช้)
+
 
 def resolve_combat(attacker, defender, world, sim):
     log_parts = []
@@ -56,10 +48,10 @@ def resolve_combat(attacker, defender, world, sim):
     dao_mult_d = 1.0
     
     if attacker.dao in DAO_ADVANTAGE and defender.dao in DAO_ADVANTAGE[attacker.dao]:
-        dao_mult_a = 1.5
-        log_parts.append(f"   -> {attacker.dao} ข่ม {defender.dao} โดยสมบูรณ์!")
+        dao_mult_a = C.DAO_EDGE_MULT
+        log_parts.append(f"   -> {attacker.dao} ข่ม {defender.dao} ได้เปรียบ!")
     elif defender.dao in DAO_ADVANTAGE and attacker.dao in DAO_ADVANTAGE[defender.dao]:
-        dao_mult_d = 1.5
+        dao_mult_d = C.DAO_EDGE_MULT
         log_parts.append(f"   -> {defender.dao} ของเป้าหมาย ปัดเป่าการรุกคืบ!")
         
     # Calculate Base Power

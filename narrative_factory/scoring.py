@@ -44,19 +44,26 @@ def _rule_count(result: ValidationResult, rule_prefix: str) -> int:
 
 
 def _pacing_score(text: str, scene: Optional["Scene"]) -> int:
-    """Pacing (15 คะแนน, Shadow Evaluation V2 — Phase K2/K6): เทียบจำนวน paragraph ของ candidate
-    กับจำนวน Beat จริงของฉาก (`pacing.assign_beats()`) — คร่าวๆ แต่กราวด์กับโครงสร้างจริงของฉาก
-    (คนละมุมกับ `style_quality` ที่วัดคุณภาพร้อยแก้วเชิงภาษา ไม่ใช่โครงสร้าง) ไม่มี Scene ให้เทียบ
-    (caller เก่าที่ยังไม่ได้ส่งมา) คืนคะแนนเต็มแบบเป็นกลาง"""
-    if scene is None:
-        return WEIGHTS["pacing"]
-    from .pacing import assign_beats
-    n_beats = len(assign_beats(len(scene.events)))
-    if n_beats == 0:
-        return WEIGHTS["pacing"]
+    """Pacing (15 คะแนน): ฉากเต็มต้องยาวพอเป็นฉาก และต้องมีบทพูดจริง
+
+    **เกณฑ์เดิมกลับหัว** — ของเดิมเทียบจำนวนย่อหน้ากับจำนวนบีต ซึ่งตอนนั้นบีต = จำนวนเหตุการณ์
+    และทุกฉากมีเหตุการณ์เดียว (วัดจริง 100%) เกณฑ์จึงกลายเป็น "เขียนเกินหนึ่งย่อหน้า = โดนหัก"
+    บังคับให้ได้สรุปแทนฉากโดยไม่มีใครตั้งใจ
+
+    เกณฑ์ใหม่วัดสองอย่างที่นิยามความเป็นฉากหนังจริงๆ: ความยาวอยู่ในช่วงของฉากเต็ม
+    (`pacing.PARAGRAPH_RANGE`) และมีบทสนทนาปรากฏจริง"""
+    from .pacing import PARAGRAPH_RANGE
     paragraphs = [p for p in text.split("\n\n") if p.strip()] or [text]
-    diff = abs(len(paragraphs) - n_beats)
-    return max(0, WEIGHTS["pacing"] - diff * 5)
+    n = len(paragraphs)
+    lo, hi = PARAGRAPH_RANGE
+    score = WEIGHTS["pacing"]
+    if n < lo:
+        score -= min(10, (lo - n) * 2)      # สั้นเกินไป = เป็นสรุป ไม่ใช่ฉาก
+    elif n > hi:
+        score -= min(6, (n - hi))           # ยาวเกินไป = เยิ่นเย้อ (หักเบากว่า)
+    if not any(q in text for q in ("\u201c", "\u2018", '"', "「")):
+        score -= 5                          # ไม่มีบทพูดเลย = ไม่ใช่ฉากหนัง
+    return max(0, score)
 
 
 def score_candidate(text: str, result: ValidationResult, scene: Optional["Scene"] = None) -> ScoreResult:

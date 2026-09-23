@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>โรงเขียนนิยาย — เทียนเต้า</title>
+<style>
+  :root { --ink:#e8dcc4; --gold:#d4af37; --dim:#8a8272; --panel:#1c1916; --line:#3a342a; }
+  * { box-sizing: border-box; }
+  body { background:#12100e; color:var(--ink); font-family:"Tahoma",sans-serif; margin:0; padding:1.4rem 1.8rem 3rem; }
+  h1 { color:var(--gold); margin:0; font-size:1.5rem; }
+  .sub { color:var(--dim); margin:.25rem 0 1.2rem; font-size:.85rem; }
+  a { color:var(--gold); }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:1rem 1.1rem; margin-bottom:1rem; }
+  .panel > h2 { margin:0 0 .8rem; color:var(--gold); font-size:1rem; font-weight:normal; letter-spacing:.02em; }
+  .row { display:flex; flex-wrap:wrap; gap:.9rem; align-items:flex-end; }
+  label { display:block; color:var(--dim); font-size:.78rem; margin-bottom:.25rem; }
+  select, input { background:#12100e; color:var(--ink); border:1px solid var(--line); border-radius:5px; padding:.42rem .55rem; font-family:inherit; font-size:.86rem; }
+  select { min-width:250px; }
+  input[type=number] { width:110px; }
+  button { background:var(--gold); color:#12100e; border:0; border-radius:5px; padding:.5rem 1rem; font-family:inherit; font-weight:bold; font-size:.86rem; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--gold); border:1px solid var(--gold); }
+  button.danger { background:transparent; color:#e76f51; border:1px solid #e76f51; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  table { border-collapse:collapse; width:100%; font-size:.85rem; }
+  th, td { text-align:left; padding:.32rem .55rem; border-bottom:1px solid #2a251f; }
+  th { color:var(--dim); font-weight:normal; }
+  tbody tr { cursor:pointer; }
+  tbody tr:hover { background:#251f19; }
+  tbody tr.sel { background:#2f2718; outline:1px solid var(--gold); }
+  .scroll { max-height:270px; overflow:auto; }
+  .split { display:grid; grid-template-columns: 400px 1fr; gap:1rem; align-items:start; }
+  @media (max-width: 980px) { .split { grid-template-columns:1fr; } }
+  .chap { padding:.5rem .6rem; border-bottom:1px solid #2a251f; cursor:pointer; font-size:.84rem; }
+  .chap:hover { background:#251f19; }
+  .chap.sel { background:#2f2718; }
+  .chap .t { color:var(--ink); }
+  .chap .m { color:var(--dim); font-size:.76rem; margin-top:.15rem; }
+  .pill { display:inline-block; font-size:.7rem; padding:.05rem .4rem; border-radius:99px; border:1px solid var(--line); color:var(--dim); margin-left:.3rem; }
+  .pill.run { border-color:var(--gold); color:var(--gold); }
+  .pill.ok { border-color:#52b788; color:#52b788; }
+  .pill.warn { border-color:#e9c46a; color:#e9c46a; }
+  .bar { height:5px; background:#2a251f; border-radius:99px; overflow:hidden; margin:.5rem 0 .3rem; }
+  .bar > i { display:block; height:100%; background:var(--gold); width:0; transition:width .4s; }
+  .reader { background:#161310; border:1px solid var(--line); border-radius:8px; padding:1.4rem 1.8rem; min-height:340px; max-height:74vh; overflow:auto; }
+  .reader h3 { color:var(--gold); margin:0 0 .2rem; font-weight:normal; }
+  .reader .meta { color:var(--dim); font-size:.8rem; margin-bottom:1.1rem; }
+  .reader p { line-height:2.05; margin:0 0 1.05rem; text-indent:2.2rem; font-size:.97rem; }
+  .note { color:var(--dim); font-size:.82rem; }
+  .err { color:#e76f51; font-size:.85rem; }
+  .warnbox { border:1px solid #e9c46a; color:#e9c46a; border-radius:6px; padding:.5rem .7rem; font-size:.8rem; margin-top:.6rem; }
+</style>
+</head>
+<body>
+<h1>โรงเขียนนิยาย</h1>
+<p class="sub">
+  โลก: {{ save_path }} ·
+  <a href="/">แดชบอร์ด</a> · <a href="/godview">มุมมองพระเจ้า</a> · <a href="/map">แผนที่</a>
+</p>
+
+<div class="panel">
+  <h2>๑ · เลือกตัวเอก</h2>
+  <div class="row">
+    <button id="btnCand">โหลดรายชื่อผู้ที่คู่ควร</button>
+    <div><label>อย่างน้อยกี่จุดเปลี่ยน</label><input type="number" id="minPoints" value="12" min="3"></div>
+    <span class="note" id="candNote"></span>
+  </div>
+  <div class="scroll" style="margin-top:.7rem"><table id="candTable"></table></div>
+</div>
+
+<div class="panel">
+  <h2>๒ · ตั้งค่าการเขียน</h2>
+  <div class="row">
+    <div><label>โมเดลร้อยแก้ว (ตัวเขียนจริง ช้าแต่สำนวนดี)</label><select id="prose"></select></div>
+    <div><label>โมเดลจัดโครง/บทสนทนา (JSON เร็ว)</label><select id="struct"></select></div>
+    <div><label>จำนวนบท (0 = ทุกจุดเปลี่ยน)</label><input type="number" id="chapters" value="5" min="0"></div>
+    <div><label>ความยาวต่อบท (ตัวอักษร)</label><input type="number" id="target" value="4500" min="1200" step="500"></div>
+  </div>
+  <div id="ollamaWarn"></div>
+</div>
+
+<div class="panel">
+  <h2>๓ · ลงมือ</h2>
+  <div class="row">
+    <button class="ghost" id="btnOutline">ดูโครงก่อน (ไม่เรียกโมเดล)</button>
+    <button id="btnStart">เริ่มเขียนจริง</button>
+    <button class="danger" id="btnStop" style="display:none">หยุด</button>
+    <a id="btnDl" style="display:none" href="#"><button class="ghost">ดาวน์โหลด .md</button></a>
+    <span class="note" id="runNote"></span>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="note" id="summary"></div>
+  <div class="err" id="err"></div>
+</div>
+
+<div class="split">
+  <div class="panel" style="padding:.4rem .2rem .2rem">
+    <h2 style="padding:.4rem .9rem 0">สารบัญ</h2>
+    <div id="chapList" class="scroll" style="max-height:74vh"></div>
+  </div>
+  <div class="reader" id="reader"><p class="note" style="text-indent:0">เลือกตัวเอกแล้วกด "ดูโครงก่อน" เพื่อดูว่านิยายจะมีกี่บทและบทละอะไร โดยยังไม่เสียเวลาเรียกโมเดลเลย</p></div>
+</div>
+
+<script>
+const S = { cid:null, name:"", job:null, chapters:[], sel:null, timer:null, outline:null };
+const $ = id => document.getElementById(id);
+const esc = t => (t||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+async function jget(u){ const r = await fetch(u); if(!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json(); }
+async function jpost(u, body){
+  const r = await fetch(u, {method:"POST", headers:{"Content-Type":"application/json"}, body: body?JSON.stringify(body):null});
+  if(!r.ok) throw new Error((await r.json()).detail || r.statusText); return r.json();
+}
+function fail(e){ $("err").textContent = "⚠ " + e.message; }
+
+// ---------- โมเดล ----------
+async function loadModels(){
+  const m = await jget("/api/novel/models");
+  const fill = (el, chosen) => {
+    const names = m.installed.length ? m.installed : [chosen];
+    el.innerHTML = names.map(n => `<option ${n===chosen?"selected":""}>${esc(n)}</option>`).join("");
+  };
+  fill($("prose"), m.default_prose);
+  fill($("struct"), m.default_structure);
+  if(!m.ollama_up){
+    $("ollamaWarn").innerHTML = '<div class="warnbox">ติดต่อ Ollama ไม่ได้ — เปิด <code>ollama serve</code> ก่อน '
+      + 'แล้วรีเฟรชหน้านี้ ระหว่างนี้ยัง "ดูโครง" ได้ตามปกติ (ไม่ต้องใช้โมเดล)</div>';
+  }
+}
+
+// ---------- ตัวเอก ----------
+async function loadCandidates(){
+  $("candNote").textContent = "กำลังโหลดโลก…"; $("err").textContent = "";
+  try{
+    const rows = await jget("/api/novel/candidates?limit=40&min_points=" + ($("minPoints").value||12));
+    $("candNote").textContent = rows.length + " ชีวิตที่มีจุดเปลี่ยนพอจะเป็นนิยาย";
+    $("candTable").innerHTML =
+      "<thead><tr><th>ชื่อ</th><th>ขั้น</th><th>วิถี</th><th>สังกัด</th><th>แดน</th>"
+      + "<th title='จำนวนบทที่จะได้'>จุดเปลี่ยน</th><th title='สัดส่วนเหตุการณ์ที่เปลี่ยนอะไรจริง — สูง = ชีวิตยังผันผวน ไม่ใช่กิจวัตรซ้ำ'>ความเข้มข้น</th>"
+      + "<th>อยู่ในเรื่อง</th><th></th></tr></thead><tbody>"
+      + rows.map(r => `<tr data-cid="${r.cid}" data-name="${esc(r.name)}">
+          <td>${esc(r.name)}</td><td>${esc(r.realm)}</td><td>${esc(r.dao)}</td>
+          <td>${esc(r.org||"—")}</td><td>${esc(r.world)}</td>
+          <td>${r.turning_points}</td>
+          <td style="color:${r.density >= 0.25 ? "#52b788" : (r.density < 0.15 ? "#8a8272" : "#e8dcc4")}">${(r.density ?? 0).toFixed(2)}</td>
+          <td>${r.years ?? 0} ปี <span class="pill">${r.events ?? 0} เหตุการณ์</span></td>
+          <td>${r.alive ? "" : "<span class='pill'>วายชนม์</span>"}</td></tr>`).join("")
+      + "</tbody>";
+    $("candTable").querySelectorAll("tbody tr").forEach(tr => tr.onclick = () => {
+      $("candTable").querySelectorAll("tr").forEach(x => x.classList.remove("sel"));
+      tr.classList.add("sel");
+      S.cid = +tr.dataset.cid; S.name = tr.dataset.name;
+      $("runNote").textContent = "ตัวเอก: " + S.name;
+    });
+    if(rows.length) $("candTable").querySelector("tbody tr").click();
+  }catch(e){ $("candNote").textContent = ""; fail(e); }
+}
+
+// ---------- โครง ----------
+async function doOutline(){
+  if(S.cid===null) return fail(new Error("ยังไม่ได้เลือกตัวเอก"));
+  $("err").textContent = ""; $("runNote").textContent = "กำลังแยกฉาก…";
+  try{
+    const o = await jget(`/api/novel/outline?cid=${S.cid}&chapters=${$("chapters").value||0}&target_chars=${$("target").value}`);
+    S.outline = o; S.job = null; S.chapters = o.chapters.map(c => ({...c, status:"ยังไม่เขียน"}));
+    $("runNote").textContent = `${esc(o.name)} — ${o.n_chapters} บท (ยังไม่เรียกโมเดล)`;
+    $("btnDl").style.display = "none";
+    renderChapters(); showOutlineChapter(0);
+  }catch(e){ $("runNote").textContent=""; fail(e); }
+}
+
+function renderChapters(){
+  $("chapList").innerHTML = S.chapters.map((c,i) => {
+    const cls = c.status==="เสร็จ" ? "ok" : (c.status==="กำลังเขียน" ? "run" : "");
+    const flag = (c.issues && c.issues.length) ? '<span class="pill warn">มีข้อค้าง</span>' : "";
+    const stat = c.chars ? `${c.chars.toLocaleString()} ตัวอักษร · บทพูด ${c.dialogue} · ${c.seconds||0} วิ` : (c.subtitle||"");
+    return `<div class="chap ${S.sel===i?"sel":""}" data-i="${i}">
+       <div class="t">${esc(c.title)} <span class="pill ${cls}">${esc(c.status)}</span>${flag}</div>
+       <div class="m">${esc(stat)}</div></div>`;
+  }).join("");
+  $("chapList").querySelectorAll(".chap").forEach(el => el.onclick = () => {
+    S.sel = +el.dataset.i; renderChapters();
+    S.chapters[S.sel].prose ? showWritten(S.sel) : showOutlineChapter(S.sel);
+  });
+}
+
+function showOutlineChapter(i){
+  S.sel = i; renderChapters();
+  const src = (S.outline && S.outline.chapters[i]) || S.chapters[i];
+  if(!src) return;
+  $("reader").innerHTML = `<h3>${esc(src.title)}</h3><div class="meta">${esc(src.subtitle||"")}</div>`
+    + (src.changes && src.changes.length ? `<p style="text-indent:0" class="note">ฉากนี้เปลี่ยน: ${esc(src.changes.join(" · "))}</p>` : "")
+    + (src.cast ? `<p style="text-indent:0" class="note">ผู้อยู่ในฉาก: ${esc(src.cast.join(", "))}</p>` : "")
+    + (src.events ? `<p style="text-indent:0" class="note">บันทึกจริง:</p><ul class="note">${src.events.map(e=>`<li>${esc(e)}</li>`).join("")}</ul>` : "")
+    + `<p class="note" style="text-indent:0">— ยังไม่ได้เขียนบทนี้ —</p>`;
+}
+
+function showWritten(i){
+  const c = S.chapters[i];
+  const body = c.prose.split(/\n\s*\n/).map(p => `<p>${esc(p.trim())}</p>`).join("");
+  const issues = (c.issues && c.issues.length)
+    ? `<div class="warnbox">ข้อค้างหลังรอบซ่อม: ${esc(c.issues.join(" · "))}</div>` : "";
+  const btn = S.job ? `<button class="ghost" onclick="rewrite(${c.index})">เขียนบทนี้ใหม่</button>` : "";
+  $("reader").innerHTML = `<h3>${esc(c.title)}</h3><div class="meta">${esc(c.subtitle||"")} · `
+    + `${c.chars.toLocaleString()} ตัวอักษร · บทพูด ${c.dialogue} บรรทัด · เรียกโมเดล ${c.calls} ครั้ง`
+    + `${c.rewrites?` · ซ่อม ${c.rewrites} รอบ`:""}</div>${issues}${body}<div style="margin-top:1rem">${btn}</div>`;
+}
+
+// ---------- เขียนจริง ----------
+async function doStart(){
+  if(S.cid===null) return fail(new Error("ยังไม่ได้เลือกตัวเอก"));
+  $("err").textContent = "";
+  try{
+    const job = await jpost("/api/novel/start", {
+      cid:S.cid, chapters:+$("chapters").value||0,
+      prose_model:$("prose").value, structure_model:$("struct").value,
+      target_chars:+$("target").value,
+    });
+    applyJob(job); startPoll();
+  }catch(e){ fail(e); }
+}
+
+function startPoll(){
+  clearInterval(S.timer);
+  S.timer = setInterval(async () => {
+    if(!S.job) return;
+    try{ applyJob(await jget("/api/novel/job/" + S.job)); }catch(e){ fail(e); clearInterval(S.timer); }
+  }, 2000);
+}
+
+function applyJob(job){
+  S.job = job.job_id;
+  const keepSel = S.sel;
+  S.chapters = job.chapters;
+  S.sel = keepSel;
+  const s = job.summary, running = job.state === "running";
+  $("bar").style.width = (s.total ? (s.done / s.total * 100) : 0) + "%";
+  $("btnStop").style.display = running ? "" : "none";
+  $("btnStart").disabled = running;
+  $("btnDl").style.display = s.done ? "" : "none";
+  $("btnDl").href = `/api/novel/job/${job.job_id}/download`;
+  const state = {running:"กำลังเขียน", done:"เขียนจบแล้ว", stopped:"หยุดกลางคัน", error:"ผิดพลาด", queued:"เข้าคิว"}[job.state] || job.state;
+  $("summary").textContent = `${job.name} · ${state} · ${s.done}/${s.total} บท · `
+    + `${s.chars.toLocaleString()} ตัวอักษร · บทพูด ${s.dialogue} บรรทัด · เรียกโมเดล ${s.calls} ครั้ง · `
+    + `${Math.round(s.elapsed)} วินาที` + (s.flagged ? ` · ${s.flagged} บทมีข้อค้าง` : "");
+  if(job.error) $("err").textContent = "⚠ " + job.error;
+  if(!running) clearInterval(S.timer);
+  renderChapters();
+  const cur = S.chapters.findIndex(c => c.status === "กำลังเขียน");
+  const idx = (S.sel !== null && S.chapters[S.sel] && S.chapters[S.sel].prose) ? S.sel
+            : (cur >= 0 ? cur : S.chapters.map(c=>!!c.prose).lastIndexOf(true));
+  if(idx >= 0 && S.chapters[idx]) { S.sel = idx; S.chapters[idx].prose ? showWritten(idx) : showOutlineChapter(idx); }
+}
+
+async function rewrite(index){
+  $("err").textContent = "";
+  try{ applyJob(await jpost(`/api/novel/job/${S.job}/rewrite/${index}`)); startPoll(); }
+  catch(e){ fail(e); }
+}
+
+$("btnCand").onclick = loadCandidates;
+$("btnOutline").onclick = doOutline;
+$("btnStart").onclick = doStart;
+$("btnStop").onclick = async () => { try{ await jpost(`/api/novel/job/${S.job}/stop`); }catch(e){ fail(e); } };
+loadModels().catch(fail);
+</script>
+</body>
+</html>

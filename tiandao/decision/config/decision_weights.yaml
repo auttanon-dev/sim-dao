@@ -1,0 +1,246 @@
+# =====================================================================================
+# Decision Engine — ค่าคงที่ทั้งหมดของระบบตัดสินใจ (ห้ามมี magic number ในโค้ด)
+#
+# สมการหลัก (tiandao/decision/scoring.py):
+#
+#   core    = ExpectedReward·w_er × GoalFactor × PersonalityFactor × ConfidenceFactor
+#   Utility = core
+#           + w_need·NeedPressure + w_social·Social + w_memory·Memory
+#           + w_env·Environment + w_legacy·LegacyIntent
+#           − w_risk·Risk − w_energy·Energy − w_time·Time − w_resource·Resource
+#
+#   GoalFactor        = 1 + w_goal·GoalRelevance            (GoalRelevance ∈ [0,1])
+#   PersonalityFactor = clamp(1 + w_pers·Bias, min, max)     (Bias ∈ [-1,1])
+#   ConfidenceFactor  = max(min, 1 − w_conf·(1−conf)·aversion)
+#
+# ทุกองค์ประกอบถูก normalize ให้อยู่ใน [0,1] หรือ [-1,1] ก่อนรวม (ดู normalization ข้างล่าง)
+# =====================================================================================
+
+engine:
+  mode: stochastic              # stochastic = จำลองจริง | deterministic = argmax สำหรับดีบัก
+  temperature: 0.35             # หน่วยเดียวกับ utility — ต่ำ = เด็ดขาด, สูง = หลากหลาย
+                                # (ระบบเดิม P ∝ w เทียบเท่า T = 1 บนพจน์ ln w — ดู legacy_intent.mode)
+  temperature_min: 0.01
+  uncertainty_temperature: 0.5  # T_eff = T × (1 + k × (1 − ความมั่นใจเฉลี่ยของข้อมูลที่ใช้))
+  utility_min: -5.0             # ช่วง utility ที่แน่นอน — ค่าเกินถูก clamp
+  utility_max: 5.0
+  display_scale: 100            # แสดงผลใน explanation เป็น "แต้ม" = utility × 100
+  max_target_options: 4         # ต่อ action ที่ต้องมีเป้า ประเมินเป้าได้สูงสุดกี่ตัว
+  explain: true                 # เปิด/ปิด Decision Explanation
+  explain_keep: 6               # เก็บคำอธิบายล่าสุดกี่ครั้งต่อตัวละคร (ไม่ถูกเซฟลงไฟล์)
+  explain_alternatives: 4       # แสดงทางเลือกอื่นกี่อันดับ
+
+weights:
+  expected_reward: 1.0
+  goal_relevance: 1.2
+  personality: 0.8
+  belief_confidence: 1.0
+  need_pressure: 1.3
+  social: 0.7
+  memory: 0.9
+  environment: 0.8
+  legacy_intent: 1.0           # log-prior จาก intent.weigh() เดิม (อาชีพ/อาร์คีไทป์/อารมณ์/ข่าวลือ)
+  risk: 1.2
+  energy_cost: 0.5
+  time_cost: 0.4
+  resource_cost: 0.6
+  habituation: 0.5             # ทำซ้ำแล้วเบื่อ (leaky integrator) — ความหลากหลายของชีวิต
+
+# ---- profile: NPC แต่ละประเภท/บุคลิกมีน้ำหนักต่างกันได้ (merge ทับ weights/engine ข้างบน) ----
+profiles:
+  default: {}
+  cautious:
+    temperature: 0.30
+    weights: {risk: 1.6, need_pressure: 1.4, expected_reward: 0.9}
+  reckless:
+    temperature: 0.50
+    weights: {risk: 0.8, expected_reward: 1.25, time_cost: 0.2}
+  merchant:
+    weights: {resource_cost: 0.9, expected_reward: 1.1, risk: 1.4}
+  demon:
+    weights: {social: 0.35, risk: 1.0, memory: 1.1}
+  artisan:
+    weights: {time_cost: 0.2, goal_relevance: 1.4}
+  protagonist:
+    temperature: 0.25
+
+# ---- บุคลิก ----
+personality:
+  traits: [bravery, greed, kindness, caution, aggression, loyalty, curiosity, ambition,
+           patience, honor, selfishness]
+  factor_min: 0.3
+  factor_max: 2.2
+
+# ค่าของผลตอบแทนแต่ละหมวดตามบุคลิก: valuation = 1 + Σ coef × (trait − 0.5) × 2
+reward_valuation:
+  loot: {greed: 0.9, selfishness: 0.3}
+  wealth: {greed: 0.9}
+  reputation: {ambition: 0.6, honor: 0.3}
+  status: {ambition: 0.7}
+  revenge: {aggression: 0.6, honor: 0.2}
+  training: {ambition: 0.4, patience: 0.2}
+  exploration: {curiosity: 0.8}
+  social: {kindness: 0.4, loyalty: 0.3}
+  safety: {caution: 0.6}
+  valuation_min: 0.1
+
+# หมวดผลตอบแทน -> Need ที่มันช่วยบรรเทา (NeedPressure)
+reward_to_need:
+  survival: survival
+  safety: safety
+  hunger: hunger
+  thirst: thirst
+  rest: rest
+  loot: wealth
+  wealth: wealth
+  reputation: status
+  status: status
+  revenge: revenge
+  training: training
+  exploration: exploration
+  social: social
+  longevity: longevity
+
+# ---- normalization ----
+expected_reward:
+  normalizer: 1.5               # ER = min(1, Σ reward×valuation×P(success) / normalizer)
+  # หมวดบรรเทา: valuation × need ปัจจุบัน (ประโยชน์ส่วนเพิ่มของการบรรเทา = ความขาดที่มีอยู่)
+  relief_categories: [safety, survival, hunger, thirst, rest, longevity]
+need_pressure:
+  cap: 1.0
+legacy_intent:
+  mode: log                     # log = ln(w/ḡ) เป็น log-prior (P ∝ w·e^{ΔU}) · tanh = บีบเข้า [-1,1]
+  scale: 1.5                    # ใช้เมื่อ mode = tanh: L = tanh(ln(w/ḡ)/scale)
+
+goal_relevance:
+  plan_next_step: 1.0           # action เป็นก้าวถัดไปของแผน GOAP
+  plan_later_step: 0.5          # อยู่ในแผนแต่ยังไม่ถึงคิว
+  goal_member: 0.6              # action ระบุ relevant_goals ตรงกับเป้าหมายปัจจุบัน
+  secondary_goal_scale: 0.3     # เป้าหมายรอง (อันดับ 2-3) × คะแนนเป้าหมายนั้น
+
+# ---- Belief / Knowledge ----
+belief:
+  source_confidence: {self: 0.9, sight: 0.65, combat: 0.95, rumor: 0.35, told: 0.5,
+                      inference: 0.5, memory: 0.6, truth: 1.0}
+  half_life: {self: 365, sight: 120, combat: 720, rumor: 90, told: 180, inference: 60,
+              memory: 365, truth: 100000}
+  refresh_confidence: 0.4       # ความมั่นใจต่ำกว่านี้ = มองใหม่ (perception)
+  max_beliefs: 80
+  confidence_floor: 0.02
+  aversion_base: 0.25           # ความไม่ชอบความไม่แน่นอน = base + k × caution
+  aversion_caution: 0.75
+  factor_min: 0.2
+  pessimism: 0.6                # คนระวังตัวเผื่อศัตรูแข็งกว่าที่เห็นเมื่อข้อมูลไม่แน่น
+  self_bias: 0.25               # คนกล้าประเมินตัวเองสูงเกิน: × (1 + k × (bravery − caution))
+  default_power_confidence: 0.15  # ไม่เคยรู้อะไรเลยเกี่ยวกับศัตรู
+
+perception:
+  base_noise: 0.12              # log-normal noise ของการกะพลังคนระดับเดียวกัน
+  gap_noise: 0.18               # noise เพิ่มต่อระดับที่อีกฝ่ายสูงกว่า
+  conceal_per_level: 0.2        # คนที่สูงกว่า "มองไม่ทะลุ" — ดูอ่อนกว่าจริงระดับละ 20%
+  gap_confidence: 0.35          # ความมั่นใจหารด้วย (1 + k × ช่องว่างระดับ)
+  refresh_period: 60            # ช่วงเวลาที่ noise ของการมองคนเดิมคงที่ (หน่วยเวลาโลก)
+
+# ---- Memory ----
+memory:
+  half_life: 365                # ความจำธรรมดาจางครึ่งในหนึ่งปี
+  importance_gain: 2.0          # half_life × (1 + gain × importance)
+  intensity_gain: 1.5           # half_life × (1 + gain × emotional intensity)
+  reinforcement: 0.5            # เจอซ้ำ = แรงขึ้น ΔS = η(1+k)(1 − S/S_max)
+  salience_floor: 0.1           # prediction error ขั้นต่ำ (Rescorla–Wagner) — จำได้นิดหน่อยเสมอ
+  default_salience: 0.5         # ไม่รู้ความคาดหวังก่อนลงมือ
+  success_valence: 0.3          # ความจำของการทำสำเร็จธรรมดา (ไม่สะเทือนใจ)
+  failure_valence: -0.5         # ความล้มเหลวจำแรงกว่าความสำเร็จ (negativity bias)
+  max_strength: 3.0
+  max_traces: 48
+  min_strength: 0.02
+  bias_squash: 1.0              # MemoryBias = tanh(Σ valence × strength × relevance / squash)
+  risk_gain: 0.6                # ความจำร้ายเพิ่ม risk perception: × (1 + k × Σ negative)
+  fear_gain: 0.25               # ความจำร้ายต่อศัตรูตัวนั้นเพิ่ม fear ใน relationship
+
+# ---- Habituation ----
+habituation:
+  tau: 60.0                     # เวลาที่ความเบื่อจางลง e เท่า (หน่วยเวลาโลก)
+  scale: 3.0                    # penalty = 1 − exp(−h/scale)
+  max_entries: 24
+
+# ---- Social / Relationship ----
+social:
+  help_ally: 1.0
+  protect_bonus: 0.9            # โจมตีสิ่งที่กำลังคุกคามคนที่รัก
+  hatred_harm: 0.8
+  affection_harm: 1.0           # ทำร้ายคนที่รัก = ลบ
+  fear_harm: 0.4
+  respect_harm: 0.2
+  betray_loyalty: 1.2
+  betray_greed: 0.4
+  bond_trust: 0.6
+  abandon_ally: 0.7             # หนีทิ้งเพื่อนที่ตกอยู่ในอันตราย = ลบ × loyalty
+
+relationship:
+  bond_scale: 10.0              # tanh(bonds/scale)
+  rival_scale: 10.0
+  feedback_step: 0.15
+  max_entries: 40
+
+# ---- Risk ----
+risk:
+  default_threat: 1.0           # ไม่มีข้อมูลศัตรูเลย = สมมติว่าสูสี
+  death_weight: 3.0             # base = injury·E[damage] + w·death·P(lose)  (Lanchester)
+  injury_hp: 1.2                # InjuryModifier = 1 + k × (1 − hp_ratio) + k2 × injuries
+  injury_wounds: 0.8
+  env_danger: 0.6               # EnvironmentModifier = 1 + k × danger − allies − escape
+  env_ally_each: 0.1
+  env_ally_cap: 0.4
+  env_escape_each: 0.05
+  env_escape_cap: 0.2
+  env_min: 0.4
+  personality: 0.8              # PersonalityRiskModifier = 1 + k × (caution − bravery)
+  personality_min: 0.3
+  win_scale: 0.35               # Bradley–Terry: P(win) = logistic(ln(self/enemy) / scale)
+  squash: 1.0                   # Risk(normalized) = 1 − exp(−raw / squash)
+
+# ---- Costs ----
+costs:
+  stamina_gain: 1.5             # EC = 1 − exp(−k·stamina/แรงที่เหลือ)
+  time_scale: 60.0              # TC = 1 − exp(−ρt), ρ = (1/τ)(1 + g(0.5−patience)·2)
+  horizon_fraction: 0.2         # τ = f × อายุขัยที่เหลือ (ถ้ารู้) — ดู Yaari discounting ใน scoring.costs
+  resource_scale_min: 10.0      # cost ทรัพยากรเทียบกับเงินที่มี (ขั้นต่ำกันหารศูนย์)
+  fatigue_gain: 1.0             # เหนื่อยอยู่แล้ว = รู้สึกว่าแรงแพงขึ้น
+  patience_gain: 0.8            # ใจร้อน = รู้สึกว่าเวลาแพงขึ้น
+
+# ---- Environment ----
+environment:
+  squash: 1.0                   # EnvironmentInfluence = tanh(Σ coef × feature / squash)
+
+# ---- Goal selection (Utility AI ระดับ "ตอนนี้ฉันควรต้องการอะไร") ----
+goal_selection:
+  temperature: 0.08
+  commitment: 0.12              # เป้าหมายเดิมได้โบนัส กันเปลี่ยนใจไปมา
+  urgency_power: 2.0            # need ที่สูงมากกดดันแบบไม่เป็นเส้นตรง
+  urgency_gain: 0.5
+  personality_gain: 0.4         # บุคลิกเอียงความอยากได้ของเป้าหมาย (เบากว่าระดับ action)
+  satisfied_below: 0.3          # satisficing: need ต่ำกว่านี้ = เป้าหมายนั้น "พอแล้ว"
+  min_score: 0.15               # ไม่มีเป้าหมายไหนเกินนี้ = "ไม่มีอะไรกดดัน" → ไม่ใช้ goal relevance
+  top_k: 3
+
+planner:
+  max_depth: 5
+  max_expansions: 400
+  risk_cost: 2.0                # ค่าเสี่ยงที่ประเมินได้บวกเข้าต้นทุนแผน
+
+# ---- AI LOD ----
+lod:
+  candidate_limit: {0: 64, 1: 12, 2: 8}
+  target_limit: {0: 4, 1: 2, 2: 0}
+  use_planner: {0: true, 1: true, 2: false}
+  use_targets: {0: true, 1: true, 2: false}
+
+# ---- Scheduler: ช่วงคิดใหม่ (หน่วยเวลาของโลกที่ใช้ — วินาทีในเกม real-time, วันใน Sim Dao) ----
+scheduler:
+  realtime:                     # [min, max] วินาที
+    combat: [0.2, 1.0]
+    active: [1.0, 5.0]
+    distant: [10.0, 60.0]
+    offscreen: [null, null]     # event-driven เท่านั้น
+  simdao_goal_recheck_days: {0: 0, 1: 30, 2: 120, 3: 365}

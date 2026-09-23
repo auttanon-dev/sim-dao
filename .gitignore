@@ -12,3 +12,4 @@ tiandao/world.save.*
 merged/
 vendor_llama_cpp_convert/
 *.gguf
+tiandao/backups/

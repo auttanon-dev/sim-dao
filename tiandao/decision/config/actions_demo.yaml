@@ -1,0 +1,126 @@
+# =====================================================================================
+# ตัวอย่าง action/goal ทั่วไป (ไม่ผูกกับ Sim Dao) — ใช้ในเทสต์ test_decision_engine.py และเป็น
+# แม่แบบสำหรับเขียน action ใหม่ · ส่วนของ Sim Dao อยู่ใน actions_simdao.yaml
+# =====================================================================================
+demo:
+  defaults:
+    memory_tags: ["action:{id}"]
+
+  actions:
+    attack_enemy:
+      label: โจมตีศัตรู
+      target: enemy
+      requirements: [enemy_visible, can_attack]
+      effects: [enemy_hp_down, stamina_down]
+      rewards: {survival: 0.3, safety: 0.3, loot: 0.3, reputation: 0.3}
+      costs: {stamina: 20, time: 5, resources: 0}
+      risk: {injury: 0.4, death: 0.1, combat: true}
+      relevant_goals: [survive, protect_friend, revenge, gain_loot]
+      personality: {bravery: 0.8, aggression: 0.5, caution: -0.6}
+      social: harm
+      memory_tags: ["action:{id}", "foe:{target_kind}", "entity:{target}"]
+      environment: {night: -0.2}
+      goap: {pre: {enemy_near: true}, eff: {enemy_defeated: true, friend_safe: true, safe: true}, cost: 2}
+
+    run_away:
+      label: หนี
+      requirements: [enemy_visible]
+      rewards: {safety: 0.8, survival: 0.5}
+      costs: {stamina: 10, time: 2}
+      risk: {injury: 0.05}
+      success: 0.85
+      relevant_goals: [survive]
+      personality: {caution: 0.8, bravery: -0.6}
+      social: flee
+      memory_tags: ["action:{id}"]
+      environment: {danger: 0.4}
+      goap: {pre: {enemy_near: true}, eff: {safe: true, enemy_near: false}, cost: 1}
+
+    help_friend_escape:
+      label: ช่วยเพื่อนหนี
+      target: ally_in_danger
+      requirements: [ally_in_danger]
+      rewards: {social: 0.6, safety: 0.3}
+      costs: {stamina: 15, time: 3}
+      risk: {injury: 0.2, death: 0.03}
+      success: 0.8
+      relevant_goals: [protect_friend]
+      personality: {kindness: 0.6, loyalty: 0.6, bravery: 0.3, selfishness: -0.5}
+      social: help
+      memory_tags: ["action:{id}", "entity:{target}"]
+      goap: {eff: {friend_safe: true}, cost: 1.5}
+
+    eat:
+      label: กินอาหาร
+      requirements: [has_food]
+      rewards: {hunger: 1.0}
+      costs: {time: 1}
+      relevant_goals: [eat]
+      goap: {pre: {has_food: true}, eff: {fed: true}, cost: 1}
+
+    forage:
+      label: หาของกิน
+      rewards: {hunger: 0.3}
+      costs: {stamina: 10, time: 10}
+      success: 0.7
+      relevant_goals: [eat]
+      personality: {patience: 0.3}
+      environment: {danger: -0.5, "resource:food": 0.5}
+      goap: {eff: {has_food: true}, cost: 2}
+
+    rest:
+      label: พักผ่อน
+      requirements: ["!enemy_visible"]
+      rewards: {rest: 1.0, survival: 0.2}
+      costs: {time: 20}
+      relevant_goals: [sleep]
+      personality: {patience: 0.3}
+      environment: {danger: -1.0}
+      goap: {pre: {enemy_near: false}, eff: {rested: true}, cost: 1}
+
+    gather_herb:
+      label: เก็บสมุนไพรหายาก (มีสัตว์อสูรเฝ้า)
+      requirements: ["fact:herb_seen"]
+      rewards: {loot: 0.9}
+      costs: {stamina: 10, time: 5}
+      risk: {injury: 0.3, death: 0.05, combat: true, threat_key: "guardian:{location}"}
+      relevant_goals: [gain_loot]
+      personality: {greed: 0.5, bravery: 0.4, caution: -0.4}
+      memory_tags: ["action:{id}", "place:{location}"]
+      goap: {pre: {herb_seen: true}, eff: {rich: true}, cost: 1}
+
+    trade:
+      label: ค้าขาย
+      requirements: ["fact:at_market"]
+      rewards: {wealth: 0.6}
+      costs: {time: 10, resources: 5}
+      relevant_goals: [gain_loot]
+      personality: {greed: 0.4}
+      goap: {pre: {at_market: true}, eff: {rich: true}, cost: 1}
+
+  goals:
+    survive:
+      needs: {survival: 1.0, safety: 0.9}
+      personality: {caution: 0.3}
+      desired: {safe: true}
+    eat:
+      needs: {hunger: 1.0}
+      desired: {fed: true}
+    sleep:
+      needs: {rest: 1.0}
+      requires: ["!enemy_near"]
+      desired: {rested: true}
+    protect_friend:
+      social: protect
+      needs: {social: 0.3}
+      personality: {loyalty: 0.6, kindness: 0.4}
+      requires: [ally_danger]
+      desired: {friend_safe: true}
+    gain_loot:
+      needs: {wealth: 0.8}
+      personality: {greed: 0.8}
+      desired: {rich: true}
+    revenge:
+      needs: {revenge: 1.0}
+      personality: {aggression: 0.5}
+      desired: {enemy_defeated: true}

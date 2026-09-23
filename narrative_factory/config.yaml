@@ -24,7 +24,41 @@ scene_type_map:
   เปิดประมูล: Auction
   ค้าขาย: Auction
   โกลาหลบุกโลกมนุษย์: Invasion
+  ลางมหาศึกโกลาหล: Invasion
+  ระดมทรัพยากรต้านมหาศึก: Invasion
+  มหาศึกโกลาหลถล่มโลกมนุษย์: Invasion
+  สิ้นสุดมหาศึกโกลาหล: Invasion
+  ทรยศเปิดทางโกลาหล: Betrayal
   โกลาหลบุก: Invasion
+  พันธมิตรปราบเจ้าโกลาหล: ChaosLordSiege   # ศึกใหญ่ที่สุดของโลกนี้ ต้องไม่ตกไปเป็น Other
+  ปิดรอยแยกโกลาหล: ChaosLordSiege
+  สร้างประตูมิติ: Treasure
+  ต้นไม้โลกหยั่งกิ่ง: Treasure
+  แดนลับต้นกำเนิดเปิด: Treasure
+  มารบุก: Invasion
+  คลื่นสัตว์อสูรบุกเมือง: Invasion
+  # ---- เพิ่มรอบที่คัดฉากด้วยจุดเปลี่ยนแทนชนิดเหตุการณ์ ----
+  # เดิม kind พวกนี้ตกไปเป็น "Other" แล้วถูกทิ้งทั้งหมด ทั้งที่หลายอันคือหมุดหมายของชีวิต
+  # (ข้ามฟ้า = เหตุการณ์ใหญ่ที่สุดของผู้บำเพ็ญ, กำเนิดทายาท = ต้นสายตระกูล)
+  ฝึกวิชา: Training
+  บำเพ็ญ: Training
+  ขัดเกลาสายเลือด: Training
+  ถ่ายทอดวิชา: Mentorship
+  ให้สัญญา: Oath
+  สะสางเรื่องเก่า: Oath
+  เข้าสำนัก: Allegiance
+  ตั้งสำนัก: Allegiance
+  กำเนิดทายาท: Lineage
+  ข้ามฟ้า: Ascension
+  สิ้นอายุขัย: Death
+  ล่าอสูร: BeastHunt
+  เก็บวัตถุดิบ: Foraging
+  หลอมค่ายกล: PillCraft
+  จับกุมอาชญากร: Manhunt
+  ลอบสังหาร: Assassination
+  ภัยธรรมชาติ: Calamity
+  ได้ยินข่าวลือ: Rumor
+  เดินทาง: Journey
 default_scene_type: Other
 
 # ถ้า outcome ของเหตุการณ์อยู่ในนี้ scene_type จะถูก override เป็น Death เสมอ (ไม่ว่า kind จะเป็นอะไร)
@@ -71,6 +105,8 @@ emotion_curve_templates:
     default: [35, 60, 90, 100, 55]
   Invasion:
     default: [30, 65, 90, 95, 45]
+  ChaosLordSiege:
+    default: [40, 70, 95, 100, 60]
   default:
     default: [20, 40, 60, 70, 40]
 
@@ -82,6 +118,7 @@ foreshadowing_precursors:
   SectWar: ["สงครามสำนัก"]
   Duel: ["ล้างแค้น"]
   Invasion: ["โกลาหลบุกโลกมนุษย์", "โกลาหลบุก"]
+  ChaosLordSiege: ["โกลาหลบุกโลกมนุษย์", "โกลาหลบุก", "เจ้าโกลาหลคืนกลับ"]
 foreshadowing_lookback_days: 3650   # ย้อนหลังสูงสุด ~10 ปีจำลอง
 foreshadowing_max_items: 2
 
@@ -106,6 +143,20 @@ goal_by_scene_type:
   Death: Escape
   SectWar: Reputation
   Invasion: Escape
+  ChaosLordSiege: Reputation
+  Training: DaoPursuit
+  Mentorship: Reputation
+  Oath: Reputation
+  Allegiance: Reputation
+  Lineage: Reputation
+  Ascension: Breakthrough
+  BeastHunt: Wealth
+  Foraging: Wealth
+  Manhunt: Reputation
+  Assassination: Wealth
+  Calamity: Escape
+  Rumor: DaoPursuit
+  Journey: DaoPursuit
 default_goal: DaoPursuit
 
 # Dataset Export (Phase E)
@@ -117,10 +168,24 @@ scene_type_th:
   Treasure: "ฉากค้นหาสมบัติ"
   SectWar: "ฉากสงครามสำนัก"
   Death: "ฉากความตาย"
+  Training: "ฉากฝึกฝนบำเพ็ญ"
+  Mentorship: "ฉากถ่ายทอดวิชา"
+  Oath: "ฉากให้สัญญาและสะสางเรื่องค้างคา"
+  Allegiance: "ฉากเข้าสังกัดสำนัก"
+  Lineage: "ฉากกำเนิดทายาท"
+  Ascension: "ฉากข้ามฟ้าสู่ภพเบื้องบน"
+  BeastHunt: "ฉากล่าอสูร"
+  Foraging: "ฉากออกเก็บวัตถุดิบ"
+  Manhunt: "ฉากไล่ล่าอาชญากร"
+  Assassination: "ฉากลอบสังหาร"
+  Calamity: "ฉากภัยพิบัติ"
+  Rumor: "ฉากข่าวลือแพร่สะพัด"
+  Journey: "ฉากการเดินทาง"
   Escape: "ฉากหลบหนี"
   PillCraft: "ฉากหลอมยา"
   Auction: "ฉากประมูล/ค้าขาย"
   Invasion: "ฉากถูกรุกราน"
+  ChaosLordSiege: "ฉากพันธมิตรบุกปราบเจ้าโกลาหล"
 default_scene_type_th: "ฉากทั่วไป"
 
 # Automatic Style Tagging — Romance/Comedy ไม่มีในตารางนี้โดยตั้งใจ: เอนจินไม่มีกลไกความรัก/มุกตลก
@@ -231,6 +296,14 @@ default_conflict_type: External
 
 # Scene Extractor (Phase B): เหตุการณ์ที่มีผู้เล่นร่วมกัน (actor/target ซ้ำกัน) และห่างกันไม่เกินกี่วัน
 # ถือเป็น "ฉากเดียวกัน" ต่อเนื่องกัน (ไล่ล่า→ต่อสู้→จบ ที่เกิดในไม่กี่วันติดกัน) ห่างกว่านี้ = คนละฉาก
-scene_merge_window_days: 3
-# scene_type ที่จะ "ไม่" เอามาเป็นฉาก (ปรับตามข้อ "ห้ามเก็บข้อมูลแบบสุ่ม" ของ ROLE.md)
-excluded_scene_types: ["Other"]
+# ---- การคัดฉาก (เขียนใหม่) ----
+# เดิมคัดสองชั้น: รวมเหตุการณ์ที่ห่างกันไม่เกิน 3 วัน แล้วทิ้ง scene_type ที่ไม่อยู่ใน scene_type_map
+# วัดจริงแล้วชั้นแรกไม่เคยรวมอะไรเลย (คู่เหตุการณ์ของคนเดียวกันห่างกันมัธยฐาน 766 วัน มีแค่ 0.1%
+# ที่ห่าง <= 3 วัน) และชั้นที่สองทิ้งการข้ามฟ้ากับการกำเนิดทายาท แต่เก็บ "ไปตลาด" ไว้ 3,852 ฉาก
+# ตอนนี้คัดด้วย "จุดเปลี่ยนจริง" จาก Event.snap แทน — ดู scene_extractor.py
+scene_lead_events: 5          # เหตุการณ์นำก่อนจุดเปลี่ยน เอามาเป็นวัตถุดิบของบีตต้นฉากได้กี่อัน
+scene_lead_window_days: 730   # เหตุการณ์นำต้องไม่เก่ากว่าจุดเปลี่ยนเกินกี่วัน
+min_turning_points: 12        # ชีวิตที่มีจุดเปลี่ยนน้อยกว่านี้ ไม่พอเป็นนิยายหนึ่งเรื่อง
+
+scene_merge_window_days: 730  # (ยังอ่านโดยโค้ดเก่าบางส่วน — ปรับให้ตรงจังหวะจริงของซิมแล้ว)
+excluded_scene_types: []      # ไม่คัดด้วยชนิดเหตุการณ์อีกต่อไป

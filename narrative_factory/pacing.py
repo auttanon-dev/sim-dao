@@ -1,53 +1,91 @@
 # -*- coding: utf-8 -*-
-"""Phase K2 — Pacing Engine: แบ่ง Scene เป็น Beat (Opening/Inciting/Rising/Peak/Aftermath) จาก
-ตำแหน่งเวลาจริงของเหตุการณ์ในฉาก — rule-based ล้วน deterministic ไม่ใช้ LLM ตาม `ROLE` Phase K
+"""Phase K2 — Pacing Engine: กางหนึ่งจุดเปลี่ยนออกเป็นฉากเต็มที่เขียนเป็นหนังได้
 
-**ข้อจำกัดที่ต้องรู้ก่อนใช้งานจริง**: `Peak` คือเหตุการณ์สุดท้ายของฉากเสมอ (= anchor ตามนิยามเดิมของ
-ทั้งระบบใน `genome.py`/`scene_extractor.py` ที่ใช้ `scene.events[-1]` ตัดสิน outcome/payoff ของฉาก
-มาตั้งแต่ Phase B) ทำให้โครงสร้างข้อมูลนี้ไม่มีที่ว่างให้ `Aftermath` จริงที่ระดับฉากเดียว — เหตุการณ์
-หลัง climax จริงๆ จะกลายเป็น**ฉากถัดไป**แยกต่างหาก (ไม่ใช่ event ในฉากเดียวกันนี้) จึง**ไม่มีทาง
-เกิด `Aftermath` ในผลลัพธ์ของไฟล์นี้เลย** จนกว่าจะมี Arc Builder (Phase K5) ที่ดูข้ามหลายฉากต่อเนื่องกัน
+**เขียนใหม่ทั้งแนวคิด** — ของเดิม `assign_beats(n_events)` แจก 1 บีตต่อ 1 เหตุการณ์ ซึ่งเมื่อรวมกับ
+บั๊กของ scene_extractor ที่ทำให้ทุกฉากมีเหตุการณ์เดียว (วัดจริง 100%) ผลคือทุกฉากได้บีตเดียวคือ Peak
+แล้ว `scoring._pacing_score` ก็ไปลงโทษร้อยแก้วที่ยาวเกินหนึ่งย่อหน้า — ระบบทั้งระบบจึงบังคับให้เขียน
+ฉากละหนึ่งย่อหน้าโดยไม่มีใครตั้งใจ ซึ่งขัดกับเป้าหมาย "นิยายยาว มีบทสนทนาละเอียด เหมือนดูหนัง" ตรงๆ
+
+แนวคิดใหม่: **หนึ่งจุดเปลี่ยน = หนึ่งฉากเต็ม 5 บีตเสมอ** ไม่ขึ้นกับว่ามีเหตุการณ์ดิบกี่อัน
+เหตุการณ์ดิบเป็น "วัตถุดิบ" ของบีต ไม่ใช่ตัวกำหนดจำนวนบีต
+
+  Opening    ที่ไหน เมื่อไหร่ ใครอยู่ตรงนั้น อากาศเป็นยังไง — ปูภาพ ไม่มีบทพูด
+  Inciting   อะไรพาเขามาถึงจุดนี้ (เหตุการณ์นำ) — เริ่มมีบทพูดสั้นๆ
+  Rising     การเผชิญหน้า — **บทสนทนาหลักอยู่ตรงนี้** ยาวที่สุดในฉาก
+  Peak       จุดที่สถานะเปลี่ยนจริง (anchor) — การกระทำและคำพูดที่ตัดสิน
+  Aftermath  ผลที่ตามมาทันที ใครเห็น ใครจำ — ปิดฉาก
 """
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import Dict, List
 
 from .scene_extractor import Scene
 
 BEAT_STAGES = ["Opening", "Inciting", "Rising", "Peak", "Aftermath"]
 
-# Beat 3 ตัวแรกที่เหตุการณ์ก่อน Peak จะถูกกระจายลงไป (Peak ต่อท้ายเสมอแยกต่างหาก — ดู docstring หัวไฟล์)
-_LEAD_STAGES = BEAT_STAGES[:3]
+# สัดส่วนความยาวที่คาดหวังของแต่ละบีต — ใช้บอกคนเขียนว่าควรลงน้ำหนักตรงไหน
+BEAT_WEIGHT = {"Opening": 0.15, "Inciting": 0.15, "Rising": 0.35,
+               "Peak": 0.25, "Aftermath": 0.10}
+
+# บีตที่ต้องมีบทพูดจริง — ฉากที่ไม่มีบทพูดใน Rising/Peak ไม่นับว่าเป็นฉากหนัง
+DIALOGUE_BEATS = ("Inciting", "Rising", "Peak")
+
+# ช่วงจำนวนย่อหน้าที่ถือว่าเป็น "ฉากเต็ม" (ต่ำกว่านี้คือสรุป สูงกว่านี้คือเยิ่นเย้อ)
+PARAGRAPH_RANGE = (8, 22)
+
+
+@dataclass
+class Beat:
+    stage: str
+    weight: float
+    wants_dialogue: bool
+    material: List[str] = field(default_factory=list)   # เหตุการณ์ดิบที่บีตนี้ใช้เป็นวัตถุดิบ
 
 
 @dataclass
 class SceneBeats:
     scene_id: str
-    beats: List[str]  # 1 label ต่อ 1 เหตุการณ์ใน scene.events เรียงตามเวลาจริง
+    beats: List[Beat]
+
+    @property
+    def stages(self) -> List[str]:
+        return [b.stage for b in self.beats]
 
 
-def assign_beats(n_events: int) -> List[str]:
-    """แบ่ง n เหตุการณ์จริงของฉากลง Beat — deterministic ล้วน (ไม่มีการสุ่ม)
+def assign_beats(n_events: int = 0) -> List[str]:
+    """คงชื่อเดิมไว้เพื่อความเข้ากันได้ — แต่คืนโครง 5 บีตเสมอ ไม่ขึ้นกับจำนวนเหตุการณ์
 
-    - 0 เหตุการณ์: คืน list ว่าง
-    - 1 เหตุการณ์: เหตุการณ์เดียวคือ Peak เสมอ (ฉากสั้นสุด ไม่มี Beat อื่นให้ลด)
-    - >=2 เหตุการณ์: เหตุการณ์สุดท้าย = Peak เสมอ ส่วนที่เหลือกระจายลง Opening/Inciting/Rising ตาม
-      สัดส่วนตำแหน่งเวลา (ยิ่งฉากสั้น ยิ่งตัด Beat ต้นๆ ออกก่อน ไม่ใช่ตัด Peak)
+    โครงของฉากเป็นเรื่องของการเล่า ไม่ใช่ของจำนวนแถวใน log
     """
-    if n_events <= 0:
-        return []
-    if n_events == 1:
-        return ["Peak"]
-    lead_count = n_events - 1
-    lead = [_LEAD_STAGES[min(len(_LEAD_STAGES) - 1, i * len(_LEAD_STAGES) // lead_count)]
-            for i in range(lead_count)]
-    return lead + ["Peak"]
+    return list(BEAT_STAGES)
 
 
 def build_scene_beats(scene: Scene) -> SceneBeats:
-    """เอนทรีพอยต์หลัก — รับ Scene หนึ่งฉาก คืน SceneBeats (1 label ต่อ 1 เหตุการณ์จริง)"""
-    return SceneBeats(scene_id=scene.scene_id, beats=assign_beats(len(scene.events)))
+    """กางฉากเป็น 5 บีต พร้อมแจกเหตุการณ์ดิบให้บีตที่ควรใช้มัน
+
+    anchor (เหตุการณ์สุดท้าย = จุดเปลี่ยน) เป็นวัตถุดิบของ Peak เสมอ ส่วนเหตุการณ์นำกระจายลง
+    Inciting/Rising — นั่นคือ "เขาทำอะไรมาก่อนจะถึงจุดนี้"
+    """
+    events = list(scene.events or [])
+    anchor = events[-1] if events else None
+    lead = events[:-1]
+    half = (len(lead) + 1) // 2
+    material: Dict[str, List[str]] = {s: [] for s in BEAT_STAGES}
+    for e in lead[:half]:
+        material["Inciting"].append(f"วันที่ {e.day}: {e.text}")
+    for e in lead[half:]:
+        material["Rising"].append(f"วันที่ {e.day}: {e.text}")
+    if anchor is not None:
+        material["Peak"].append(f"วันที่ {anchor.day}: {anchor.text}")
+    return SceneBeats(
+        scene_id=scene.scene_id,
+        beats=[Beat(stage=s, weight=BEAT_WEIGHT[s],
+                    wants_dialogue=s in DIALOGUE_BEATS,
+                    material=material[s]) for s in BEAT_STAGES],
+    )
 
 
-def pacing_summary(beats: List[str]) -> str:
-    """สรุป Beat list เป็นข้อความสั้นๆ อ่านง่าย เช่น 'Opening -> Rising -> Peak'"""
-    return " -> ".join(beats) if beats else "(ไม่มีเหตุการณ์)"
+def pacing_summary(beats) -> str:
+    """สรุปโครงฉากสั้นๆ — รับได้ทั้ง List[str] แบบเดิม และ List[Beat] แบบใหม่"""
+    if not beats:
+        return "(ไม่มีเหตุการณ์)"
+    return " -> ".join(b if isinstance(b, str) else b.stage for b in beats)

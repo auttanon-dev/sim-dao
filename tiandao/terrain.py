@@ -4,10 +4,13 @@
 Provides procedural heightmaps, floating sky islands, desert dunes, rivers, 
 and biome shading for all 10 realms (Mortal, 5 Sister Realms, Immortal, Heaven, Mara, Chaos).
 """
+import functools
 import math
 import random
 from typing import Dict, List, Any, Tuple
 
+from . import config as C
+from . import noise as NZ
 from . import places as PL
 from . import geo as GEO
 
@@ -120,12 +123,57 @@ REALM_PROPERTIES = {
 }
 
 
-def _noise_2d(x: float, y: float, seed: int = 42) -> float:
-    """Pseudo 2D Simplex/Perlin-style smooth continuous noise in stdlib."""
-    n = math.sin(x * 0.035 + seed * 1.7) * math.cos(y * 0.035 + seed * 2.3)
-    n += 0.5 * math.sin(x * 0.07 + y * 0.07 + seed * 3.1)
-    n += 0.25 * math.sin(x * 0.14 - y * 0.11 + seed * 4.9)
-    return (n + 1.75) / 3.5  # Normalized between 0.0 and 1.0
+# เมล็ดของภูมิประเทศ — ต้องเป็นตัวเดียวกับ seed ของโลก ไม่ใช่ 42 ที่ฝังไว้
+# ของเดิม `_noise_2d` เป็นผลบวกของไซน์สามตัวที่ seed เข้าไป **ในเฟส** (`sin(x + seed*1.7)`)
+# ซึ่งไม่ได้เปลี่ยนสนาม มันเลื่อนสนามเดิม โลกทุกใบจึงมีภูเขาชุดเดียวกันแค่ขยับที่
+# และที่เรียกใช้ก็ส่ง seed=42 คงที่ ไม่เคยรับ seed ของโลกเลย
+_WORLD_SEED = 0
+
+
+def use_seed(seed: int) -> None:
+    """ผูกภูมิประเทศกับ seed ของโลกหนึ่ง — เรียกก่อนวาดแผนที่
+
+    เป็น state ระดับโมดูลเหมือน PLACES/GEO ที่มีอยู่แล้ว จึงรองรับได้ทีละโลก
+    ยอมรับข้อจำกัดนี้เพราะชั้นนี้เป็นชั้นแสดงผล (dashboard/godview) ไม่มีใครในเอนจินเรียก
+    ถ้าวันหนึ่งต้องวาดสองโลกพร้อมกัน ต้องเปลี่ยนเป็นส่งสนามเข้ามาเป็นพารามิเตอร์
+    """
+    global _WORLD_SEED
+    _WORLD_SEED = int(seed)
+    _planet.cache_clear()
+    _layer.cache_clear()
+
+
+@functools.lru_cache(maxsize=8)
+def _planet(seed: int):
+    """ดาวดวงเดียวกับที่เอนจินใช้ — ภูเขาที่วาดออกมาคือที่ที่ปราณโผล่จริง ไม่ใช่ภาพประดับ"""
+    return NZ.Planet(seed=seed ^ 0x91F1_0000, radius=C.PLANET_RADIUS,
+                     amp=C.PLANET_AMP, lam=C.PLANET_LAMBDA,
+                     octaves=C.PLANET_OCTAVES,
+                     warp_octaves=C.PLANET_WARP_OCTAVES)
+
+
+@functools.lru_cache(maxsize=8)
+def _layer(seed: int, channel: int):
+    """สนามเสริมสำหรับชั้นอื่นที่ไม่ใช่ความสูง (เช่น ความชุ่มชื้น)"""
+    return NZ.Planet(seed=(seed * 8191 + channel) ^ 0x7E44_1A17,
+                     lam=C.PLANET_LAMBDA, octaves=4, warp_octaves=2)
+
+
+def _noise_2d(x: float, y: float, seed: int = 0) -> float:
+    """F(p̂ + λW(p̂)) ที่พิกัดแผนที่นี้ คืน 0..1
+
+    `seed` เป็นตัวแยกชั้น (0 = ความสูงจากดาวจริง · อื่นๆ = สนามเสริม) ไม่ใช่เมล็ดของโลก
+    เมล็ดของโลกมาจาก use_seed() ชั้นความสูงกับชั้นความชุ่มชื้นจึงเป็นสนามคนละผืน
+    ไม่มีทางเหมือนกันเป๊ะโดยบังเอิญ (บั๊กที่การเลื่อนเฟสของโค้ดเดิมเสี่ยงจะเจอ)
+    """
+    d = NZ.sphere_dir(x, y, C.PLANET_SPAN)
+    pl = _planet(_WORLD_SEED) if int(seed) == 0 else _layer(_WORLD_SEED, int(seed))
+    return 0.5 + 0.5 * pl.height(*d, scale=C.PLANET_SCALE)
+
+
+TERRAIN_OCTAVES = 5       # เก็บไว้เพื่อความเข้ากันได้ย้อนหลัง — ตอนนี้ชั้นมาจาก config.PLANET_*
+TERRAIN_RELIEF = 22.0     # ความสูงต่ำของพื้นที่ภูมิประเทศเพิ่มเข้าไป (±หน่วย) — พอจะข้ามเกณฑ์
+                          # ไบโอมที่ 30 กับ 50 ได้ แต่ไม่มากพอจะทำให้เมืองไปโผล่เหนือสำนัก
 
 
 def compute_place_3d_and_biome(place_idx: int) -> Tuple[float, float, float, str, str]:
@@ -139,7 +187,10 @@ def compute_place_3d_and_biome(place_idx: int) -> Tuple[float, float, float, str
     theme = realm_info["theme"]
     
     # คำนวณความสูงตามประเภทสถานที่
-    local_elev = _noise_2d(x, y, seed=100 + place_idx)
+    # ใช้พิกัดจริงเป็นตัวเข้า ไม่ใช่ place_idx — เพื่อนบ้านบนแผนที่ต้องได้พื้นที่สูงใกล้กัน
+    # ของเดิมส่ง seed=100+place_idx ทำให้สถานที่ที่ติดกันได้สนามคนละผืน ภูมิประเทศจึงกระโดด
+    # ระหว่างจุดที่อยู่ข้างกัน ซึ่งขัดกับความเป็นภูมิประเทศ
+    local_elev = _noise_2d(x, y)
     z_offset = local_elev * 25.0
     
     if ptype == "เมือง":
@@ -157,7 +208,15 @@ def compute_place_3d_and_biome(place_idx: int) -> Tuple[float, float, float, str
             z_offset = -15.0  # รอยแยกลึกลงไปใต้ดิน
         else:
             z_offset = 35.0 + grade * 15.0
-            
+
+    # ความสูงตามประเภทข้างบนคือ "สำนักอยู่บนเขา เมืองอยู่ที่ราบ" ซึ่งเป็นเจตนาของผู้เขียน
+    # แต่ของเดิมเขียนทับ local_elev ทิ้งทั้งก้อน ค่า noise ที่คำนวณมาจึงไม่เคยถูกใช้เลย
+    # ทุกโลกได้ความสูงชุดเดียวกันเป๊ะ ตอนนี้บวกภูมิประเทศจริงเข้าไปเป็น **ความสูงต่ำของพื้น**
+    # ที่ประเภทนั้นไปตั้งอยู่บน — สำนักยังอยู่สูงกว่าเมืองเสมอ แต่สำนักบนสันเขาในเมล็ดหนึ่ง
+    # อาจอยู่บนเนินเตี้ยในอีกเมล็ดหนึ่ง ซึ่งพลิกเกณฑ์ไบโอม (z >= 30 -> ภูเขา, z >= 50 -> หิมะ)
+    # ให้เป็นคนละแผนที่โดยไม่ต้องแตะชื่อสถานที่ที่เขียนไว้เลยสักตัว
+    z_offset += (local_elev - 0.5) * 2.0 * TERRAIN_RELIEF
+
     z = round(base_z + z_offset, 2)
     
     # ระบุ Biome ตาม Theme และข้อมูลสถานที่
@@ -217,8 +276,13 @@ def compute_place_3d_and_biome(place_idx: int) -> Tuple[float, float, float, str
         elif res == "สมุนไพร":
             biome_key = "forest"
         else:
-            biome_key = "plains"
-            
+            # ที่ที่ผู้เขียนไม่ได้ระบุไว้ — ให้ **ความชุ่มชื้น** จากสนามอีกผืนตัดสิน
+            # ใช้สนามคนละชั้น (seed=2) ไม่ใช่ชั้นความสูง ไม่งั้นที่สูงจะชื้นตามกันหมด
+            # ซึ่งผิดทั้งทางภูมิศาสตร์และทำให้แผนที่อ่านซ้ำซาก
+            wet = _noise_2d(x, y, seed=2)
+            biome_key = ("high_hills" if wet < 0.4 else
+                         "plains" if wet < 0.62 else "forest")
+
     biome_name = BIOMES[biome_key]["name"]
     return x, y, z, biome_key, biome_name
 
@@ -253,7 +317,7 @@ def generate_terrain_mesh(grid_size: int = 40) -> Dict[str, Any]:
             base_z = rinfo["base_z"]
             
             # Procedural height calculation
-            noise_val = _noise_2d(cx, cy, seed=42)
+            noise_val = _noise_2d(cx, cy, seed=1)
             
             # Island mask (falloff around realm centers)
             mask = max(0.0, 1.0 - (best_dist / 140.0))

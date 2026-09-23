@@ -11,6 +11,12 @@ from . import config as C
 from . import geo as GEO
 
 _ADJ: Optional[Dict[int, List[Tuple[int, float]]]] = None  # lazy-built, cache ไว้ครั้งเดียวต่อโปรเซส
+# กราฟอีกชุดสำหรับตอนที่มหาผนึกหมื่นมารพังแล้ว (เดินข้ามแดนมารได้) — เดิมเส้นทางแบบนี้ไม่ถูก cache
+# เลย เพราะเงื่อนไข cache ผูกกับ `not allow_mara_barrier` อย่างเดียว ผลคือพอผนึกใหญ่แตก (ซึ่งเกิด
+# แน่นอนในโลกที่เดินหลายร้อยปี) **ทุกการเดินทางในโลกจะสร้างกราฟ 755 สถานที่ใหม่ทั้งใบ** โปรไฟล์จริง:
+# _adjacency ถูกเรียก 2,946 ครั้งจากการหาเส้นทาง 2,946 ครั้ง = ไม่เคย hit cache เลยสักครั้ง กิน 5%
+# ของเวลาทั้งซิม และยิ่งแพงขึ้นเรื่อยๆ เมื่อมีประตูมิติเพิ่ม
+_ADJ_OPEN: Optional[Dict[int, List[Tuple[int, float]]]] = None
 
 # เหตุการณ์ระหว่างทาง — สุ่มเฉพาะตอนที่ TRAVEL_ENROUTE_EVENT_P ทอยติดแล้วเท่านั้น (ดู roll_enroute_event)
 # จึงไม่มี "ปลอดภัย/ไม่มีอะไรเกิดขึ้น" ในตารางนี้ — การไม่ทอยติดคือกรณีปกติอยู่แล้ว
@@ -22,8 +28,11 @@ _ENROUTE_OUTCOMES: List[Tuple[str, float, Dict[str, int]]] = [
 
 
 def _adjacency(allow_mara_barrier: bool = False) -> Dict[int, List[Tuple[int, float]]]:
-    global _ADJ
-    if not allow_mara_barrier and _ADJ is not None:
+    global _ADJ, _ADJ_OPEN
+    if allow_mara_barrier:
+        if _ADJ_OPEN is not None:
+            return _ADJ_OPEN
+    elif _ADJ is not None:
         return _ADJ
     adj: Dict[int, List[Tuple[int, float]]] = {}
     for edge in GEO.EDGES:
@@ -37,7 +46,9 @@ def _adjacency(allow_mara_barrier: bool = False) -> Dict[int, List[Tuple[int, fl
                 continue
         adj.setdefault(a, []).append((b, dist))
         adj.setdefault(b, []).append((a, dist))
-    if not allow_mara_barrier:
+    if allow_mara_barrier:
+        _ADJ_OPEN = adj
+    else:
         _ADJ = adj
     return adj
 
@@ -64,6 +75,37 @@ def shortest_path_distance(from_place: int, to_place: int, allow_mara_barrier: b
                 best[neighbor] = nd
                 heapq.heappush(pq, (nd, neighbor))
     return None
+
+
+_DIST_CACHE: Dict[int, Dict[int, float]] = {}
+
+
+def distances_from(src: int, allow_mara_barrier: bool = False) -> Dict[int, float]:
+    """ระยะทางจาก src ไปทุกจุดที่ไปถึงได้ — Dijkstra รอบเดียวแล้วแคชไว้ต่อ source
+
+    ต่างจาก shortest_path_distance() ที่รัน Dijkstra ใหม่ทุกครั้งต่อคู่ (a, b) — ตัวนี้จำเป็นเมื่อ
+    ต้องถามระยะจากคนหนึ่งไปหาคนอีกหลายร้อยคนทุก tick (ดู Sim.social_pool) มีสถานที่แค่ 182 จุด
+    แคชจึงเต็มที่ 182 ชุด ไม่โต
+    """
+    if not allow_mara_barrier and src in _DIST_CACHE:
+        return _DIST_CACHE[src]
+    adj = _adjacency(allow_mara_barrier=allow_mara_barrier)
+    best: Dict[int, float] = {src: 0.0}
+    pq: List[Tuple[float, int]] = [(0.0, src)]
+    visited = set()
+    while pq:
+        d, node = heapq.heappop(pq)
+        if node in visited:
+            continue
+        visited.add(node)
+        for neighbor, w in adj.get(node, ()):
+            nd = d + w
+            if neighbor not in best or nd < best[neighbor]:
+                best[neighbor] = nd
+                heapq.heappush(pq, (nd, neighbor))
+    if not allow_mara_barrier:
+        _DIST_CACHE[src] = best
+    return best
 
 
 def travel_speed(realm: int, config=None) -> float:

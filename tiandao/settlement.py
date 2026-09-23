@@ -14,6 +14,26 @@ from . import config as C
 
 # Cultural styling configurations for settlement generation
 CULTURAL_PALETTES = {
+    "abyss": {
+        "wall_type": "stone_castle",
+        "wall_color": "#2b2b33",
+        "roof_colors": ["#1b1b22", "#3a2a3f", "#4a2c2a", "#6d597a"],
+        "accent_color": "#9d4edd",
+        "water_color": "#5a1e1e",
+        "ground_color": "#17161c",
+        "tree_color": "#3d405b",
+        "special_buildings": ["ตำหนักยมบาล", "โรงหลอมกระดูก", "ท่าน้ำสุราลืมชาติ", "หอคอยมองบ้านเกิด"],
+    },
+    "ocean": {
+        "wall_type": "moat_and_wood",
+        "wall_color": "#1b6b7a",
+        "roof_colors": ["#00b4d8", "#0077b6", "#48cae4", "#90e0ef"],
+        "accent_color": "#ffd6a5",
+        "water_color": "#023e8a",
+        "ground_color": "#0b2b3a",
+        "tree_color": "#2a9d8f",
+        "special_buildings": ["ท้องพระโรงมังกร", "ตลาดไข่มุกเงือก", "อู่ต่อเรือปะการัง", "หอสังข์เรียกคลื่น"],
+    },
     "siam": {
         "wall_type": "moat_and_wood",
         "wall_color": "#8d6e63",

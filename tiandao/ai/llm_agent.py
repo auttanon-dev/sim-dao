@@ -25,6 +25,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class CompletionTruncated(RuntimeError):
+    """The backend exhausted its output budget before the answer ended."""
+
+
 @dataclass
 class NarrativeMoment:
     """ผลลัพธ์ของ Layer 3 หนึ่งครั้ง — การเก็บอันนี้ไว้ใน CharacterBrain.narrative_moments
@@ -104,6 +108,11 @@ def _strip_think(content: str) -> str:
     (เคสที่ยังเปิด <think> ค้างไว้ไม่ปิด ตัดตั้งแต่แท็กเปิดจนจบข้อความ)"""
     content = _THINK_RE.sub("", content)
     content = _OPEN_THINK_RE.sub("", content)
+    # Some imported Qwen templates prefill <think> in the assistant prompt.
+    # With think=False, content can start inside that block and only include
+    # the closing tag. Never publish the preceding reasoning as fiction.
+    if '</think>' in content:
+        content = content.rsplit('</think>', 1)[1]
     return content.strip()
 
 
@@ -125,6 +134,30 @@ def _unescape_json_string(s: str) -> str:
         return json.loads(f'"{s}"')
     except json.JSONDecodeError:
         return s
+
+
+def loads_lenient(content: str):
+    """แกะ JSON จากคำตอบโมเดลแบบทนพัง — คืน dict/list ที่แกะได้ หรือ None ถ้าหมดทาง
+
+    ลำดับการกู้เหมือน `_parse_response` (ซึ่งเจาะจงสคีมา {"dialogue","thought"}) แต่ตัวนี้ไม่ผูกกับ
+    สคีมาใดเลย: ตัด think block/code fence -> โหลดตรงๆ -> ลบ comma ห้อยท้าย -> คว้าก้อน {...} หรือ
+    [...] ก้อนนอกสุดออกมาโหลดใหม่ (โมเดลชอบพ่นคำอธิบายนำหน้า JSON แม้สั่ง format=json แล้ว)"""
+    content = _strip_code_fence(content)
+    for attempt in (content, re.sub(r",\s*([}\]])", r"\1", content)):
+        try:
+            return json.loads(attempt)
+        except (json.JSONDecodeError, AttributeError):
+            pass
+    for opener, closer in (("{", "}"), ("[", "]")):
+        i, j = content.find(opener), content.rfind(closer)
+        if i >= 0 and j > i:
+            chunk = re.sub(r",\s*([}\]])", r"\1", content[i:j + 1])
+            try:
+                return json.loads(chunk)
+            except (json.JSONDecodeError, AttributeError):
+                pass
+    logger.warning("llm_agent: แกะ JSON ไม่ได้เลย ทิ้งคำตอบนี้: %.160s", content)
+    return None
 
 
 def _parse_response(content: str) -> Dict[str, str]:
@@ -171,13 +204,16 @@ class OllamaAgent:
     """ห่อ HTTP call ไป Ollama local server — sync/blocking โดยตั้งใจ (ดูเหตุผลที่หัวไฟล์)"""
 
     def __init__(self, host: str = ACFG.OLLAMA_HOST, model: str = ACFG.OLLAMA_MODEL,
-                 timeout: float = ACFG.OLLAMA_TIMEOUT) -> None:
+                 timeout: float = ACFG.OLLAMA_TIMEOUT, strict_completion: bool = False) -> None:
         self.host = host
         self.model = model
         self.timeout = timeout
+        self.strict_completion = strict_completion
 
     def _post_chat(self, system: str, user: str, timeout: Optional[float] = None,
-                    num_ctx: Optional[int] = None, response_format: Optional[str] = None) -> Optional[str]:
+                    num_ctx: Optional[int] = None, response_format: Optional[str] = None,
+                    num_predict: Optional[int] = None, model: Optional[str] = None,
+                    temperature: Optional[float] = None) -> Optional[str]:
         """เรียก /api/chat ดิบๆ คืนข้อความ (ยังไม่ parse) หรือ None ถ้าเรียกไม่สำเร็จ — ใช้ร่วมกัน
         ทั้ง chat() (Layer 3 บทพูด/ความคิดสั้นๆ), tiandao/ai/history.py (Phase 6 ร้อยแก้วยาว) และ
         narrative_factory/style_distill.py (Phase K6 วิเคราะห์ตอนนิยายยาว)
@@ -187,7 +223,18 @@ class OllamaAgent:
         โดนตัดเหลือ 4096 อยู่ดี) — เจอบั๊กจริงตอน Phase K6: prompt ยาว ~5,900 token ทำให้
         `deepseek-r1:8b` error `exceed_context_size_error` ตรงๆ ส่วน `qwen2.5vl:7b` ไม่ error แต่ตอบ
         นอกประเด็นสม่ำเสมอ (คาดว่าโดนตัด context เงียบๆ) — ไม่ใส่พารามิเตอร์นี้ (None) คือพฤติกรรมเดิม
-        ทุกประการสำหรับ caller เดิม (Phase 5/6) ที่ prompt สั้นพอไม่เคยชนปัญหานี้"""
+        ทุกประการสำหรับ caller เดิม (Phase 5/6) ที่ prompt สั้นพอไม่เคยชนปัญหานี้
+
+        **`num_predict`**: เพดาน token ที่โมเดลเขียนออกมาได้ — Ollama ดีฟอลต์ไว้ที่ 128 ในโหมด
+        `/api/generate` และไม่จำกัด (-1) ในโหมด `/api/chat` แต่ค่าที่ "ไม่จำกัด" ในทางปฏิบัติจะไปชน
+        `num_ctx` แทน (prompt + คำตอบ ต้องอยู่ในหน้าต่างเดียวกัน) ก่อนหน้านี้ทั้งไฟล์ไม่เคยส่ง
+        พารามิเตอร์นี้เลย — พอ `narrative_factory/writer.py` เริ่มขอฉากยาวแบบมีบทสนทนาเต็ม
+        (บีต Rising เป้าหมายราว 1,600 ตัวอักษรไทย) คำตอบจะถูกตัดกลางประโยคเงียบๆ โดยไม่มี error
+        ให้จับ ต้องขอเพดานตรงๆ พร้อมกับขยาย `num_ctx` ให้พอทั้ง prompt และคำตอบ
+
+        **`model`/`temperature`**: ให้ caller สลับโมเดล/อุณหภูมิเป็นราย pass ได้โดยไม่ต้องสร้าง
+        `OllamaAgent` ใหม่ทุกครั้ง — งานเขียนฉากหนึ่งฉากใช้คนละโมเดลกันสองตัว (ตัวจัดโครง JSON กับ
+        ตัวเขียนร้อยแก้ว) ตามผลวัดใน `config_ai.py`"""
         try:
             import httpx
         except ImportError:
@@ -195,17 +242,20 @@ class OllamaAgent:
                          "หรือปิด config_ai.LLM_ENABLED ไว้ก่อนถ้ายังไม่พร้อม")
             return None
 
-        options = {"temperature": ACFG.OLLAMA_TEMPERATURE}
+        options = {"temperature": ACFG.OLLAMA_TEMPERATURE if temperature is None else temperature}
         if num_ctx is not None:
             options["num_ctx"] = num_ctx
+        if num_predict is not None:
+            options["num_predict"] = num_predict
 
+        model_name = model or self.model
         # โมเดลสาย reasoning ต้องสั่งปิดโหมดคิดก่อน ไม่งั้นจะเสียเวลา (และโควตา token) ไปกับ
         # chain-of-thought ที่เราไม่ได้ใช้ แถม JSON พังและมีภาษาอังกฤษปนออกมา
-        if self.model in ACFG.NO_THINK_MODELS and "/no_think" not in user:
+        if model_name in ACFG.NO_THINK_MODELS and "/no_think" not in user:
             user = f"{user}\n/no_think"
 
         payload = {
-            "model": self.model,
+            "model": model_name,
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -213,6 +263,10 @@ class OllamaAgent:
             "stream": False,
             "options": options,
         }
+        if model_name in ACFG.NO_THINK_MODELS or model_name.removesuffix(':latest') in ACFG.NO_THINK_MODELS:
+            # The API switch is required: /no_think alone still spent 1,349
+            # characters on thinking in the real first-chapter regression.
+            payload['think'] = False
         if response_format is not None:
             # Ollama's structured-output mode (constrains sampling to valid JSON) — cuts down on
             # trailing-comma/truncated output a lot, but not to zero, so _parse_response() still
@@ -228,10 +282,13 @@ class OllamaAgent:
             resp.raise_for_status()
         except httpx.HTTPError:
             logger.warning("llm_agent: เรียก Ollama ไม่สำเร็จ (model=%s, host=%s)",
-                           self.model, self.host, exc_info=True)
+                           model_name, self.host, exc_info=True)
             return None
 
-        return resp.json().get("message", {}).get("content", "")
+        data = resp.json()
+        if self.strict_completion and data.get('done_reason') == 'length':
+            raise CompletionTruncated(f'Ollama ตัดคำตอบของ {model_name} ที่ {num_predict} token ยังไม่บันทึกตอนนี้')
+        return data.get("message", {}).get("content", "")
 
     def chat(self, system: str, user: str) -> Optional[Dict[str, str]]:
         """Layer 3 (Phase 5): ขอผลลัพธ์เป็น JSON {"dialogue","thought"} สั้นๆ"""
@@ -241,10 +298,28 @@ class OllamaAgent:
         return _parse_response(content)
 
     def complete(self, system: str, user: str, timeout: Optional[float] = None,
-                 num_ctx: Optional[int] = None) -> Optional[str]:
-        """Phase 6 (History Generator)/Phase K6 (Style Distillation): ขอร้อยแก้วยาวเป็นข้อความธรรมดา
-        ไม่ใช่ JSON — ใส่ `num_ctx` ถ้า prompt ยาวเกิน 4096 token (ดู docstring `_post_chat`)"""
-        content = self._post_chat(system, user, timeout=timeout, num_ctx=num_ctx)
+                 num_ctx: Optional[int] = None, num_predict: Optional[int] = None,
+                 model: Optional[str] = None, temperature: Optional[float] = None) -> Optional[str]:
+        """Phase 6 (History Generator)/Phase K6 (Style Distillation)/writer.py (ร้อยแก้วต่อบีต):
+        ขอร้อยแก้วยาวเป็นข้อความธรรมดา ไม่ใช่ JSON — ใส่ `num_ctx` ถ้า prompt ยาวเกิน 4096 token
+        และ `num_predict` ถ้าต้องการคำตอบยาวกว่าที่โมเดลจะหยุดเอง (ดู docstring `_post_chat`)"""
+        content = self._post_chat(system, user, timeout=timeout, num_ctx=num_ctx,
+                                  num_predict=num_predict, model=model, temperature=temperature)
         if content is None:
             return None
         return _strip_code_fence(content)
+
+    def complete_json(self, system: str, user: str, timeout: Optional[float] = None,
+                      num_ctx: Optional[int] = None, num_predict: Optional[int] = None,
+                      model: Optional[str] = None, temperature: Optional[float] = None):
+        """ขอคำตอบเป็น JSON ก้อนใดก็ได้ (dict/list) ไม่ผูกกับสคีมา {"dialogue","thought"} ของ
+        `chat()` — `writer.py` ใช้ตัวนี้กับ pass จัดโครงฉากและ pass บทสนทนา ซึ่งคืนโครงสร้างคนละแบบ
+
+        คืน `None` ถ้าเรียกไม่สำเร็จหรือกู้ JSON ไม่ได้เลย — ผู้เรียกต้องมีทางถอยเสมอ (โมเดลจริงพัง
+        JSON เป็นปกติ ดู `_parse_response`)"""
+        content = self._post_chat(system, user, timeout=timeout, num_ctx=num_ctx,
+                                  num_predict=num_predict, model=model,
+                                  temperature=temperature, response_format="json")
+        if content is None:
+            return None
+        return loads_lenient(content)

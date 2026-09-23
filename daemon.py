@@ -24,21 +24,20 @@ if sys.platform == "win32":
         pass
 
 from tiandao import event_log as EL
-from tiandao import metrics as M
 from tiandao import persist as PS
 from tiandao import tuning as TN
+from tiandao import worldloop as WL
 from tiandao.ai import config_ai as ACFG
-from tiandao.sim import Sim
 
 
-def load_or_create(save_path, seed, tiers):
-    try:
-        sim = PS.load_sim(save_path)
-        print(f"[daemon] เดินต่อจาก {save_path} — วันที่ {sim.day} (ปีที่ {sim.day // 365})")
-        return sim
-    except FileNotFoundError:
-        print(f"[daemon] ไม่พบ {save_path} — สร้างโลกใหม่จาก seed {seed}")
-        return Sim(seed=seed, tiers=tiers)
+def load_or_create(cfg):
+    """ห่อ WL.load_or_create ไว้เพื่อให้ยังพิมพ์บรรทัดเดิมออกทางเทอร์มินัลเหมือนก่อน"""
+    sim, created = WL.load_or_create(cfg)
+    if created:
+        print(f"[daemon] ไม่พบ {cfg.save_path} — สร้างโลกใหม่จาก seed {cfg.seed}")
+    else:
+        print(f"[daemon] เดินต่อจาก {cfg.save_path} — วันที่ {sim.day} (ปีที่ {sim.day // 365})")
+    return sim
 
 
 def main():
@@ -70,53 +69,48 @@ def main():
     if a.llm:
         ACFG.LLM_ENABLED = True
 
-    save_dir = os.path.dirname(a.save_path)
-    if save_dir:
-        os.makedirs(save_dir, exist_ok=True)
-    event_log_path = a.event_log_path or EL.default_log_path(a.save_path)
+    # ตรรกะหนึ่งรอบอยู่ใน tiandao/worldloop.py ชุดเดียว ใช้ร่วมกับปุ่ม "เดินโลก" บนหน้าเว็บ
+    # (dashboard.py) — ไฟล์นี้เหลือหน้าที่แค่แปลง argparse เป็น LoopConfig แล้วรายงานผลออกเทอร์มินัล
+    cfg = WL.LoopConfig(
+        save_path=a.save_path, event_log_path=a.event_log_path, seed=a.seed, tiers=a.tiers,
+        chunk_events=a.chunk_events, interval=a.interval, lr=a.lr,
+        autotune=not a.no_autotune, trim_log=not a.no_trim_log,
+        keep_recent_events=a.keep_recent_events,
+        llm=a.llm, llm_drain_budget=a.llm_drain_budget,
+    )
 
     state = TN.load_state()
     if state.get("overrides"):
         TN.apply_overrides(state["overrides"])
 
-    sim = load_or_create(a.save_path, a.seed, a.tiers)
+    sim = load_or_create(cfg)
 
     it = 0
     try:
         while a.iterations <= 0 or it < a.iterations:
             it += 1
-            before_day = sim.day
-            sim.run(a.chunk_events)
+            r = WL.run_round(sim, cfg, state)
 
-            log_note = ""
-            if not a.no_trim_log:
-                flushed = EL.flush_and_trim(sim, event_log_path, a.keep_recent_events)
-                log_note = f" | flush log +{flushed} (world.save เหลือ {len(sim.log)} เหตุการณ์)"
+            log_note = (f" | flush log +{r['log_flushed']} "
+                        f"(world.save เหลือ {r['log_kept']} เหตุการณ์)") if not a.no_trim_log else ""
+            llm_note = (f" | LLM: ประมวลผล {r['llm_drained']} งาน "
+                        f"(ค้าง {r['llm_backlog']})") if a.llm else ""
+            print(f"[daemon] รอบ {it}: วัน {r['day_from']}->{r['day_to']} (ปี {r['year']}) "
+                  f"| มีชีวิต {r['alive']} | advancement={r['advancement_rate']:.3f} "
+                  f"| org_rate={r['org_rate']:.2f}{log_note}{llm_note}")
 
-            PS.save_sim(sim, a.save_path)
-
-            llm_note = ""
-            if a.llm:
-                drained = sim.brain_manager.drain_llm_queue(sim, a.llm_drain_budget)
-                backlog = len(sim.brain_manager.llm_queue)
-                llm_note = f" | LLM: ประมวลผล {drained} งาน (ค้าง {backlog})"
-
-            metrics = M.summarize(sim, a.chunk_events)
-            if not a.no_autotune:
-                overrides = TN.propose_update(state.get("overrides", {}), metrics, learning_rate=a.lr)
-                state["overrides"] = overrides
-                TN.save_state(state)
-
-            print(f"[daemon] รอบ {it}: วัน {before_day}->{sim.day} (ปี {sim.day // 365}) "
-                  f"| มีชีวิต {len(sim.living())} | advancement={metrics['advancement_rate']:.3f} "
-                  f"| org_rate={metrics['org_rate']:.2f}{log_note}{llm_note}")
+            if r.get("exhausted"):
+                raise RuntimeError(
+                    "Simulation scheduler exhausted; the latest state was saved. "
+                    "Inspect the save before restarting the daemon."
+                )
 
             if a.iterations <= 0 or it < a.iterations:
                 time.sleep(max(0.0, a.interval))
     except KeyboardInterrupt:
         print("\n[daemon] ได้รับ Ctrl+C — บันทึกสถานะก่อนออก...")
         if not a.no_trim_log:
-            EL.flush_and_trim(sim, event_log_path, a.keep_recent_events)
+            EL.flush_and_trim(sim, cfg.log_path(), a.keep_recent_events)
         PS.save_sim(sim, a.save_path)
         print(f"[daemon] บันทึกไว้ที่ {a.save_path} แล้ว เดินต่อได้ด้วย python daemon.py (ใช้ไฟล์เดิม) "
               f"— งาน LLM ที่ยังค้างอยู่ในคิว (ถ้ามี) จะถูกบันทึกไว้ด้วย ทำต่อได้ตอน resume")

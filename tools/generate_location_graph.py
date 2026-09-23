@@ -23,6 +23,8 @@ realm_centers = {
     2: (650.0, 320.0),         # สวรรค์นอกชั้นฟ้า (Heaven - Highest Sky)
     "mara": (240.0, -260.0),    # แดนมาร (Mara Realm - South East Abyss)
     "chaos": (520.0, -120.0),   # ที่กบดานเผ่าโกลาหล (Chaos Realm - Void)
+    "abyss": (60.0, -390.0),   # แดนใต้พิภพ / นรก (Underworld - Deep Below)
+    "ocean": (150.0, 120.0),   # แดนวังมังกรใต้สมุทร (Dragon Palace - Eastern Sea)
 }
 
 
@@ -47,7 +49,7 @@ def layout_coords():
                 x = cx + r * math.cos(angle)
                 y = cy + r * math.sin(angle)
                 
-        elif w in ("siam", "fusang", "steppe", "oasis", "bharata"):
+        elif w in ("siam", "fusang", "steppe", "oasis", "bharata", "abyss", "ocean"):
             if ptype == "แดนลับ":
                 angle = (i * 2.4) % (2 * math.pi)
                 r = 70.0 + (grade * 12.0)
@@ -211,6 +213,37 @@ def build_all_edges(coords):
         add_edge(name_to_idx["ริมฝั่งแม่น้ำเจ้าพระยาโบราณ"], mortal_port, "border", True)
         add_edge(name_to_idx["ด่านช่องเขาพรมแดนสยามมนุษย์"], mortal_fort, "border", True)
         add_edge(name_to_idx["ตลาดน้ำรุ่งอรุณ"], mortal_market, "border", True)
+
+    # แดนใต้พิภพ — ลงได้ทางประตูยมโลกเท่านั้น (ทางเดียวเข้า-ออก จึงเป็น gate ไม่ใช่ border)
+    if "ประตูยมโลกบาดาล" in name_to_idx and mortal_market is not None:
+        add_edge(name_to_idx["ประตูยมโลกบาดาล"], mortal_market, "gate", True)
+        if "สุสานมรณะกลืนวิญญาณ" in name_to_idx:
+            add_edge(name_to_idx["ประตูยมโลกบาดาล"], name_to_idx["สุสานมรณะกลืนวิญญาณ"], "gate", True)
+
+    # แดนวังมังกรใต้สมุทร — เข้าทางเมืองท่าและวังวนกลางทะเล
+    if "ประตูวังวนสมุทรลึก" in name_to_idx and mortal_port is not None:
+        add_edge(name_to_idx["ประตูวังวนสมุทรลึก"], mortal_port, "border", True)
+        if "เมืองท่าหอยมุกเจ็ดสี" in name_to_idx:
+            add_edge(name_to_idx["เมืองท่าหอยมุกเจ็ดสี"], mortal_port, "border", True)
+        if "เมืองท่าข้ามสมุทรอาทิตย์อุทัย" in name_to_idx:
+            add_edge(name_to_idx["เมืองท่าหอยมุกเจ็ดสี"],
+                     name_to_idx["เมืองท่าข้ามสมุทรอาทิตย์อุทัย"], "border", True)
+
+    # แดนใต้พิภพ — ลงได้ทางประตูยมโลกเท่านั้น จึงเป็น gate ไม่ใช่ border
+    if "ประตูยมโลกบาดาล" in name_to_idx and mortal_market is not None:
+        add_edge(name_to_idx["ประตูยมโลกบาดาล"], mortal_market, "gate", True)
+        if "สุสานมรณะกลืนวิญญาณ" in name_to_idx:
+            add_edge(name_to_idx["ประตูยมโลกบาดาล"],
+                     name_to_idx["สุสานมรณะกลืนวิญญาณ"], "gate", True)
+
+    # แดนวังมังกรใต้สมุทร — เข้าทางเมืองท่าและวังวนกลางทะเล
+    if "ประตูวังวนสมุทรลึก" in name_to_idx and mortal_port is not None:
+        add_edge(name_to_idx["ประตูวังวนสมุทรลึก"], mortal_port, "border", True)
+        if "เมืองท่าหอยมุกเจ็ดสี" in name_to_idx:
+            add_edge(name_to_idx["เมืองท่าหอยมุกเจ็ดสี"], mortal_port, "border", True)
+        if "เมืองท่าข้ามสมุทรอาทิตย์อุทัย" in name_to_idx:
+            add_edge(name_to_idx["เมืองท่าหอยมุกเจ็ดสี"],
+                     name_to_idx["เมืองท่าข้ามสมุทรอาทิตย์อุทัย"], "border", True)
 
     # Fusang
     if "เมืองท่าข้ามสมุทรอาทิตย์อุทัย" in name_to_idx:

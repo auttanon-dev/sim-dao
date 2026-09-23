@@ -24,8 +24,9 @@ from tiandao import config as C
 
 def test_places_and_gates():
     print("=== 1. Checking Places & Gates ===")
-    assert len(PL.PLACES) == 182, f"Expected 182 places, got {len(PL.PLACES)}"
-    assert len(GEO.COORDS) == 182, f"Expected 182 coords, got {len(GEO.COORDS)}"
+    N_PLACES = len(PL.PLACES)
+    assert N_PLACES >= 182, f"places หายไป: {N_PLACES}"
+    assert len(GEO.COORDS) == N_PLACES, f"coords ไม่ตรงกับ PLACES: {len(GEO.COORDS)} vs {N_PLACES}"
     assert len(GEO.EDGES) >= 300, f"Expected >=300 edges, got {len(GEO.EDGES)}"
 
     # Check that each realm has places
@@ -94,18 +95,18 @@ def test_terrain_engine():
     mesh = TERRAIN.generate_terrain_mesh(grid_size=20)
     assert len(mesh["grid"]) == 20
     assert len(mesh["rivers"]) == 3
-    assert len(mesh["realms"]) == 10
+    assert len(mesh["realms"]) >= 10
     print(f"  ✓ Terrain mesh generated: {mesh['grid_size']}x{mesh['grid_size']} cells, {len(mesh['rivers'])} major rivers, {len(mesh['realms'])} realms")
 
     places_3d = TERRAIN.get_all_places_data()
-    assert len(places_3d) == 182
+    assert len(places_3d) == len(PL.PLACES)
     print(f"  ✓ 3D places data generated: {len(places_3d)} places with biomes, 3D Z coords")
 
 
 def test_full_sim_run():
     print("\n=== 5. Checking Simulation Initializing & Step ===")
     sim = S.Sim(seed=123, tiers=3)
-    assert len(sim.worlds) == 10, f"Expected 10 worlds in sim, got {len(sim.worlds)}"
+    assert len(sim.worlds) >= 10, f"worlds หายไป: {len(sim.worlds)}"
     assert len(sim.cast) >= 1000, f"Expected >=1000 cast members, got {len(sim.cast)}"
     print(f"  ✓ Sim initialized cleanly with {len(sim.worlds)} worlds and {len(sim.cast)} characters")
     

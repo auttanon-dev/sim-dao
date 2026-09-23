@@ -20,9 +20,49 @@
 </style>
 </head>
 <body>
+<a href="/jianghu" style="display:inline-block;padding:.7rem 1.2rem;border:1px solid #c3a664;background:#203b35;color:#f2dfb4;text-decoration:none;">ท่องยุทธจักร · มุมมองพิกเซล →</a>
+{% macro world_panel(world, save_path) %}
+  <div class="card" id="worldctl" style="margin-bottom:1rem; border-color:{% if world.state == 'running' %}#52b788{% else %}#3a342a{% endif %};">
+    <h3 style="color:{% if world.state == 'running' %}#52b788{% else %}#d4af37{% endif %};">
+      ⏱️ เดินโลกต่อเนื่อง —
+      {% if world.state == 'running' %}กำลังเดิน (รอบที่ {{ world.iterations }})
+      {% elif world.state == 'stopping' %}กำลังหยุด…
+      {% elif world.state == 'error' %}ผิดพลาด
+      {% else %}หยุดอยู่{% endif %}
+    </h3>
+    {% if world.last %}
+    <p style="margin:.2rem 0 .6rem; font-size:.86rem; color:#8a8272;">
+      รอบล่าสุด: วัน {{ world.last.day_from }}→{{ world.last.day_to }} (ปีที่ {{ world.last.year }})
+      · มีชีวิต {{ world.last.alive }} · {{ world.last.events_run }} เหตุการณ์ใน {{ world.last.seconds }} วินาที
+      · เซฟแล้ว{% if world.last.log_flushed %} · flush log +{{ world.last.log_flushed }}{% endif %}
+    </p>
+    {% else %}
+    <p style="margin:.2rem 0 .6rem; font-size:.86rem; color:#8a8272;">
+      กดเริ่มแล้วโลกจะเดินไปเรื่อยๆ เอง เซฟลง {{ save_path }} ทุกรอบ — เหมือน <code>python daemon.py</code>
+      แต่ไม่ต้องเปิดเทอร์มินัลอีกหน้าต่าง (ใช้ตรรกะรอบเดียวกันจริงๆ ไม่ใช่โค้ดคนละชุด)
+    </p>
+    {% endif %}
+    {% if world.error %}<p style="color:#e76f51; font-size:.84rem;">⚠ {{ world.error }}</p>{% endif %}
+    <div style="display:flex; gap:.6rem; align-items:flex-end; flex-wrap:wrap;">
+      <div><label style="display:block; color:#8a8272; font-size:.75rem;">เหตุการณ์ต่อรอบ</label>
+        <input id="wChunk" type="number" value="{{ world.chunk_events or 20000 }}" step="1000"
+               style="width:120px; background:#12100e; color:#e8dcc4; border:1px solid #3a342a; border-radius:5px; padding:.35rem .5rem;"></div>
+      <div><label style="display:block; color:#8a8272; font-size:.75rem;">พักระหว่างรอบ (วินาที)</label>
+        <input id="wInterval" type="number" value="{{ world.interval or 5 }}" step="1"
+               style="width:100px; background:#12100e; color:#e8dcc4; border:1px solid #3a342a; border-radius:5px; padding:.35rem .5rem;"></div>
+      <label style="color:#8a8272; font-size:.8rem; padding-bottom:.45rem;">
+        <input id="wLLM" type="checkbox"> เปิด Layer 3 (Ollama) ระหว่างเดิน</label>
+      <button id="wStart" style="background:#52b788; color:#08090c; border:0; border-radius:5px; padding:.45rem 1rem; font-weight:bold; cursor:pointer;">เริ่มเดินโลก</button>
+      <button id="wStop" style="background:transparent; color:#e76f51; border:1px solid #e76f51; border-radius:5px; padding:.45rem 1rem; font-weight:bold; cursor:pointer;">หยุด</button>
+    </div>
+  </div>
+
+{% endmacro %}
 {% if snap %}
   <h1>โลกเทียนเต้า</h1>
   <p class="sub">วันที่ {{ snap.day }} · ปีที่ {{ snap.years }} · {{ snap.season }} (regen x{{ "%.2f"|format(snap.regen_mult) }}) · ไฟล์: {{ save_path }}</p>
+
+  {{ world_panel(world, save_path) }}
 
   <div class="grid">
     <div class="card"><h3>ประชากรทั้งหมด</h3><div class="stat">{{ snap.population }}</div></div>
@@ -39,6 +79,10 @@
     <div class="card" style="background: linear-gradient(135deg, #1e3a2f 0%, #13241b 100%); border-color: #52b788;">
       <h3 style="color:#52b788;">🏘️ ผังเมืองและหมู่บ้านเสมือนจริง (Watabou)</h3>
       <a href="/settlement/0" style="display:inline-block; margin-top:0.4rem; padding:0.4rem 0.9rem; background:#52b788; color:#08090c; font-weight:bold; border-radius:6px; text-decoration:none;">เปิดชมผังเมือง & ชุมชน NPC →</a>
+    </div>
+    <div class="card" style="background: linear-gradient(135deg, #2a2338 0%, #16121f 100%); border-color: #b388eb;">
+      <h3 style="color:#b388eb;">✍️ โรงเขียนนิยาย (Novel Studio)</h3>
+      <a href="/novel" style="display:inline-block; margin-top:0.4rem; padding:0.4rem 0.9rem; background:#b388eb; color:#12100e; font-weight:bold; border-radius:6px; text-decoration:none;">เลือกตัวเอก แล้วสั่งเขียนเลย →</a>
     </div>
     <div class="card" style="background: linear-gradient(135deg, #3d131a 0%, #1f0b0f 100%); border-color: #e63946;">
       <h3 style="color:#e63946;">⚔️ ลานประลองยุทธ์ (Combat Arena)</h3>
@@ -66,8 +110,9 @@
   </table>
 {% else %}
   <h1>โลกเทียนเต้า</h1>
-  <p class="empty">ยังไม่พบไฟล์ {{ save_path }} — รัน <code>python run.py --save</code> หรือ
-     <code>python daemon.py</code> ก่อนเพื่อสร้างโลก แล้วรีเฟรชหน้านี้ใหม่</p>
+  <p class="empty">ยังไม่พบไฟล์ {{ save_path }} — กดปุ่ม "เริ่มเดินโลก" ด้านล่างได้เลย
+     (หรือรัน <code>python run.py --save</code> / <code>python daemon.py</code> ในเทอร์มินัลก็ได้เหมือนกัน)</p>
+  {{ world_panel(world, save_path) }}
 {% endif %}
 
   <h2>ตำนานที่สะสมมา</h2>
@@ -81,5 +126,22 @@
   {% else %}
   <p class="empty">ยังไม่มีตำนานถูกบันทึกไว้</p>
   {% endif %}
+<script>
+  // ปุ่มสั่งเดิน/หยุดโลก — หน้านี้รีเฟรชเองทุก 5 วินาทีอยู่แล้ว สถานะจึงสดโดยไม่ต้อง poll เพิ่ม
+  async function wpost(url, body){
+    const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"},
+                               body: body ? JSON.stringify(body) : "{}"});
+    if(!r.ok){ alert((await r.json()).detail || r.statusText); return; }
+    setTimeout(() => location.reload(), 400);
+  }
+  const ws = document.getElementById("wStart");
+  if (ws) ws.onclick = () => wpost("/api/world/start", {
+    chunk_events: +document.getElementById("wChunk").value || 20000,
+    interval: +document.getElementById("wInterval").value || 5,
+    llm: document.getElementById("wLLM").checked,
+  });
+  const wt = document.getElementById("wStop");
+  if (wt) wt.onclick = () => wpost("/api/world/stop");
+</script>
 </body>
 </html>
