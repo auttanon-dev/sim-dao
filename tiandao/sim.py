@@ -966,8 +966,8 @@ class Sim:
         baby.fate = min(C.FATE_MAX, baby.fate + C.REBIRTH_FATE_BONUS)
         seed = next((s[0] for s in SK.SKILLS
                      if s[1] == self.CYCLE_LINE and s[3] == 0), None)
-        if seed and seed not in baby.skills:
-            baby.skills.append(seed)
+        if seed:
+            baby.learn_skill(seed)
         self.emit(dest, "จุติคืนสังสารวัฏ", baby, None, ["ความตาย"], "เกิดใหม่",
                   f"ดวงจิตของ{ch.name}ไม่สลายไปกับร่าง หวนคืนสู่วงเวียนเกิดดับ "
                   f"แล้วจุติใหม่ที่{dest.name}ในนาม{baby.name}", 0,
@@ -987,7 +987,9 @@ class Sim:
         old = [n for n in getattr(ch, "past_skills", []) if n not in ch.skills]
         keep = int(len(old) * C.REBIRTH_SKILL_KEEP)
         got = self.rng.sample(old, keep) if keep else []
-        ch.skills.extend(got)
+        for _name in got:
+            # วิชาที่ระลึกได้คือวิชาที่เคยฝึกมาทั้งชาติก่อน ไม่ใช่ของที่เพิ่งเห็นครั้งแรก
+            ch.learn_skill(_name)
         prev_dao = ch.dao
         if getattr(ch, "past_dao", None):
             ch.dao = ch.past_dao
@@ -4002,10 +4004,7 @@ class Sim:
             # ในเชิงเรื่อง การเข้าถึงวิชาชั้นสูงคือการเข้าถึง "ทาง" — ต้องได้ทั้งความเข้าใจและกาย
             a.insight += C.TRAIN_INSIGHT_BASE + C.TRAIN_INSIGHT_PER_GRADE * grade
             a.refine += C.TRAIN_REFINE * (1.0 + 0.5 * grade)
-            a.skills.append(sk[0])
-            if not isinstance(getattr(a, "mastery", None), dict):
-                a.mastery = {}
-            a.mastery[sk[0]] = 1        # เรียนจบครั้งแรก = ฝึกไปแล้วหนึ่งครั้ง
+            a.learn_skill(sk[0])        # เรียนจบครั้งแรก = ฝึกไปแล้วหนึ่งครั้ง
             d["วิชา"] = f"{SK.GRADE_NAME[sk[3]]} · สาย{sk[1]} — {sk[4]}"
             d["ทาง"] = f"{PATHS.skill_path(sk[0])}บำเพ็ญ · ตอนนี้เป็น{PATHS.path_of(a)}"
             d["ที่ฝึก"] = self.place_name(a)
@@ -4297,8 +4296,11 @@ class Sim:
                 got.append(frag["piece"])
                 need = C.FRAGMENTS_PER_SKILL
                 if len(got) >= need and frag["skill"] not in a.skills:
-                    a.skills.append(frag["skill"])
-                    sk = SK.SKILL_INDEX.get(frag["skill"])
+                    a.learn_skill(frag["skill"])
+                    # ดัชนีวิชาอยู่ใน rules ไม่ใช่ skills — SK.SKILL_INDEX ไม่เคยมีอยู่จริง
+                    # กิ่งนี้จึงโยน AttributeError ล้มทั้งซิมทุกครั้งที่มีคนต่อเศษวิชาครบ
+                    # (หายากมากจนไม่เคยโผล่ในเทสต์: FRAGMENT_FIND_P = 0.03 ต่อชิ้น คูณสี่ชิ้น)
+                    sk = R.SKILL_INDEX.get(frag["skill"])
                     d["ต่อวิชาสำเร็จ"] = f"ต่อชิ้นส่วนครบ {need}/{need} — ได้วิชา「{frag['skill']}」ขั้นสูงสุดทันที"
                     if sk:
                         d["วิชา"] = f"{SK.GRADE_NAME[sk[3]]} · สาย{sk[1]} — {sk[4]}"
@@ -4884,9 +4886,8 @@ class Sim:
                 t.insight += C.TRAIN_FAIL_INSIGHT
                 d["ที่ผู้รับได้"] = "ยังรับไม่ไหว ได้แต่เค้าโครง"
                 return "รับไม่ไหว", f"{a.name}ถ่ายทอด{name}ให้{t.name} แต่{t.name}ยังรับไม่ไหว", d
-            t.skills.append(name)
             # ได้รูปมา แต่ยังไม่ได้ความลึกของอาจารย์ — ต้องไปฝึกเอง (ดู physics.practice_mastery)
-            t.mastery[name] = 1
+            t.learn_skill(name)
             t.insight += C.TRAIN_INSIGHT_BASE * C.TEACH_INSIGHT_SHARE
             a.merit = getattr(a, "merit", 0.0) + 1.0
             d["ที่ผู้รับได้"] = f"ได้วิชา「{name}」ไปทั้งอัน แต่ยังตื้น ต้องไปฝึกเอง"
@@ -4926,8 +4927,7 @@ class Sim:
                 gain.append(f"{cash} เหรียญ")
             if t.skills and (not a.skills or len(a.skills) < len(t.skills)):
                 sk = t.skills[-1]
-                if sk not in a.skills:
-                    a.skills.append(sk)
+                if a.learn_skill(sk):
                     gain.append(f"วิชา{sk}")
             if a.org is not None and a.org == t.org and a.org < len(self.orgs):
                 org = self.orgs[a.org]

@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
-"""ตรวจ 108 แดนเซียนสาขา และต้นไม้โลกในแดนลับต้นกำเนิด
+"""ตรวจแดนเซียนสาขา และต้นไม้โลกในแดนลับต้นกำเนิด
 
 หลักเดียวกับเทสต์อื่นในโปรเจกต์นี้: วัดว่ามัน "เกิดขึ้นจริงในซิม" ไม่ใช่แค่ "มีโค้ดเขียนไว้"
+
+จำนวนแดนสาขาเป็นของที่โตได้ ไม่ใช่ค่าคงที่ — สเปกปัจจุบันคือ **เริ่มที่ C.BRANCH_REALMS แดน
+แล้วปล่อยให้โลกตั้งเพิ่มเอง** เมื่อมีผู้รอดจากแดนลับต้นกำเนิดไปตั้งสำนักของตัวเอง โดยมีเพดาน
+รวมที่ C.TREE_BRANCH_CAP และมีชื่อในคลังให้ใช้ 108 ชื่อ (ดู branches.build)
+
+ไฟล์นี้เคยเขียนหัวข้อและข้อความสรุปว่า "108 แดน" ทั้งที่ assertion ตรวจแค่ C.BRANCH_REALMS
+(36) และรันจริงได้ราว 42 แดน แล้วพิมพ์ว่าผ่าน — เป็นการรายงานเกินกว่าที่ตรวจจริง
 """
 import contextlib
 import io
 
+from tiandao import branches as BR
 from tiandao import config as C
 from tiandao import sim as S
 from tiandao import worldtree as WT
@@ -24,14 +32,21 @@ def run():
 
 
 def test_branches_exist(sim):
-    print("\n=== 1. แดนเซียนสาขาต้องมีจริง 108 แดน และไม่ใช่ชื่อลอยๆ ===")
+    print(f"\n=== 1. แดนเซียนสาขาต้องมีจริง (เริ่ม {C.BRANCH_REALMS} แดน แล้วงอกเพิ่มเอง) ===")
     br = [w for w in sim.worlds if getattr(w, "skill_line", None)]
-    assert len(br) >= C.BRANCH_REALMS, f"มีสาขาแค่ {len(br)} แดน"
+    # แยกสามเรื่องออกจากกันให้ชัด: จำนวนที่หว่านไว้ตั้งแต่ต้น · ที่โลกตั้งเพิ่มเอง · เพดานรวม
+    seeded = len(br) - sim.tree_founded
+    print(f"  หว่านไว้ตั้งต้น {seeded} แดน | โลกตั้งเพิ่มเองระหว่างซิม {sim.tree_founded} แดน "
+          f"| รวม {len(br)} แดน (เพดาน {C.TREE_BRANCH_CAP} โลก · คลังชื่อ {len(BR.build())} ชื่อ)")
+    assert seeded == C.BRANCH_REALMS, f"หว่านตั้งต้นได้ {seeded} แดน ไม่ตรงกับที่ตั้งค่าไว้"
+    assert sim.tree_founded > 0, "ไม่มีใครตั้งแดนสาขาใหม่เลย — จำนวนแดนไม่ได้โตแบบ dynamic จริง"
+    assert len(sim.worlds) <= C.TREE_BRANCH_CAP, "จำนวนโลกทะลุเพดานที่ตั้งไว้"
+    assert C.BRANCH_REALMS <= len(BR.build()), "หว่านตั้งต้นมากกว่าชื่อที่มีในคลัง"
     names = [w.name for w in br]
     assert len(set(names)) == len(names), "มีชื่อแดนซ้ำกัน"
     pops = [w.n_alive for w in br]
     alive_realms = sum(1 for p in pops if p > 0)
-    print(f"  {len(br)} สาขา | มีประชากรอยู่จริง {alive_realms} แดน "
+    print(f"  มีประชากรอยู่จริง {alive_realms} จาก {len(br)} แดน "
           f"| รวม {sum(pops):,} คน | เฉลี่ย {sum(pops)//len(br)} คน/แดน")
     assert alive_realms >= C.BRANCH_REALMS * 0.8, "สาขาส่วนใหญ่ร้างคน"
     lines = {w.skill_line for w in br}
@@ -219,7 +234,7 @@ def test_tree_scales_with_realms(sim):
 
 
 def main():
-    print(f"รันซิม {STEPS:,} เหตุการณ์ (โลก {12 + C.BRANCH_REALMS} แดน)...")
+    print(f"รันซิม {STEPS:,} เหตุการณ์ (เริ่มที่ {12 + C.BRANCH_REALMS} แดน)...")
     sim = run()
     print(f"  ถึงปีที่ {sim.day//365} | {len(sim.log):,} เหตุการณ์ "
           f"| มีชีวิต {len(sim.alive_cids):,} | แดนทั้งหมด {len(sim.worlds)}")
@@ -230,7 +245,8 @@ def main():
     test_portals(sim)
     test_tree_scales_with_realms(sim)
     test_tree_death_breaks_balance(sim)
-    print("\n✓ 108 แดนเซียนสาขา ต้นไม้โลก และประตูมิติ ทำงานจริงครบทุกข้อ")
+    print(f"\n✓ แดนเซียนสาขา ({C.BRANCH_REALMS} ตั้งต้น + {sim.tree_founded} ที่โลกตั้งเอง) "
+          f"ต้นไม้โลก และประตูมิติ ทำงานจริงครบทุกข้อ")
 
 
 if __name__ == "__main__":

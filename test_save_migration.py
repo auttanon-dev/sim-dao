@@ -136,9 +136,15 @@ class TestACurrentSaveIsNotTreatedAsOld(unittest.TestCase):
                          list(c.skills), c.birth_wid)
                  for c in loaded.cast}
         self.assertEqual(after, before)
-        # ต้องมีคนที่ "มีวิชาแต่ยังไม่มี mastery" อยู่จริงในโลกที่กำลังเดิน ไม่งั้นเทสต์นี้ว่างเปล่า
-        gaps = [c for c in sim.cast if c.skills and any(n not in c.mastery for n in c.skills)]
-        self.assertTrue(gaps, "โลกที่เดินอยู่ต้องมีเคสที่เกณฑ์เดิมเข้าใจผิดว่าเป็นเซฟเก่า")
+        # ต้องมีค่าที่ "ว่างอยู่จริงในโลกที่กำลังเดิน" อยู่บ้าง ไม่งั้นเทสต์นี้ว่างเปล่า — พิสูจน์
+        # ไม่ได้ว่าเกณฑ์เดิม (ตัดสินจากค่า) จะเข้าใจผิดว่าเซฟปัจจุบันเป็นเซฟเก่า
+        # เดิมใช้ "มีวิชาแต่ไม่มี mastery" เป็นตัวยึด แต่ตอนนี้กติกาห้ามมีเคสนั้นแล้ว
+        # (ดู Character.learn_skill และ test_skill_mastery.py) จึงย้ายมายึด bloodline_affinity
+        # ซึ่งยังว่างได้จริงเมื่อสายเลือดถูกเพิ่มเข้ามาทีหลัง — เป็นเกณฑ์ค่าอีกตัวที่ migration ใช้
+        blanks = [c for c in sim.cast
+                  if any(share > 0.0 and line not in c.bloodline_affinity
+                         for line, share in c.blood.items())]
+        self.assertTrue(blanks, "โลกที่เดินอยู่ต้องมีเคสที่เกณฑ์เดิมเข้าใจผิดว่าเป็นเซฟเก่า")
 
     def test_an_old_save_still_gets_migrated(self):
         """กันไม่ให้ 'แก้ให้เซฟใหม่ไม่ถูกแตะ' กลายเป็น 'ปิด migration ทิ้งทั้งระบบ'"""
@@ -157,6 +163,20 @@ class TestAFreshWorldIsUnaffected(unittest.TestCase):
         self.assertTrue(blank, "โลกใหม่ต้องยังมีคนที่ยังไม่มีวิชา")
         for ch in blank:
             self.assertEqual(ch.mastery, {}, "ไม่มีวิชา ก็ต้องไม่มีความชำนาญ")
+
+    def test_a_fresh_world_has_no_gap_for_the_migration_to_fill(self):
+        """โลกที่เดินด้วยโค้ดปัจจุบันต้องไม่มีช่องว่างที่ migration ของเซฟเก่าตั้งใจมาซ่อม
+
+        นี่คือฝั่งตรงข้ามของ TestAnOldSaveCanTeachWhatItKnows: เซฟเก่าต้องถูกซ่อม
+        ส่วนโลกใหม่ต้องไม่เคยเสียตั้งแต่แรก ถ้าข้อนี้แพ้ แปลว่ามีทางแจกวิชาทางใหม่ที่ลืม
+        ตั้งความชำนาญอีกแล้ว (ดู Character.learn_skill)
+        """
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 4000)
+        holders = [c for c in sim.cast if c.skills]
+        self.assertGreater(len(holders), 20, "ต้องมีคนถือวิชามากพอจะวัดได้")
+        hollow = [(c.name, n) for c in sim.cast for n in c.skills if c.mastery.get(n, 0) < 1]
+        self.assertEqual(hollow, [], "โลกใหม่ต้องไม่มีใครถือวิชาที่ฝึกมาศูนย์ครั้ง")
 
 
 if __name__ == "__main__":

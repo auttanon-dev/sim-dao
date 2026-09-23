@@ -86,7 +86,7 @@ def _gift_for(sim, world, rng):
         pool = [x for x in SK.by_tier_grade(min(world.tier + 1, 2), 2) if x[0] not in who.skills]
         if pool:
             sk = rng.choice(pool)
-            who.skills.append(sk[0])
+            who.learn_skill(sk[0])
             return who, f"วิชาหายาก {sk[0]}"
         return None
     iid = sim.nid("i")
