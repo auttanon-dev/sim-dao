@@ -68,21 +68,27 @@ def resolve_combat(attacker, defender, world, sim):
         winner, loser = defender, attacker
         log_parts.append(f"   💥 [{defender.name}] พลิกสถานการณ์กลับมาเอาชนะได้!")
         
-    # Looting logic
-    if getattr(loser, "items", []):
+    # ยันต์หนีตาย — ต้องตรวจ **ก่อน** ริบของ เพราะคนที่หนีทันย่อมพาของติดตัวไปด้วย
+    # บั๊กเดิมสองชั้นที่ทับกันจนกลไกนี้ไม่เคยทำงานเลยสักครั้ง (escaped เป็น False เสมอ):
+    #   1. ริบของ (loser.items = []) อยู่ก่อนลูปนี้ ลูปจึงวนบนรายการว่างทุกครั้ง
+    #   2. เทียบ kind กับ "ยันต์วิเศษ (ใช้แล้วทิ้ง)" ซึ่งเป็น **ชื่อหมวดใน config**
+    #      ไม่ใช่ kind ของไอเท็มจริงที่ sim.stash_relic สร้าง (C.TALISMAN_KIND)
+    # เฉพาะยันต์เคลื่อนย้ายเท่านั้นที่หนีได้ อีกสองใบในหมวดเดียวกัน config ระบุผลไว้คนละอย่าง
+    # และยังไม่มีกลไกรองรับ จึงตั้งใจไม่ผูกเข้ากับการหนี
+    escaped = False
+    for iid in list(getattr(loser, "items", [])):
+        it = sim.items.get(iid)
+        if it is not None and it.kind == C.TALISMAN_KIND and it.name == C.TALISMAN_ESCAPE:
+            loser.items.remove(iid)
+            del sim.items[iid]
+            log_parts.append(f"   🚨 [หนีตาย] [{loser.name}] ใช้ {it.name} หลบหนีความตายไปได้ฉิวเฉียด!")
+            escaped = True
+            break
+
+    # ริบสมบัติ — เฉพาะเมื่อผู้แพ้หนีไม่ทัน
+    if not escaped and getattr(loser, "items", []):
         winner.items.extend(loser.items)
         loser.items = []
         log_parts.append(f"   💰 [{winner.name}] ริบสมบัติทั้งหมดของผู้แพ้!")
-    
-    # Talisman Escape Check
-    escaped = False
-    for iid in getattr(loser, "items", []):
-        if iid in sim.items and sim.items[iid].kind == "ยันต์วิเศษ (ใช้แล้วทิ้ง)":
-            talisman = sim.items[iid]
-            loser.items.remove(iid)
-            del sim.items[iid]
-            log_parts.append(f"   🚨 [หนีตาย] [{loser.name}] ใช้ {talisman.name} หลบหนีความตายไปได้ฉิวเฉียด!")
-            escaped = True
-            break
             
     return winner, loser, "\n".join(log_parts), escaped

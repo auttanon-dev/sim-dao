@@ -96,6 +96,23 @@ class LearnSkillTests(unittest.TestCase):
         ch.learn_skill("วิชาหนึ่ง", reps=1)
         self.assertEqual(ch.mastery["วิชาหนึ่ง"], 3)
 
+    def test_a_zero_or_negative_floor_cannot_break_the_invariant(self):
+        """reps=0 เคยต่อชื่อวิชาเข้ามือโดยไม่สร้างความชำนาญ — สร้างสภาพเดียวกับบั๊กที่
+        เมธอดนี้มีไว้กำจัดพอดี invariant ต้องไม่ขึ้นกับความระวังของผู้เรียก
+        """
+        for reps in (0, -5):
+            ch = person()
+            ch.learn_skill("วิชาหนึ่ง", reps=reps)
+            self.assertEqual(ch.mastery.get("วิชาหนึ่ง", 0), 1, f"reps={reps}")
+            self.assertEqual([n for n in ch.skills if ch.mastery.get(n, 0) < 1], [])
+
+    def test_a_zero_floor_still_does_not_erase_earned_depth(self):
+        ch = person()
+        ch.learn_skill("วิชาหนึ่ง")
+        ch.mastery["วิชาหนึ่ง"] = 40
+        ch.learn_skill("วิชาหนึ่ง", reps=0)
+        self.assertEqual(ch.mastery["วิชาหนึ่ง"], 40)
+
     def test_a_missing_mastery_table_is_rebuilt_not_crashed_into(self):
         """ตัวละครจากเซฟเก่าที่ mastery ไม่ใช่ dict ต้องรับวิชาใหม่ได้โดยไม่ระเบิด"""
         ch = person()

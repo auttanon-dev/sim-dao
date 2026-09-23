@@ -152,8 +152,12 @@ class Character:
     # หุ่นเชิด — นับเป็นจำนวนตน ไม่ใช่ตัวละครเต็ม (ดู sim.build_puppet / sim.raise_corpse)
     puppets: int = 0
     puppet_kind: str = ""        # 'หุ่นกล' หรือ 'เชิดศพ'
-    hp: float = 100.0
-    max_hp: float = 100.0
+    # ประกาศซ้ำสองที่ในคลาสเดียวกันมาก่อน (ที่นี่เป็น float และอีกครั้งใต้ spouse เป็น int)
+    # Python เก็บอันหลัง ค่าที่มีผลจริงจึงเป็น int=100 ส่วนอันนี้เป็น annotation ที่ตายแล้ว
+    # แต่ยังทำให้คนอ่านเข้าใจว่า hp เป็นทศนิยม — ยุบเหลือที่เดียว คงตำแหน่ง/ชนิด/ค่าเดิมทุกอย่าง
+    # (ค่าที่ถูกเขียนตอนรันเป็นทศนิยมได้จริง ไพธอนไม่บังคับชนิดตาม annotation)
+    hp: int = 100
+    max_hp: int = 100
     loyalty: int = 50
     ambition: int = 50
 
@@ -256,6 +260,10 @@ class Character:
     # วันที่หายเข้าไปในแดนลับของตัวเอง (จาก "ซ่อนตัว") — ใช้บอกตอนออกมาว่าหายไปกี่ปี
     # และใช้เทียบว่าขั้นพลังไม่ขยับเลยระหว่างนั้น (ดู R.in_secret_realm)
     hide_day: int = 0
+    # seed ของโลกตอนที่เขาเกิด — ใช้สร้างร่างกายทั้งก้อนใหม่ได้เสมอ (ดู tiandao/body/)
+    # เก็บแค่ตัวเลขเดียว ไม่เก็บโครงกระดูก/กล้ามเนื้อลงเซฟ เพราะคำนวณกลับมาได้ทั้งหมด
+    # ตัวละครจากเซฟเก่าได้ 0 ซึ่งยังคงที่และเดินซ้ำได้ เพียงแต่เป็นคนละร่างกับโลก seed อื่น
+    body_seed: int = 0
     # ธาตุประจำตัวจากห้าธาตุ (ดู tiandao/elements.py) — สืบจากพ่อแม่เป็นหลัก
     # ใช้ตัดสินว่าวิชาไหน "ถูกกับตัวเขา" และการปะทะธาตุไหนได้เปรียบเสียเปรียบ
     element: str = ""
@@ -290,8 +298,6 @@ class Character:
     merit: float = 0.0
     karma: float = 0.0
     spouse: Optional[int] = None
-    hp: int = 100
-    max_hp: int = 100
     inventory: dict = field(default_factory=lambda: {"อาวุธ": None, "ยาสมานแผล": 0})
     companions: dict = field(default_factory=dict)
     nemeses: dict = field(default_factory=dict)
@@ -361,8 +367,12 @@ class Character:
 
         `reps` คือจำนวนครั้งขั้นต่ำที่ถือว่าฝึกมาแล้ว — **ยกขึ้นเท่านั้น ไม่เคยลด** คนที่ฝึกวิชา
         เดิมมา 40 ครั้งแล้วได้วิชาเดียวกันซ้ำจากอีกทางหนึ่ง ต้องไม่ถูกรีเซ็ตกลับเป็น 1
+        และหนีบพื้นไว้ที่ 1 เสมอ: reps=0 จะต่อชื่อวิชาเข้ามือโดยไม่มีความชำนาญ ซึ่งสร้าง
+        สภาพเดียวกับบั๊กที่เมธอดนี้มีไว้เพื่อกำจัดพอดี — ผู้เรียกในโค้ดยังใช้ค่าปริยายทั้งหมด
+        แต่ invariant ต้องไม่ขึ้นกับความระวังของผู้เรียก
         ไม่แตะ RNG เลย โลกจึงเดินซ้ำได้เหมือนเดิม
         """
+        reps = max(1, int(reps))
         mast = self.__dict__.get("mastery")
         if not isinstance(mast, dict):
             mast = {}
@@ -456,6 +466,7 @@ class Character:
         self.__dict__.setdefault("fate_kept", 0)
         self.__dict__.setdefault("seclude_until", 0)
         self.__dict__.setdefault("hide_day", 0)
+        self.__dict__.setdefault("body_seed", 0)
         self.__dict__.setdefault("element", "")
         self.__dict__.setdefault("mastery", {})
         self.__dict__.setdefault("elo", 1500.0)

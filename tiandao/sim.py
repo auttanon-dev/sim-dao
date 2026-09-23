@@ -557,6 +557,7 @@ class Sim:
             fate=rng.randint(C.FATE_MIN, C.FATE_MAX), origin=origin,
             gender=gender, fear=fear, greed=greed, compassion=compassion,
             ambition=ambition, loyalty=loyalty,
+            body_seed=self.seed,        # ร่างกายสร้างกลับมาได้จาก (seed, cid) — ดู tiandao/body/
             # เผ่าวิญญาณศักดิ์สิทธิ์: เดิม `is_spirit` ไม่เคยถูกตั้งเป็น True ที่ไหนเลยทั้งโปรเจกต์
             # สายเลือดวิญญาณมีอยู่จริง (วัดจริง 51 คนเลือดบริสุทธิ์ จาก 1,253 คน) แต่ "เผ่า" ในเชิง
             # พฤติกรรมไม่เคยมีอยู่ — บล็อกบัญชาสวรรค์ที่เขียนไว้จึงไม่เคยทำงานสักครั้ง
@@ -1037,7 +1038,7 @@ class Sim:
         if not cats:
             return None
         cat, names = rng.choice(cats)
-        kind = "ยันต์วิเศษ" if cat.startswith("ยันต์") else "คัมภีร์"
+        kind = C.TALISMAN_KIND if cat.startswith("ยันต์") else "คัมภีร์"
         it = self.make_item(kind, min(ch.tier, 2), 1.0 + 0.5 * ch.realm / 9.0, maker=ch.cid)
         it.name = rng.choice(names).split(" (")[0]
         return it

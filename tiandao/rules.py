@@ -6,6 +6,7 @@ import random
 from . import config as C
 from . import physics as PHYS
 from . import elements as EL
+from . import body as BODY
 from .models import Character, World
 from .skills import GRADE_POWER, ANTI_CHAOS_CUT, SKILLS
 
@@ -144,6 +145,10 @@ def power(ch: Character, world: World, items=None, day: int = None) -> float:
             p += C.PATH_BALANCE_BONUS
         # พรมีผลเฉพาะตราบที่ยังมีผู้สูงสุดในสายเลือดนั้นอยู่ Sim จะคำนวณค่าใหม่ทันทีเมื่อเกิด/ตาย
         p *= 1.0 + getattr(ch, "bloodline_buff", 0.0)
+        # ร่างกายจริงมีผลกับพลัง แต่เป็น **หนึ่งปัจจัย** ไม่ใช่ตัวตัดสิน — โลกนี้พลังส่วนใหญ่
+        # มาจากขั้น วิชา ธาตุ และปราณ ดัชนีอยู่รอบ 1.0 และถ่วงด้วย BODY_POWER_WEIGHT
+        # จึงขยับพลังได้ราว ±2.5% ตามส่วนเบี่ยงเบนของประชากร (ดู tiandao/body/capability)
+        p *= 1.0 + BODY.BODY_POWER_WEIGHT * (BODY.strength_of(ch) - 1.0)
     if items:
         p += item_power(ch, items, day)
     # หุ่นที่เชิดอยู่สู้แทนเจ้าของได้จริง — นับเป็นพลังของเจ้าของ ไม่ใช่ตัวละครแยก เพราะหุ่นไม่มี

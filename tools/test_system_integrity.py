@@ -89,8 +89,8 @@ def test_all_realms_connected():
             assert dist < 99999.0, f"No path found between realm {r1} (place {p1}) and realm {r2} (place {p2})!"
 
 
-# 4. Check Settlements Generator on all 182 Places
-def test_all_182_settlements():
+# 4. Check Settlements Generator on every place in PL.PLACES
+def test_all_settlements():
     for i in range(len(PL.PLACES)):
         data = SETTLE.generate_settlement_layout(i)
         assert data["place_idx"] == i
@@ -106,7 +106,10 @@ def test_terrain_engine():
     assert len(mesh["rivers"]) >= 3
     
     places_3d = TERRAIN.get_all_places_data()
-    assert len(places_3d) == 182
+    # เดิมตรึงไว้ที่ 182 ซึ่งเป็นจำนวนสถานที่ยุคก่อนมีแดนเซียนสาขา (ตอนนี้ 755) จึงฟ้อง failure
+    # ทุกครั้งทั้งที่ terrain สร้างครบทุกจุด — เทียบกับตารางจริงแทนตัวเลขที่ตายไปแล้ว
+    assert len(places_3d) == len(PL.PLACES), \
+        f"terrain สร้างได้ {len(places_3d)} จุด จากสถานที่ทั้งหมด {len(PL.PLACES)}"
     for p in places_3d:
         assert -100.0 <= p["z"] <= 600.0, f"Out of bounds Z elevation: {p}"
 
@@ -177,7 +180,7 @@ def main():
     check("1. Places & Graph Consistency", test_places_and_graph)
     check("2. Skills & Requirements Text", test_skills_consistency)
     check("3. All-Pairs Realm Connectivity", test_all_realms_connected)
-    check("4. All 182 Settlement Layouts", test_all_182_settlements)
+    check(f"4. All {len(PL.PLACES)} Settlement Layouts", test_all_settlements)
     check("5. Terrain 3D Mesh & Biomes", test_terrain_engine)
     check("6. Dialogue Engine Variety", test_dialogue_engine)
     check("7. Weather Cycle Simulation", test_weather_cycles)
@@ -194,7 +197,10 @@ def main():
             print(err)
             print(tb)
     print("=========================================================")
+    # คืนสถานะให้ผู้เรียกรู้ด้วย ไม่ใช่พิมพ์อย่างเดียว — เดิมพบปัญหาแล้วยัง exit 0
+    # ทำให้ CI (และคนที่เรียกผ่านสคริปต์) อ่านว่า "ผ่าน" ทั้งที่ audit ฟ้องอยู่
+    return 1 if errors_found else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
