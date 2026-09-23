@@ -17,7 +17,7 @@ from . import constants as K
 
 
 # ---------------------------------------------------------------- กระโดด
-def jump_height(body, fatigue: float = 0.0) -> float:
+def jump_height(body, fatigue: float = 0.0, injury=None) -> float:
     """ความสูงที่กระโดดขึ้นได้ (m) — จากงาน-พลังงาน ไม่ใช่จากตัวคูณ
 
         งานสุทธิที่ดันตัวขึ้น:   W = (F_ขา − mg) · d
@@ -28,14 +28,14 @@ def jump_height(body, fatigue: float = 0.0) -> float:
     คนที่กล้ามเนื้อขาแข็งแรงกว่าจึงไม่ได้ "กระโดดสูงขึ้น 20%" ตรงๆ แต่สร้างอิมพัลส์ได้
     มากกว่า แล้วความสูงตามมาเอง และมวลที่มากขึ้นก็ถ่วงทั้งในพจน์ mg และตัวหาร m
     """
-    v = takeoff_velocity(body, fatigue)
+    v = takeoff_velocity(body, fatigue, injury)
     return v * v / (2.0 * K.GRAVITY)
 
 
-def takeoff_velocity(body, fatigue: float = 0.0) -> float:
+def takeoff_velocity(body, fatigue: float = 0.0, injury=None) -> float:
     """ความเร็วขณะเท้าพ้นพื้น (m/s) — 0 ถ้าแรงขาไม่พอยกน้ำหนักตัวเองด้วยซ้ำ"""
     weight = body.mass * K.GRAVITY
-    force = body.leg_force(fatigue) * K.JUMP_FORCE_EFFICIENCY
+    force = body.leg_force(fatigue, injury) * K.JUMP_FORCE_EFFICIENCY
     net = force - weight
     if net <= 0.0:
         return 0.0
@@ -44,7 +44,8 @@ def takeoff_velocity(body, fatigue: float = 0.0) -> float:
 
 
 # ---------------------------------------------------------------- วิ่ง
-def max_running_speed(body, friction: float = K.DEFAULT_FRICTION, fatigue: float = 0.0) -> float:
+def max_running_speed(body, friction: float = K.DEFAULT_FRICTION, fatigue: float = 0.0,
+                      injury=None) -> float:
     """ความเร็วสูงสุดที่วิ่งได้ (m/s)
 
     ความเร็วไม่ได้ถูกตั้ง แต่มาจากสองสิ่งที่วัดได้จากร่าง:
@@ -61,7 +62,7 @@ def max_running_speed(body, friction: float = K.DEFAULT_FRICTION, fatigue: float
     weight = body.mass * K.GRAVITY
     if weight <= 0.0:
         return 0.0
-    usable = min(body.leg_force(fatigue), friction * weight * _FRICTION_HEADROOM)
+    usable = min(body.leg_force(fatigue, injury), friction * weight * _FRICTION_HEADROOM)
     ratio = usable / weight
     speed = (K.RUN_SPEED_COEF
              * (ratio / K.RUN_REF_FORCE_RATIO) ** K.RUN_FORCE_EXPONENT
@@ -78,7 +79,7 @@ _FRICTION_HEADROOM = 7.0
 
 
 # ---------------------------------------------------------------- ยก/แบก
-def carry_capacity(body, fatigue: float = 0.0) -> float:
+def carry_capacity(body, fatigue: float = 0.0, injury=None) -> float:
     """มวลสูงสุดที่ยกและพาไปได้ (kg) — จำกัดด้วยทอร์กของกระดูกสันหลัง ไม่ใช่ด้วยค่า Strength
 
         ทอร์กที่ต้องใช้:  τ = (m_ของ + m_ลำตัวบน) · g · แขนโมเมนต์
@@ -86,7 +87,7 @@ def carry_capacity(body, fatigue: float = 0.0) -> float:
 
     คืน 0 ถ้าลำพังลำตัวของตัวเองก็หนักเกินกว่าที่หลังจะพยุงไหว
     """
-    available = body.joint_torque("spine", fatigue) * K.CARRY_SAFETY_FACTOR
+    available = body.joint_torque("spine", fatigue, injury) * K.CARRY_SAFETY_FACTOR
     upper = body.mass * K.CARRY_TORSO_MASS_FRACTION
     own = upper * K.GRAVITY * K.CARRY_LEVER_ARM
     spare = available - own
@@ -95,13 +96,13 @@ def carry_capacity(body, fatigue: float = 0.0) -> float:
     return spare / (K.GRAVITY * K.CARRY_LEVER_ARM)
 
 
-def can_lift(body, load_kg: float, fatigue: float = 0.0) -> bool:
+def can_lift(body, load_kg: float, fatigue: float = 0.0, injury=None) -> bool:
     """ยกของหนักเท่านี้ไหวไหม — ใช้เกณฑ์ทอร์กเดียวกับ carry_capacity"""
-    return load_kg <= carry_capacity(body, fatigue)
+    return load_kg <= carry_capacity(body, fatigue, injury)
 
 
 # ---------------------------------------------------------------- ระบบประสาท
-def reaction_time(body, fatigue: float = 0.0) -> float:
+def reaction_time(body, fatigue: float = 0.0, injury=None) -> float:
     """เวลาตอบสนอง (s) — ไม่ใช่สเตตัสคงที่ แต่เป็นผลรวมของหน่วงจริง (พรอมต์ §24)
 
         T = T_ส่วนกลาง + ระยะทางเส้นประสาท / ความเร็วการนำสัญญาณ + หน่วงจากความล้า
@@ -112,12 +113,16 @@ def reaction_time(body, fatigue: float = 0.0) -> float:
     gen = body.gen
     central = K.REACTION_CENTRAL_BASE + K.REACTION_CENTRAL_SPAN * (1.0 - gen.neuro_efficiency)
     conduction = (gen.height * K.NERVE_PATH_RATIO) / K.NERVE_CONDUCTION_SPEED
-    slowed = (central + conduction) * (1.0 + max(0.0, fatigue))
+    penalty = 0.0
+    if injury:
+        from . import injury as INJ
+        penalty = INJ.reaction_penalty(injury)      # บาดเจ็บที่ศีรษะทำให้ช้าลง (§28)
+    slowed = (central + conduction) * (1.0 + max(0.0, fatigue) + penalty)
     return max(K.REACTION_MIN, slowed)
 
 
 # ---------------------------------------------------------------- ดัชนีรวม
-def strength_index(body, fatigue: float = 0.0) -> float:
+def strength_index(body, fatigue: float = 0.0, injury=None) -> float:
     """พลังกายเทียบกับร่างอ้างอิงของโลก — ไร้หน่วย อยู่รอบ 1.0
 
     ใช้เป็น *หนึ่งปัจจัย* ของพลังรวมใน rules.power() เท่านั้น ไม่ใช่ตัวตัดสิน เพราะโลกนี้
@@ -132,18 +137,19 @@ def strength_index(body, fatigue: float = 0.0) -> float:
     # "ดันตัวเองได้กี่เท่าของน้ำหนักตัว" — ไร้หน่วย เทียบกับค่ากลางของประชากรจึงอยู่รอบ 1.0
     # มวลอยู่ในตัวหารอยู่แล้ว ร่างที่หนักขึ้นเพราะไขมันจึงได้ดัชนีต่ำลงโดยอัตโนมัติ
     # ส่วนร่างที่หนักขึ้นเพราะกล้ามเนื้อได้แรงเพิ่มในตัวเศษมากกว่าที่เสียไปในตัวหาร
-    return (body.leg_force(fatigue) / weight) / K.REFERENCE_FORCE_RATIO
+    return (body.leg_force(fatigue, injury) / weight) / K.REFERENCE_FORCE_RATIO
 
 
-def summary(body, friction: float = K.DEFAULT_FRICTION, fatigue: float = 0.0) -> dict:
+def summary(body, friction: float = K.DEFAULT_FRICTION, fatigue: float = 0.0,
+            injury=None) -> dict:
     """ความสามารถทุกตัวในที่เดียว — ทุกค่าย้อนกลับไปหาการคำนวณได้ (พรอมต์ §44)"""
     return {
-        "ความเร็ววิ่งสูงสุด (m/s)": round(max_running_speed(body, friction, fatigue), 2),
-        "ความเร็วขณะพ้นพื้น (m/s)": round(takeoff_velocity(body, fatigue), 2),
-        "ความสูงกระโดด (m)": round(jump_height(body, fatigue), 3),
-        "แบกได้ (kg)": round(carry_capacity(body, fatigue), 1),
-        "เวลาตอบสนอง (s)": round(reaction_time(body, fatigue), 3),
-        "ดัชนีพลังกาย (×)": round(strength_index(body, fatigue), 3),
+        "ความเร็ววิ่งสูงสุด (m/s)": round(max_running_speed(body, friction, fatigue, injury), 2),
+        "ความเร็วขณะพ้นพื้น (m/s)": round(takeoff_velocity(body, fatigue, injury), 2),
+        "ความสูงกระโดด (m)": round(jump_height(body, fatigue, injury), 3),
+        "แบกได้ (kg)": round(carry_capacity(body, fatigue, injury), 1),
+        "เวลาตอบสนอง (s)": round(reaction_time(body, fatigue, injury), 3),
+        "ดัชนีพลังกาย (×)": round(strength_index(body, fatigue, injury), 3),
         "สัมประสิทธิ์เสียดทานที่ใช้": friction,
         "ความล้าที่ใช้": fatigue,
     }

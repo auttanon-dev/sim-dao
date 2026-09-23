@@ -10,6 +10,7 @@
 ต้องรันโหมดนี้ใหม่แล้วอัปเดตค่าอ้างอิง ไม่งั้นดัชนีพลังกายจะเลื่อนออกจาก 1.0
 """
 import argparse
+import copy
 import statistics as st
 import sys
 from pathlib import Path
@@ -24,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from tiandao import body as B                          # noqa: E402
 from tiandao.body import balance as BAL                # noqa: E402
+from tiandao.body import injury as INJ                 # noqa: E402
 from tiandao.body import capability, constants as K    # noqa: E402
 from tiandao.models import Character                   # noqa: E402
 
@@ -45,9 +47,10 @@ def show(node, indent=2):
             print(f"{pad}{key}: {value}")
 
 
-def one(cid, seed, gender, friction, fatigue):
+def one(cid, seed, gender, friction, fatigue, hurt_j=0.0, hurt_region="left_leg"):
     ch = make(cid, seed, gender)
     body = B.body_of(ch)
+    blow = B.hurt(ch, hurt_j, region=hurt_region, key=("report",)) if hurt_j else None
     print("=" * 74)
     print(f"  {ch.name}  (โลก seed {seed} · cid {cid} · {gender})")
     print("=" * 74)
@@ -93,6 +96,20 @@ def one(cid, seed, gender, friction, fatigue):
     print(f"    เกณฑ์ที่บีบก่อน: หลังรับไหว {capability.carry_capacity(body):.1f} kg"
           f" · สมดุลที่ 0.30 m {BAL.max_stable_load(body, 0.30):.1f} kg"
           f" · สมดุลที่ 0.60 m {BAL.max_stable_load(body, 0.60):.1f} kg")
+
+    if blow is not None:
+        print(f"\n  การกระทบ {hurt_j:.0f} J ที่ {hurt_region} — ทีละชั้น:")
+        show(blow, indent=4)
+        print("\n  บาดเจ็บและความสามารถที่เหลือหลังโดน:")
+        show(INJ.explain(body, ch.injuries), indent=4)
+        print(f"    วิ่งได้ {capability.max_running_speed(body, friction, fatigue, ch.injuries):.2f} m/s"
+              f"  (ก่อนโดน {capability.max_running_speed(body, friction, fatigue):.2f})")
+        print("\n  เวลาเยียวยา:")
+        for days in (0, 30, 90, 180, 365, 730):
+            state = copy.deepcopy(ch.injuries)
+            INJ.heal(state, days)
+            print(f"    {days:>4} วัน   ความสามารถขา {INJ.capacity(state, 'leg'):.3f}"
+                  f"   ความบาดเจ็บรวม {INJ.severity(state):.4f}")
 
     print("\n  ถ้าความล้าเพิ่มขึ้น (Phase 5 จะเป็นผู้จ่ายค่านี้เข้ามาจริง):")
     for f in (0.0, 0.25, 0.50, 0.75):
@@ -140,13 +157,16 @@ def main():
     ap.add_argument("--gender", default="ชาย")
     ap.add_argument("--friction", type=float, default=K.DEFAULT_FRICTION)
     ap.add_argument("--fatigue", type=float, default=0.0)
+    ap.add_argument("--hurt", type=float, default=0.0,
+                    help="ส่งพลังงานกระทบเข้าร่างกี่จูลก่อนพิมพ์รายงาน")
+    ap.add_argument("--hurt-region", default="left_leg")
     ap.add_argument("--population", type=int, default=0,
                     help="พิมพ์สถิติประชากรกี่ร่าง (0 = ไม่พิมพ์)")
     a = ap.parse_args()
     if a.population:
         population(a.population, a.seed, a.friction)
     else:
-        one(a.cid, a.seed, a.gender, a.friction, a.fatigue)
+        one(a.cid, a.seed, a.gender, a.friction, a.fatigue, a.hurt, a.hurt_region)
 
 
 if __name__ == "__main__":

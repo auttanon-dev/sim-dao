@@ -330,6 +330,14 @@ def apply_defeat(sim, world, win, lose, margin, rng, lethal_at=None):
     lethal_at = C.DEATH_MARGIN if lethal_at is None else lethal_at
     lethal_at *= (1.0 - C.DANGER_PER_TIER) ** world.tier     # โลกสูงยิ่งอันตราย
     lose.decay += C.DECAY_PER_FIGHT * (1.0 + margin) / (1.0 + 0.25 * lose.realm)
+    # ผู้แพ้รับแรงเข้าร่างจริงเป็นบาดเจ็บเฉพาะส่วน (ดู body/injury · §26–28) พลังงานมาจาก
+    # หมัดของผู้ชนะตามกายวิภาคของเขาเอง ถ่วงด้วยว่าเฉือนกันขาดแค่ไหน
+    # ใช้สตรีมสุ่มที่ผูกกับเหตุการณ์ ไม่ดึงจาก rng ของโลก — การเพิ่มระบบนี้จึงไม่เลื่อน
+    # สตรีมหลักจนอนาคตทั้งใบเปลี่ยนไปเพราะการอัปเกรด
+    _blow = BODY.strike_energy(win) * (1.0 + margin) * BODY.DEFEAT_IMPACT_SCALE
+    if _blow > 0.0:
+        BODY.hurt(lose, _blow, key=(getattr(sim, "day", 0), win.cid, lose.cid,
+                                    round(margin, 4)))
     # หุ่นรับแรงแทนเจ้าของ — แพ้ทีหนึ่งก็พังไปตนหนึ่ง ทำให้กำลังจากหุ่นไม่สะสมขึ้นเรื่อยๆ ฟรีๆ
     if getattr(lose, 'puppets', 0) and rng.random() < C.PUPPET_BREAK_P:
         lose.puppets -= 1
@@ -818,6 +826,10 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     years = gap_days / 365.0
     # วัดอัตราของตัวเขาเองก่อนอย่างอื่น — นี่คือจุดเดียวที่ตัวละครทุกคนผ่านทุกครั้งที่โลกเดิน
     track_rates(ch, getattr(sim, "day", ch.acc_mark_day))
+    # บาดแผลหายไปตามเวลาที่ผ่านไปจริง (ดู body/injury.heal · §34) อินทิเกรตเป็นรูปแบบปิด
+    # ข้าม gap ทีเดียว เพราะเอนจินนี้กระโดดข้ามเวลาเป็นวัน ไม่มี tick ต่อเนื่องให้เดิน
+    if getattr(ch, "injuries", None):
+        BODY.injury.heal(ch.injuries, gap_days)
     upkeep(ch, world, years)
     # งบปราณของผู้ฝึก — ดูดฟรีจากที่ยืน แล้วเผาหินเติมส่วนที่ขาด (ดู sustain)
     qi_year, _drawn = sustain(sim, ch, world, years)

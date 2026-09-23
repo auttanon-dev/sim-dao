@@ -109,11 +109,18 @@ class Body:
         return self.mass / (self.gen.height ** 2)
 
     # ---------------------------------------------------------------- แรงและทอร์ก
-    def group_force(self, group: str, fatigue: float = 0.0) -> float:
-        """แรงที่กล้ามเนื้อกลุ่มหนึ่งออกได้ตอนนี้ (N)"""
-        return self.muscles[group].available_force(self.gen.neuro_efficiency, fatigue)
+    def group_force(self, group: str, fatigue: float = 0.0, injury=None) -> float:
+        """แรงที่กล้ามเนื้อกลุ่มหนึ่งออกได้ตอนนี้ (N) — หักลบส่วนที่บาดเจ็บทำให้ใช้ไม่ได้
 
-    def endpoint_force(self, limb: str, fatigue: float = 0.0) -> float:
+        ตัวคูณจากบาดเจ็บ **เฉพาะส่วน** เจ็บแขนไม่ลดแรงขา (ดู injury.capacity · §28)
+        """
+        base = self.muscles[group].available_force(self.gen.neuro_efficiency, fatigue)
+        if injury:
+            from . import injury as INJ
+            base *= INJ.capacity(injury, group)
+        return base
+
+    def endpoint_force(self, limb: str, fatigue: float = 0.0, injury=None) -> float:
         """แรงที่ **ปลายแขนขา** กระทำต่อโลกภายนอก (N)
 
         แรงกล้ามเนื้อไม่ใช่แรงที่พื้นได้รับ มันต้องผ่านคานสองทอดก่อน:
@@ -126,18 +133,18 @@ class Body:
         และเป็นเหตุผลที่ **คนขายาวกว่าได้เปรียบตอนวิ่ง แต่เสียเปรียบตอนออกแรงดัน**
         """
         joint = "knee" if limb == "leg" else "elbow"
-        return self.joint_torque(joint, fatigue) / self.effective_limb_length(limb)
+        return self.joint_torque(joint, fatigue, injury) / self.effective_limb_length(limb)
 
     def effective_limb_length(self, limb: str) -> float:
         """ความยาวแขนกลจากข้อถึงจุดที่แรงออกสู่ภายนอก (m)"""
         full = self.gen.leg_length if limb == "leg" else self.gen.arm_length
         return full * K.LIMB_EFFECTIVE_RATIO[limb]
 
-    def leg_force(self, fatigue: float = 0.0) -> float:
+    def leg_force(self, fatigue: float = 0.0, injury=None) -> float:
         """แรงกดพื้นที่ขาทั้งสองข้างสร้างได้ (N) — ตัวตั้งต้นของทั้งวิ่งและกระโดด"""
-        return self.endpoint_force("leg", fatigue)
+        return self.endpoint_force("leg", fatigue, injury)
 
-    def joint_torque(self, joint: str, fatigue: float = 0.0) -> float:
+    def joint_torque(self, joint: str, fatigue: float = 0.0, injury=None) -> float:
         """ทอร์กรอบข้อหนึ่ง (N·m)
 
             τ = r · F            (พรอมต์ §6 — ที่มุมที่แขนโมเมนต์ยาวที่สุด sinθ = 1)
@@ -147,7 +154,7 @@ class Body:
         ที่แรงกล้ามเนื้อเท่ากัน แต่ต้องออกแรงมากกว่าเพื่อความเร็วปลายเท่ากัน
         """
         group, _segment = _JOINT_SOURCE[joint]
-        return self.group_force(group, fatigue) * self.moment_arm(joint)
+        return self.group_force(group, fatigue, injury) * self.moment_arm(joint)
 
     def moment_arm(self, joint: str) -> float:
         """แขนโมเมนต์ของข้อหนึ่ง (m)"""
