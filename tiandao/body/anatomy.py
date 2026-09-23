@@ -45,15 +45,16 @@ class MuscleGroup:
                      if fiber_length > 0 else 0.0)
         self.max_force = specific_tension * self.pcsa     # N — แรงระดับเอ็น ไม่ใช่แรงที่พื้น
 
-    def available_force(self, neuro_efficiency: float, fatigue: float = 0.0) -> float:
+    def available_force(self, neuro_efficiency: float, effort: float = 1.0) -> float:
         """แรงที่เรียกใช้ได้จริงตอนนี้
 
-            F = Fmax × ประสิทธิภาพประสาท-กล้ามเนื้อ × (1 − ความล้า)
+            F = Fmax × ประสิทธิภาพประสาท-กล้ามเนื้อ × ตัวคูณจากสภาพร่างกาย
 
-        `fatigue` ยังไม่มีแหล่งจ่ายใน Phase 1 (เป็น 0 เสมอ) แต่รับไว้ตั้งแต่ต้นเพื่อให้
-        Phase 5 เสียบเข้ามาได้โดยไม่ต้องแก้ผู้เรียก — ตัวคูณอยู่ในสูตรแล้วตามพรอมต์ §7/§8
+        ตัวคูณสุดท้ายรวมความล้ากับออกซิเจนที่เลือดส่งมาให้ (ดู Condition.effort_factor)
+        สองอย่างนี้ **คูณกัน ไม่ใช่บวกกัน** — ล้าครึ่งหนึ่งและออกซิเจนครึ่งหนึ่ง
+        เหลือแรงหนึ่งในสี่ ตามพรอมต์ §7–8, §19
         """
-        return self.max_force * neuro_efficiency * max(0.0, 1.0 - fatigue)
+        return self.max_force * neuro_efficiency * max(0.0, effort)
 
 
 class Body:
@@ -109,18 +110,21 @@ class Body:
         return self.mass / (self.gen.height ** 2)
 
     # ---------------------------------------------------------------- แรงและทอร์ก
-    def group_force(self, group: str, fatigue: float = 0.0, injury=None) -> float:
+    def group_force(self, group: str, cond=None) -> float:
         """แรงที่กล้ามเนื้อกลุ่มหนึ่งออกได้ตอนนี้ (N) — หักลบส่วนที่บาดเจ็บทำให้ใช้ไม่ได้
 
         ตัวคูณจากบาดเจ็บ **เฉพาะส่วน** เจ็บแขนไม่ลดแรงขา (ดู injury.capacity · §28)
         """
-        base = self.muscles[group].available_force(self.gen.neuro_efficiency, fatigue)
-        if injury:
+        from .condition import resolve
+        cond = resolve(cond)
+        base = self.muscles[group].available_force(self.gen.neuro_efficiency,
+                                                   cond.effort_factor)
+        if cond.injury:
             from . import injury as INJ
-            base *= INJ.capacity(injury, group)
+            base *= INJ.capacity(cond.injury, group)
         return base
 
-    def endpoint_force(self, limb: str, fatigue: float = 0.0, injury=None) -> float:
+    def endpoint_force(self, limb: str, cond=None) -> float:
         """แรงที่ **ปลายแขนขา** กระทำต่อโลกภายนอก (N)
 
         แรงกล้ามเนื้อไม่ใช่แรงที่พื้นได้รับ มันต้องผ่านคานสองทอดก่อน:
@@ -133,18 +137,18 @@ class Body:
         และเป็นเหตุผลที่ **คนขายาวกว่าได้เปรียบตอนวิ่ง แต่เสียเปรียบตอนออกแรงดัน**
         """
         joint = "knee" if limb == "leg" else "elbow"
-        return self.joint_torque(joint, fatigue, injury) / self.effective_limb_length(limb)
+        return self.joint_torque(joint, cond) / self.effective_limb_length(limb)
 
     def effective_limb_length(self, limb: str) -> float:
         """ความยาวแขนกลจากข้อถึงจุดที่แรงออกสู่ภายนอก (m)"""
         full = self.gen.leg_length if limb == "leg" else self.gen.arm_length
         return full * K.LIMB_EFFECTIVE_RATIO[limb]
 
-    def leg_force(self, fatigue: float = 0.0, injury=None) -> float:
+    def leg_force(self, cond=None) -> float:
         """แรงกดพื้นที่ขาทั้งสองข้างสร้างได้ (N) — ตัวตั้งต้นของทั้งวิ่งและกระโดด"""
-        return self.endpoint_force("leg", fatigue, injury)
+        return self.endpoint_force("leg", cond)
 
-    def joint_torque(self, joint: str, fatigue: float = 0.0, injury=None) -> float:
+    def joint_torque(self, joint: str, cond=None) -> float:
         """ทอร์กรอบข้อหนึ่ง (N·m)
 
             τ = r · F            (พรอมต์ §6 — ที่มุมที่แขนโมเมนต์ยาวที่สุด sinθ = 1)
@@ -154,7 +158,7 @@ class Body:
         ที่แรงกล้ามเนื้อเท่ากัน แต่ต้องออกแรงมากกว่าเพื่อความเร็วปลายเท่ากัน
         """
         group, _segment = _JOINT_SOURCE[joint]
-        return self.group_force(group, fatigue, injury) * self.moment_arm(joint)
+        return self.group_force(group, cond) * self.moment_arm(joint)
 
     def moment_arm(self, joint: str) -> float:
         """แขนโมเมนต์ของข้อหนึ่ง (m)"""

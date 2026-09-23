@@ -28,9 +28,11 @@
 migrate เซฟเก่า ไม่ต้องขยับ SAVE_VERSION และเซฟไม่บวม แคชเก็บไว้ในหน่วยความจำของโปรเซส
 เท่านั้น (ไม่ติดไปกับ pickle ของ Sim) และไม่มีจุดใดแตะ RNG หลักของโลก
 """
-from . import balance, capability, constants, genetics, injury, skeleton
+from . import (balance, capability, circulation, condition, constants,
+               genetics, injury, skeleton)
 from .anatomy import Body, MuscleGroup
 from .skeleton import Bone, Skeleton
+from .condition import Condition
 from .genetics import Genetics
 
 __all__ = ["Body", "Genetics", "MuscleGroup", "Bone", "Skeleton",
@@ -39,7 +41,8 @@ __all__ = ["Body", "Genetics", "MuscleGroup", "Bone", "Skeleton",
            "can_outrun", "can_jump", "can_lift", "carry_capacity", "reaction_time",
            "can_stand_with", "balance_margin", "fracture_risk", "BODY_POWER_WEIGHT",
            "injury", "injuries_of", "hurt", "fall", "strike_energy", "injury_summary",
-           "DEFEAT_IMPACT_SCALE"]
+           "DEFEAT_IMPACT_SCALE", "Condition", "circulation", "condition",
+           "condition_of", "exert", "tick", "bleeding", "conscious"]
 
 BODY_POWER_WEIGHT = constants.BODY_POWER_WEIGHT
 DEFEAT_IMPACT_SCALE = constants.DEFEAT_IMPACT_SCALE
@@ -80,13 +83,13 @@ def injuries_of(character) -> dict:
     return state
 
 
-def strength_of(character, body_seed: int = 0, fatigue: float = 0.0) -> float:
+def strength_of(character, body_seed: int = 0) -> float:
     """ดัชนีพลังกายไร้หน่วยรอบ 1.0 — ตัวเดียวที่ rules.power() ใช้
 
     อ่านสถานะบาดเจ็บของตัวละครเองด้วย คนขาหักจึงอ่อนลงจริงโดยผู้เรียกไม่ต้องส่งอะไรเพิ่ม
     """
-    return capability.strength_index(body_of(character, body_seed), fatigue,
-                                     getattr(character, "injuries", None))
+    return capability.strength_index(body_of(character, body_seed),
+                                     Condition.of(character))
 
 
 def mass_of(character, body_seed: int = 0) -> float:
@@ -94,45 +97,42 @@ def mass_of(character, body_seed: int = 0) -> float:
     return body_of(character, body_seed).mass
 
 
-def estimated_max_speed(character, friction=None, body_seed: int = 0,
-                        fatigue: float = 0.0) -> float:
+def estimated_max_speed(character, friction=None, body_seed: int = 0) -> float:
     """ความเร็ววิ่งสูงสุดบนพื้นแบบหนึ่ง (m/s)"""
     mu = constants.DEFAULT_FRICTION if friction is None else friction
-    return capability.max_running_speed(body_of(character, body_seed), mu, fatigue,
-                                        getattr(character, "injuries", None))
+    return capability.max_running_speed(body_of(character, body_seed), mu,
+                                        Condition.of(character))
 
 
-def can_outrun(character, other, friction=None, body_seed: int = 0,
-               fatigue: float = 0.0, other_fatigue: float = 0.0) -> bool:
+def can_outrun(character, other, friction=None, body_seed: int = 0) -> bool:
     """วิ่งหนีคนนี้พ้นไหม — เทียบความเร็วจริงของสองร่าง ไม่ใช่เทียบค่าพลัง"""
-    return (estimated_max_speed(character, friction, body_seed, fatigue)
-            > estimated_max_speed(other, friction, body_seed, other_fatigue))
+    return (estimated_max_speed(character, friction, body_seed)
+            > estimated_max_speed(other, friction, body_seed))
 
 
-def can_jump(character, distance_m: float, body_seed: int = 0,
-             fatigue: float = 0.0) -> bool:
+def can_jump(character, distance_m: float, body_seed: int = 0) -> bool:
     """ข้ามช่องกว้างเท่านี้ได้ไหม — ระยะไกลสุดที่มุมพุ่ง 45° คือ v²/g"""
-    v = capability.takeoff_velocity(body_of(character, body_seed), fatigue,
-                                    getattr(character, "injuries", None))
+    v = capability.takeoff_velocity(body_of(character, body_seed),
+                                    Condition.of(character))
     return distance_m <= (v * v) / constants.GRAVITY
 
 
-def can_lift(character, load_kg: float, body_seed: int = 0, fatigue: float = 0.0) -> bool:
+def can_lift(character, load_kg: float, body_seed: int = 0) -> bool:
     """ยกของหนักเท่านี้ไหวไหม — เกณฑ์คือทอร์กที่กระดูกสันหลังรับไหว"""
-    return capability.can_lift(body_of(character, body_seed), load_kg, fatigue,
-                               getattr(character, "injuries", None))
+    return capability.can_lift(body_of(character, body_seed), load_kg,
+                               Condition.of(character))
 
 
-def carry_capacity(character, body_seed: int = 0, fatigue: float = 0.0) -> float:
+def carry_capacity(character, body_seed: int = 0) -> float:
     """มวลสูงสุดที่แบกไปได้ (kg)"""
-    return capability.carry_capacity(body_of(character, body_seed), fatigue,
-                                     getattr(character, "injuries", None))
+    return capability.carry_capacity(body_of(character, body_seed),
+                                     Condition.of(character))
 
 
-def reaction_time(character, body_seed: int = 0, fatigue: float = 0.0) -> float:
+def reaction_time(character, body_seed: int = 0) -> float:
     """เวลาตอบสนอง (s)"""
-    return capability.reaction_time(body_of(character, body_seed), fatigue,
-                                    getattr(character, "injuries", None))
+    return capability.reaction_time(body_of(character, body_seed),
+                                    Condition.of(character))
 
 
 def can_stand_with(character, load_kg: float, load_arm=None, body_seed: int = 0) -> bool:
@@ -164,8 +164,10 @@ def hurt(character, energy: float, region=None, contact_area=None, rng=None,
     state = injuries_of(character)
     spot = injury.pick_region(character.cid, *key) if region is None else region
     roll = injury.rng_for("fracture", character.cid, *key) if rng is None else rng
-    return injury.apply_impact(body_of(character, body_seed), state, energy, spot,
-                               contact_area, roll, stop_distance)
+    log = injury.apply_impact(body_of(character, body_seed), state, energy, spot,
+                              contact_area, roll, stop_distance)
+    _open_wound(character, log)
+    return log
 
 
 def fall(character, height_m: float, region=None, rng=None, body_seed: int = 0,
@@ -174,13 +176,14 @@ def fall(character, height_m: float, region=None, rng=None, body_seed: int = 0,
     state = injuries_of(character)
     spot = injury.pick_region(character.cid, *key) if region is None else region
     roll = injury.rng_for("fall", character.cid, *key) if rng is None else rng
-    return injury.fall_impact(body_of(character, body_seed), state, height_m, spot, roll)
+    log = injury.fall_impact(body_of(character, body_seed), state, height_m, spot, roll)
+    _open_wound(character, log)
+    return log
 
 
-def strike_energy(character, body_seed: int = 0, fatigue: float = 0.0) -> float:
+def strike_energy(character, body_seed: int = 0) -> float:
     """พลังงานที่หมัดของคนนี้ส่งออกได้ (J) — งานที่แขนทำได้ตามกายวิภาค"""
-    return injury.strike_energy(body_of(character, body_seed), fatigue,
-                                getattr(character, "injuries", None))
+    return injury.strike_energy(body_of(character, body_seed), Condition.of(character))
 
 
 def injury_summary(character, body_seed: int = 0) -> dict:
@@ -189,16 +192,62 @@ def injury_summary(character, body_seed: int = 0) -> dict:
                           getattr(character, "injuries", None))
 
 
-def explain(character, body_seed: int = 0, friction=None, fatigue: float = 0.0,
+def condition_of(character) -> Condition:
+    """สภาพร่างกายตอนนี้ — ความล้า เลือด บาดเจ็บ รวมเป็นวัตถุเดียว"""
+    return Condition.of(character)
+
+
+def exert(character, work: float = 1.0) -> float:
+    """สะสมความล้าจากงานที่เพิ่งทำ — คืนระดับความล้าใหม่ (§8)"""
+    return circulation.exert(character, work)
+
+
+def tick(character, days: float, body_seed: int = 0) -> dict:
+    """เดินสภาพร่างกายไปตามเวลาที่ผ่านไป — จุดเดียวที่ผู้เรียกต้องรู้จัก
+
+    เลือดออก · สร้างเลือดใหม่ · คลายความล้า · แผลสมาน ทั้งหมดในครั้งเดียว
+    ทุกอย่างอินทิเกรตเป็นรูปแบบปิดข้ามช่วงเวลา จึงเรียกครั้งเดียวต่อหนึ่ง gap ได้เลย
+    ไม่ต้องแบ่งเป็นก้าวเล็กๆ และผลไม่ขึ้นกับว่าแบ่งละเอียดแค่ไหน
+
+    ลำดับสำคัญ: เลือดออกใช้สภาพของแผล **ก่อน** แผลจะสมาน ไม่งั้นแผลที่หายแล้ว
+    จะยังไม่เคยทำให้เสียเลือดเลยสักหยด
+    """
+    log = circulation.tick(character, body_of(character, body_seed), days)
+    state = getattr(character, "injuries", None)
+    if state:
+        injury.heal(state, days)
+    return log
+
+
+def bleeding(character) -> float:
+    """อัตราการเสียเลือดตอนนี้ เป็นสัดส่วนของปริมาตรปกติต่อวัน (§18)"""
+    return circulation.bleed_rate(character)
+
+
+def _open_wound(character, log) -> None:
+    """แผลที่เพิ่งเกิดเริ่มไหลเลือด — ต่อจากหลอดเลือดที่ apply_impact รายงานว่าฉีก"""
+    torn = log.get("หลอดเลือดฉีก")
+    if torn:
+        circulation.open_wound(character, torn)
+
+
+def conscious(character) -> bool:
+    """ยังรู้สึกตัวอยู่ไหม — เลือดต่ำกว่าระดับหนึ่งสมองไม่ได้ออกซิเจนพอ"""
+    return Condition.of(character).conscious
+
+
+def explain(character, body_seed: int = 0, friction=None,
             load_kg: float = 0.0) -> dict:
     """คำอธิบายร่างกายทั้งก้อนสำหรับดีบัก — ทุกตัวเลขย้อนไปหาที่มาได้ (พรอมต์ §44)"""
     body = body_of(character, body_seed)
     mu = constants.DEFAULT_FRICTION if friction is None else friction
     state = getattr(character, "injuries", None)
+    cond = Condition.of(character)
     return {
         "ตัวละคร": getattr(character, "name", f"cid {character.cid}"),
         "กายวิภาค": body.explain(),
-        "ความสามารถ": capability.summary(body, mu, fatigue, state),
+        "ความสามารถ": capability.summary(body, mu, cond),
         "การทรงตัว": balance.explain(body, load_kg),
         "บาดเจ็บ": injury.explain(body, state),
+        "ไหลเวียนและเลือด": circulation.explain(body, cond, character=character),
     }

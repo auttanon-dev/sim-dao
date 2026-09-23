@@ -116,7 +116,7 @@ def fall_impact(body, state, height_m: float, region: str, rng=None) -> dict:
                         K.CONTACT_AREA_FALL, rng, K.FALL_STOP_DISTANCE)
 
 
-def strike_energy(body, fatigue: float = 0.0, injury=None) -> float:
+def strike_energy(body, cond=None) -> float:
     """พลังงานที่หมัดของร่างนี้ส่งออกได้ (J) — งานที่แขนทำได้ ไม่ใช่ค่าที่ตั้งไว้
 
         E = F_ปลายแขน × ระยะชก        (งาน-พลังงาน)
@@ -124,7 +124,7 @@ def strike_energy(body, fatigue: float = 0.0, injury=None) -> float:
     ร่างอ้างอิงได้ราว 200 J ซึ่งอยู่ในช่วงที่วัดกันจริงของหมัดคนที่ฝึกมา (ราว 100–300 J)
     พลังนี้ไม่ได้มาจากค่า Strength — มาจาก PCSA ของแขน แขนโมเมนต์ และความยาวท่อน
     """
-    force = body.endpoint_force("arm", fatigue, injury)
+    force = body.endpoint_force("arm", cond)
     return force * body.gen.arm_length * K.STRIKE_STROKE_RATIO
 
 
@@ -189,6 +189,7 @@ def apply_impact(body, state, energy: float, region: str, contact_area: float = 
     log = {"ส่วน": region, "พลังงานเข้า (J)": round(energy, 1), "ชั้นที่ดูดซับ": {}}
 
     left = max(0.0, energy)
+    torn = 0.0          # ความเสียหายที่จะกลายเป็นหลอดเลือดฉีก (สะสมระหว่างทาง)
     for name in SOFT_LAYERS:
         volume = thick[name] * area
         if volume <= 0.0:
@@ -200,7 +201,10 @@ def apply_impact(body, state, energy: float, region: str, contact_area: float = 
         # ความเสียหายเทียบกับ *พลังงานที่ทำให้หมดสภาพ* ซึ่งใหญ่กว่าเพดานการดูดซับมาก
         destroy = K.DESTROY_DENSITY[name] * volume
         if destroy > 0.0:
-            here[name] = min(1.0, here.get(name, 0.0) + absorbed / destroy)
+            added = absorbed / destroy
+            here[name] = min(1.0, here.get(name, 0.0) + added)
+            if name == "muscle":
+                torn += added        # หลอดเลือดเดินอยู่ในกล้ามเนื้อ ฉีกไปพร้อมกัน
         log["ชั้นที่ดูดซับ"][name] = {
             "ความหนา (mm)": round(thick[name] * 1000, 1),
             "ดูดซับ (J)": round(absorbed, 1),
@@ -208,7 +212,11 @@ def apply_impact(body, state, energy: float, region: str, contact_area: float = 
         }
 
     log["พลังงานถึงกระดูก (J)"] = round(left, 1)
+    bone_before = here.get("bone", 0.0)
     if left <= 0.0:
+        if torn > 0.0:
+            here["vessel"] = min(1.0, here.get("vessel", 0.0) + torn * K.VESSEL_TEAR_SHARE)
+            log["หลอดเลือดฉีก"] = round(here["vessel"], 3)
         return log
 
     # ---- พลังงานที่เหลือแปลงเป็นแรง แล้วให้กลไกกระดูกของ Phase 2 ตัดสิน ----
@@ -225,6 +233,18 @@ def apply_impact(body, state, energy: float, region: str, contact_area: float = 
     else:
         # ไม่หักก็ยังบอบช้ำตามสัดส่วนความเค้นที่รับไป
         here["bone"] = min(1.0, here.get("bone", 0.0) + risk * K.BONE_BRUISE_DAMAGE)
+
+    # หลอดเลือดไม่ใช่ชั้นที่พลังงานต้องเจาะผ่าน แต่เดินอยู่ในกล้ามเนื้อและตามกระดูก
+    # จึงฉีกตามความเสียหายที่เกิดกับสองอย่างนั้น — เป็นผลพลอยได้ ไม่ใช่ขั้นตอนแยก
+    # นี่คือต้นทางของการเสียเลือดทั้งหมด (ดู circulation.bleed_rate · §18)
+    # ความรุนแรงที่ "เกินจุดหัก" ไปแล้วยังต้องมีผล แม้ความเสียหายของกระดูกจะอิ่มตัว
+    # แรงที่ทะลุเกณฑ์ไปสามเท่าย่อมฉีกเนื้อเยื่อรอบข้างมากกว่าแรงที่เพิ่งพอหัก
+    overload = min(K.MAX_OVERLOAD, max(1.0, bone.fracture_ratio(stress, "bending")))
+    torn += (here.get("bone", 0.0) - bone_before) * overload
+    log["ความรุนแรงเกินเกณฑ์ (เท่า)"] = round(overload, 2)
+    if torn > 0.0:
+        here["vessel"] = min(1.0, here.get("vessel", 0.0) + torn * K.VESSEL_TEAR_SHARE)
+        log["หลอดเลือดฉีก"] = round(here["vessel"], 3)
 
     if region in REGION_HAS_ORGAN:
         through = max(0.0, left - K.TISSUE_TOUGHNESS["bone_shield"] * area)

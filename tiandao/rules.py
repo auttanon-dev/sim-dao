@@ -338,6 +338,10 @@ def apply_defeat(sim, world, win, lose, margin, rng, lethal_at=None):
     if _blow > 0.0:
         BODY.hurt(lose, _blow, key=(getattr(sim, "day", 0), win.cid, lose.cid,
                                     round(margin, 4)))
+    # การปะทะเหนื่อยทั้งสองฝ่าย ผู้แพ้มากกว่าเพราะต้องรับแรงด้วย (§8)
+    # ความล้าคลายเองใน age_and_decay ตามเวลาที่ผ่านไป จึงไม่สะสมไปตลอดกาล
+    BODY.exert(lose, BODY.constants.FIGHT_WORK)
+    BODY.exert(win, BODY.constants.FIGHT_WORK_WINNER)
     # หุ่นรับแรงแทนเจ้าของ — แพ้ทีหนึ่งก็พังไปตนหนึ่ง ทำให้กำลังจากหุ่นไม่สะสมขึ้นเรื่อยๆ ฟรีๆ
     if getattr(lose, 'puppets', 0) and rng.random() < C.PUPPET_BREAK_P:
         lose.puppets -= 1
@@ -826,10 +830,17 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     years = gap_days / 365.0
     # วัดอัตราของตัวเขาเองก่อนอย่างอื่น — นี่คือจุดเดียวที่ตัวละครทุกคนผ่านทุกครั้งที่โลกเดิน
     track_rates(ch, getattr(sim, "day", ch.acc_mark_day))
-    # บาดแผลหายไปตามเวลาที่ผ่านไปจริง (ดู body/injury.heal · §34) อินทิเกรตเป็นรูปแบบปิด
+    # สภาพร่างกายเดินไปตามเวลาที่ผ่านไปจริง: เลือดออกจากแผลที่ยังเปิด สร้างเลือดใหม่
+    # คลายความล้า และแผลสมาน (ดู body.tick · §8, §18, §34) ทั้งหมดอินทิเกรตเป็นรูปแบบปิด
     # ข้าม gap ทีเดียว เพราะเอนจินนี้กระโดดข้ามเวลาเป็นวัน ไม่มี tick ต่อเนื่องให้เดิน
-    if getattr(ch, "injuries", None):
-        BODY.injury.heal(ch.injuries, gap_days)
+    if getattr(ch, "injuries", None) or getattr(ch, "fatigue", 0.0)             or getattr(ch, "bleed", 0.0) or getattr(ch, "blood_frac", 1.0) < 1.0:
+        BODY.tick(ch, gap_days)
+        # เสียเลือดจนหมดคือทางตายจริงที่ไม่ผ่านการปะทะ — บาดแผลที่ไม่มีใครห้ามเลือดให้
+        # ฆ่าคนได้เองหลังเหตุการณ์จบไปแล้ว ถ้าไม่มีทางนี้ คนจะค้างอยู่ที่เลือดสามสิบ
+        # เปอร์เซ็นต์ตลอดกาลโดยไม่มีอะไรเกิดขึ้น
+        if ch.alive and ch.blood_frac < BODY.constants.BLOOD_DEATH_BELOW:
+            sim.kill(ch, "เลือดไหลจนหมดจากบาดแผลที่ไม่มีใครห้ามให้")
+            return
     upkeep(ch, world, years)
     # งบปราณของผู้ฝึก — ดูดฟรีจากที่ยืน แล้วเผาหินเติมส่วนที่ขาด (ดู sustain)
     qi_year, _drawn = sustain(sim, ch, world, years)
