@@ -226,7 +226,10 @@ class Character:
     clan: int = -1              # ตระกูลที่สังกัด (ดัชนีใน clans.CLANS)
     parents: List[int] = field(default_factory=list)
     children: List[int] = field(default_factory=list)
-    generation: int = 0
+    # เคยถูกประกาศสองที่ในคลาสเดียวกัน (ที่นี่ = 0 และอีกครั้งใต้ enemies_defeated = 1)
+    # Python เก็บอันหลัง ค่าที่มีผลจริงจึงเป็น 1 ซึ่งถูกแล้ว (ผู้ก่อตั้งสายเลือดคือ "รุ่นที่ 1")
+    # แต่คนอ่านบรรทัดนี้จะเข้าใจว่าเริ่มที่ 0 — ยุบเหลือที่เดียว คงตำแหน่งและค่าที่ใช้จริงไว้
+    generation: int = 1
     traits: List[str] = field(default_factory=list)
     archetype: str = "ผู้พเนจร"
     is_unique_beast: bool = False
@@ -268,6 +271,15 @@ class Character:
     # เพราะการแข็งตัวของเลือดคือกระบวนการที่เดินหน้าไปเรื่อยๆ ถ้าคำนวณใหม่ทุกครั้งจากแผล
     # แผลจะเริ่มนับการแข็งตัวใหม่ทุกครั้งที่ถูกถาม แล้วเสียเลือดมากขึ้นตามจำนวนครั้งที่ถาม
     bleed: float = 0.0
+    # คลังไกลโคเจนที่เหลือ (0..1) และอุณหภูมิแกนกลาง (°C) — ดู body/metabolism.py
+    # ไขมันเป็นคลังสำรองที่ใหญ่กว่ามาก แต่อนุมานจากองค์ประกอบร่างกายได้ จึงไม่ต้องเก็บ
+    #
+    # ชื่อ `fuel` ไม่ใช่ `energy` โดยตั้งใจ — `energy` ถูกใช้แล้วข้างบน (0–100) โดยระบบ
+    # ล่าอสูรกับเหตุการณ์เมือง การประกาศซ้ำจะทับของเดิมเงียบๆ แบบเดียวกับที่ hp/max_hp
+    # เคยถูกประกาศสองที่ (วัดแล้วเจอจริง: ค่าเฉลี่ยของ energy ทั้งโลกกลายเป็น 2.23
+    # ซึ่งไม่ใช่ทั้งสเกล 0–100 เดิมและไม่ใช่สเกล 0–1 ใหม่)
+    fuel: float = 1.0
+    core_temp: float = 37.0
     # บาดเจ็บเฉพาะส่วน: ชื่อส่วนร่าง -> {ชื่อเนื้อเยื่อ: ความเสียหาย 0..1} (ดู body/injury.py)
     # ต่างจากกายวิภาคที่คำนวณกลับมาได้เสมอ — บาดเจ็บคือ *ประวัติศาสตร์* ของร่างนั้น
     # อนุมานย้อนหลังไม่ได้ จึงต้องเก็บจริง ว่างเปล่าสำหรับคนที่ไม่เจ็บ ต้นทุนในเซฟจึงแทบศูนย์
@@ -315,7 +327,6 @@ class Character:
     nemeses: dict = field(default_factory=dict)
     cities_visited: int = 0
     enemies_defeated: int = 0
-    generation: int = 1
     parent_name: str = None
     moral: int = 0
     title: str = "ชาวยุทธนิรนาม"
@@ -481,6 +492,8 @@ class Character:
         self.__dict__.setdefault("fatigue", 0.0)
         self.__dict__.setdefault("blood_frac", 1.0)
         self.__dict__.setdefault("bleed", 0.0)
+        self.__dict__.setdefault("fuel", 1.0)
+        self.__dict__.setdefault("core_temp", 37.0)
         self.__dict__.setdefault("injuries", {})
         self.__dict__.setdefault("body_seed", 0)
         self.__dict__.setdefault("element", "")

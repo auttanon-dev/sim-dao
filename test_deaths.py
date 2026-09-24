@@ -130,6 +130,36 @@ class TestBetrayal(unittest.TestCase):
             self.assertNotEqual(dead.get(e.actor), e.day, "และคนลงมือยิ่งไม่ควรตายเอง")
 
 
+class TestTargetsAreAlive(unittest.TestCase):
+    """เหตุการณ์ที่ไม่ฆ่าใคร ต้องไม่ไปกระทำกับศพ
+
+    เทสต์ข้างบนจับเรื่องนี้ได้ทางอ้อม (ตายวันเดียวกับที่ถูกหักหลัง) ซึ่งเป็นความบังเอิญเชิงเวลา
+    ไม่ใช่กลไก ตัวกลไกจริงคือ **กองเป้าหมายค้างศพ**: บล็อกตามล่ามนุษย์มารใน _step ดึงผู้ล่า
+    มาจาก `others` แล้ว apply_defeat ฆ่าฝ่ายไหนก็ได้ ยามเดิมเช็คแต่ว่า actor ตายหรือยัง
+    ถ้าผู้ล่าเป็นฝ่ายตาย กองนั้นยังมีเขาอยู่ แล้วมือจับที่เลือกเป้าจากกองก็หยิบศพมาใช้
+    (วัดจริงก่อนแก้: seed 11 วันที่ 4,183 — "ทรยศ" กับเป้าที่ตายไปแล้วในสเต็ปเดียวกัน)
+    """
+
+    def test_no_bloodless_event_ever_targets_a_corpse(self):
+        # มือจับพวกนี้ไม่เรียก sim.kill เลย เป้าที่ตายแล้วจึงเป็นหลักฐานว่ากองค้างศพ
+        bloodless = {"ทรยศ", "หักหลัง", "ถ่ายทอดวิชา", "สะสางเรื่องเก่า"}
+        found = []
+        orig = S.Sim.emit
+
+        def patched(self, world, kind, a, t, tags, outcome, text, gap, d):
+            if kind in bloodless and t is not None and not t.alive:
+                found.append((self.day, kind, getattr(a, "cid", -1), t.cid))
+            return orig(self, world, kind, a, t, tags, outcome, text, gap, d)
+
+        S.Sim.emit = patched
+        try:
+            sim = quiet(S.Sim, seed=11)
+            quiet(sim.run, 40000)
+        finally:
+            S.Sim.emit = orig
+        self.assertEqual(found, [], f"มีเหตุการณ์ที่กระทำกับศพ: {found[:5]}")
+
+
 class TestDuel(unittest.TestCase):
     def test_a_friendly_bout_ends_in_a_bow_not_a_grave(self):
         sim, w, a, t = pair()

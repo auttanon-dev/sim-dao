@@ -833,14 +833,21 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     # สภาพร่างกายเดินไปตามเวลาที่ผ่านไปจริง: เลือดออกจากแผลที่ยังเปิด สร้างเลือดใหม่
     # คลายความล้า และแผลสมาน (ดู body.tick · §8, §18, §34) ทั้งหมดอินทิเกรตเป็นรูปแบบปิด
     # ข้าม gap ทีเดียว เพราะเอนจินนี้กระโดดข้ามเวลาเป็นวัน ไม่มี tick ต่อเนื่องให้เดิน
-    if getattr(ch, "injuries", None) or getattr(ch, "fatigue", 0.0)             or getattr(ch, "bleed", 0.0) or getattr(ch, "blood_frac", 1.0) < 1.0:
-        BODY.tick(ch, gap_days)
-        # เสียเลือดจนหมดคือทางตายจริงที่ไม่ผ่านการปะทะ — บาดแผลที่ไม่มีใครห้ามเลือดให้
-        # ฆ่าคนได้เองหลังเหตุการณ์จบไปแล้ว ถ้าไม่มีทางนี้ คนจะค้างอยู่ที่เลือดสามสิบ
-        # เปอร์เซ็นต์ตลอดกาลโดยไม่มีอะไรเกิดขึ้น
-        if ch.alive and ch.blood_frac < BODY.constants.BLOOD_DEATH_BELOW:
-            sim.kill(ch, "เลือดไหลจนหมดจากบาดแผลที่ไม่มีใครห้ามให้")
-            return
+    # สภาพร่างกายเดินไปตามเวลาจริงทุกครั้ง ไม่ใช่เฉพาะตอนมีอะไรผิดปกติ — อุณหภูมิกับ
+    # พลังงานต้องถูกคิดแม้ตอนสบายดี ไม่งั้นคนจะไม่มีวันหนาวและไม่มีวันหิว
+    BODY.tick(ch, gap_days, day=getattr(sim, "day", 0))
+    # ทางตายที่ไม่ผ่านการปะทะ — บาดแผลที่ไม่มีใครห้ามเลือด และอากาศที่ร่างสู้ไม่ไหว
+    # ถ้าไม่มีสองทางนี้ คนจะค้างอยู่ที่เลือดสามสิบเปอร์เซ็นต์หรืออุณหภูมิยี่สิบองศาตลอดกาล
+    if ch.alive and ch.blood_frac < BODY.constants.BLOOD_DEATH_BELOW:
+        sim.kill(ch, "เลือดไหลจนหมดจากบาดแผลที่ไม่มีใครห้ามให้")
+        return
+    _margin = BODY.constants.TEMP_DEATH_MARGIN
+    if ch.alive and ch.core_temp <= BODY.constants.HYPOTHERMIA_DEATH - _margin:
+        sim.kill(ch, "ร่างเย็นจนหัวใจหยุดเต้นกลางความหนาว")
+        return
+    if ch.alive and ch.core_temp >= BODY.constants.HYPERTHERMIA_DEATH + _margin:
+        sim.kill(ch, "ร่างร้อนจนอวัยวะภายในล้มเหลว")
+        return
     upkeep(ch, world, years)
     # งบปราณของผู้ฝึก — ดูดฟรีจากที่ยืน แล้วเผาหินเติมส่วนที่ขาด (ดู sustain)
     qi_year, _drawn = sustain(sim, ch, world, years)

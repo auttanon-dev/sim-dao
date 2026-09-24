@@ -13,9 +13,11 @@ Phase 1 มีความล้า · Phase 3 เพิ่มบาดเจ็
 
 หน่วยและช่วงค่า
 --------------------------------------------------------------------------------------------
-    fatigue   0..1   ส่วนของแรงที่เรียกใช้ไม่ได้เพราะล้า (1 = หมดแรงสนิท)
-    blood     0..1   สัดส่วนปริมาตรเลือดเทียบระดับปกติของร่างนั้น (1 = เต็ม)
-    injury    dict   ความเสียหายรายส่วน/รายเนื้อเยื่อ (ดู injury.py) หรือ None ถ้าไม่เจ็บ
+    fatigue    0..1   ส่วนของแรงที่เรียกใช้ไม่ได้เพราะล้า (1 = หมดแรงสนิท)
+    blood      0..1   สัดส่วนปริมาตรเลือดเทียบระดับปกติของร่างนั้น (1 = เต็ม)
+    fuel       0..1   สัดส่วนคลังไกลโคเจนที่เหลือ (ไขมันเป็นคลังสำรองแยก ดู metabolism.py)
+    core_temp  °C     อุณหภูมิแกนกลาง — ปกติ 37
+    injury     dict   ความเสียหายรายส่วน/รายเนื้อเยื่อ (ดู injury.py) หรือ None ถ้าไม่เจ็บ
 """
 
 from . import constants as K
@@ -24,11 +26,14 @@ from . import constants as K
 class Condition:
     """สภาพปัจจุบันของร่างหนึ่ง — อ่านอย่างเดียว สร้างใหม่ทุกครั้งที่ถาม ราคาถูกมาก"""
 
-    __slots__ = ("fatigue", "blood", "injury")
+    __slots__ = ("fatigue", "blood", "fuel", "core_temp", "injury")
 
-    def __init__(self, fatigue: float = 0.0, blood: float = 1.0, injury=None):
+    def __init__(self, fatigue: float = 0.0, blood: float = 1.0, injury=None,
+                 fuel: float = 1.0, core_temp: float = None):
         self.fatigue = min(1.0, max(0.0, float(fatigue)))
         self.blood = min(1.5, max(0.0, float(blood)))
+        self.fuel = min(1.0, max(0.0, float(fuel)))
+        self.core_temp = (K.CORE_TEMP_NORMAL if core_temp is None else float(core_temp))
         self.injury = injury or None
 
     @classmethod
@@ -36,7 +41,9 @@ class Condition:
         """อ่านสภาพจากตัวละครโดยตรง — จุดเดียวที่รู้ว่าฟิลด์ไหนเก็บอะไร"""
         return cls(getattr(character, "fatigue", 0.0),
                    getattr(character, "blood_frac", 1.0),
-                   getattr(character, "injuries", None))
+                   getattr(character, "injuries", None),
+                   getattr(character, "fuel", 1.0),
+                   getattr(character, "core_temp", K.CORE_TEMP_NORMAL))
 
     # ---------------------------------------------------------------- ตัวคูณที่ได้จากสภาพ
     @property
@@ -58,12 +65,29 @@ class Condition:
         return max(0.0, min(1.0, left)) ** K.BLOOD_PERFORMANCE_EXPONENT
 
     @property
+    def fuel_factor(self) -> float:
+        """ส่วนของสมรรถภาพที่เหลือเมื่อคลังพลังงานพร่อง (0..1)
+
+        คลังไกลโคเจนหมดไม่ได้แปลว่าขยับไม่ได้ — ร่างหันไปใช้ไขมันซึ่งให้กำลังได้ช้ากว่า
+        จึงเหลือสมรรถภาพส่วนหนึ่งเสมอ ไม่ใช่ศูนย์ (ดู constants.SPENT_FUEL_FLOOR)
+        """
+        return K.SPENT_FUEL_FLOOR + (1.0 - K.SPENT_FUEL_FLOOR) * self.fuel
+
+    @property
+    def thermal_factor(self) -> float:
+        """ส่วนของสมรรถภาพที่เหลือเมื่ออุณหภูมิแกนกลางผิดปกติ (0..1)"""
+        from . import metabolism as MET
+        return max(0.0, 1.0 - MET.thermal_penalty(self.core_temp))
+
+    @property
     def effort_factor(self) -> float:
-        """ตัวคูณรวมของแรงที่เรียกใช้ได้ — ความล้าและออกซิเจนคูณกัน ไม่ใช่บวกกัน
+        """ตัวคูณรวมของแรงที่เรียกใช้ได้ — ทุกข้อจำกัด **คูณกัน ไม่ใช่บวกกัน**
 
         คนล้าครึ่งหนึ่งและเสียเลือดจนเหลือสมรรถภาพครึ่งหนึ่ง ออกแรงได้หนึ่งในสี่ ไม่ใช่ศูนย์
+        การคูณทำให้ข้อจำกัดหลายอย่างซ้อนกันได้โดยไม่มีอันไหนกลืนอันอื่นจนเหลือศูนย์เร็วเกินไป
         """
-        return max(0.0, 1.0 - self.fatigue) * self.oxygen_factor
+        return (max(0.0, 1.0 - self.fatigue) * self.oxygen_factor
+                * self.fuel_factor * self.thermal_factor)
 
     @property
     def conscious(self) -> bool:
@@ -71,10 +95,16 @@ class Condition:
         return self.blood > K.BLOOD_UNCONSCIOUS_BELOW
 
     def explain(self) -> dict:
+        from . import metabolism as MET
         return {
             "ความล้า": round(self.fatigue, 3),
             "เลือด (เท่าของปกติ)": round(self.blood, 3),
+            "คลังพลังงาน": round(self.fuel, 3),
+            "อุณหภูมิแกนกลาง (°C)": round(self.core_temp, 2),
+            "สภาวะความร้อน": MET.thermal_state(self.core_temp),
             "ตัวคูณจากออกซิเจน": round(self.oxygen_factor, 3),
+            "ตัวคูณจากพลังงาน": round(self.fuel_factor, 3),
+            "ตัวคูณจากอุณหภูมิ": round(self.thermal_factor, 3),
             "ตัวคูณแรงรวม": round(self.effort_factor, 3),
             "รู้สึกตัว": self.conscious,
             "มีบาดเจ็บ": bool(self.injury),

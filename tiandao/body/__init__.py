@@ -29,7 +29,7 @@ migrate เซฟเก่า ไม่ต้องขยับ SAVE_VERSION แ
 เท่านั้น (ไม่ติดไปกับ pickle ของ Sim) และไม่มีจุดใดแตะ RNG หลักของโลก
 """
 from . import (balance, capability, circulation, condition, constants,
-               genetics, injury, skeleton)
+               genetics, injury, metabolism, skeleton)
 from .anatomy import Body, MuscleGroup
 from .skeleton import Bone, Skeleton
 from .condition import Condition
@@ -42,7 +42,8 @@ __all__ = ["Body", "Genetics", "MuscleGroup", "Bone", "Skeleton",
            "can_stand_with", "balance_margin", "fracture_risk", "BODY_POWER_WEIGHT",
            "injury", "injuries_of", "hurt", "fall", "strike_energy", "injury_summary",
            "DEFEAT_IMPACT_SCALE", "Condition", "circulation", "condition",
-           "condition_of", "exert", "tick", "bleeding", "conscious"]
+           "condition_of", "exert", "tick", "bleeding", "conscious",
+           "metabolism", "spend", "endurance_days", "thermal_state"]
 
 BODY_POWER_WEIGHT = constants.BODY_POWER_WEIGHT
 DEFEAT_IMPACT_SCALE = constants.DEFEAT_IMPACT_SCALE
@@ -202,7 +203,8 @@ def exert(character, work: float = 1.0) -> float:
     return circulation.exert(character, work)
 
 
-def tick(character, days: float, body_seed: int = 0) -> dict:
+def tick(character, days: float, body_seed: int = 0, day: int = None,
+         exertion: float = 0.0) -> dict:
     """เดินสภาพร่างกายไปตามเวลาที่ผ่านไป — จุดเดียวที่ผู้เรียกต้องรู้จัก
 
     เลือดออก · สร้างเลือดใหม่ · คลายความล้า · แผลสมาน ทั้งหมดในครั้งเดียว
@@ -212,7 +214,12 @@ def tick(character, days: float, body_seed: int = 0) -> dict:
     ลำดับสำคัญ: เลือดออกใช้สภาพของแผล **ก่อน** แผลจะสมาน ไม่งั้นแผลที่หายแล้ว
     จะยังไม่เคยทำให้เสียเลือดเลยสักหยด
     """
-    log = circulation.tick(character, body_of(character, body_seed), days)
+    body = body_of(character, body_seed)
+    log = circulation.tick(character, body, days)
+    ambient, clothing = (metabolism.climate_of(day) if day is not None
+                         else (None, None))
+    log.update(metabolism.tick(character, body, days, ambient, exertion,
+                               constants.DEFAULT_CLOTHING if clothing is None else clothing))
     state = getattr(character, "injuries", None)
     if state:
         injury.heal(state, days)
@@ -229,6 +236,29 @@ def _open_wound(character, log) -> None:
     torn = log.get("หลอดเลือดฉีก")
     if torn:
         circulation.open_wound(character, torn)
+
+
+def spend(character, work_joules: float, body_seed: int = 0) -> float:
+    """จ่ายพลังงานสำหรับงานกลที่เพิ่งทำ — คืนสัดส่วนคลังที่เหลือ (§21–22)"""
+    body = body_of(character, body_seed)
+    cap = metabolism.glycogen_capacity(body)
+    if cap <= 0.0:
+        return 1.0
+    cost = metabolism.metabolic_cost(work_joules)
+    character.fuel = max(0.0, getattr(character, "fuel", 1.0) - cost / cap)
+    return character.fuel
+
+
+def endurance_days(character, body_seed: int = 0, exertion: float = 0.0) -> float:
+    """อดได้อีกกี่วันก่อนเชื้อเพลิงหมด — ไขมันในตัวคือคลังหลัก"""
+    return metabolism.endurance_days(body_of(character, body_seed),
+                                     Condition.of(character), exertion)
+
+
+def thermal_state(character) -> str:
+    """สภาวะความร้อนของร่างตอนนี้เป็นคำ"""
+    return metabolism.thermal_state(getattr(character, "core_temp",
+                                            constants.CORE_TEMP_NORMAL))
 
 
 def conscious(character) -> bool:
@@ -250,4 +280,5 @@ def explain(character, body_seed: int = 0, friction=None,
         "การทรงตัว": balance.explain(body, load_kg),
         "บาดเจ็บ": injury.explain(body, state),
         "ไหลเวียนและเลือด": circulation.explain(body, cond, character=character),
+        "พลังงานและความร้อน": metabolism.explain(body, cond),
     }
