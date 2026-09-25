@@ -37,7 +37,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #
 # เพิ่ม migration ใหม่เมื่อไร ให้บวกเลขนี้ขึ้นหนึ่ง แล้วเพิ่มกิ่ง `if version < N:` ใน _migrate()
 #   2 — นาฬิกาโลก (Sim.world_tick_day) และนาฬิกาทรัพยากร (Sim.eco_day)
-SAVE_VERSION = 2
+#   3 — ยุ้งฉางหมู่บ้าน (Sim.granary, food_stats, food_day — tiandao/food.py)
+SAVE_VERSION = 3
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -230,6 +231,13 @@ def _migrate(sim, version):
         # ต่อจากวันที่เคยคิดไว้แล้ว (last_day) — ไม่แตะ RNG
         sim.world_tick_day = sim.day
         sim.eco_day = sim.last_day
+    if version < 3:
+        # เซฟก่อนมียุ้งฉาง: เริ่มยุ้งฉางว่าง นับบัญชีใหม่จากศูนย์ และเริ่มนับเวลาอาหารจากวันนี้
+        # ตัวละครได้ food=None จาก Character.__setstate__ แล้วรับเสบียงตั้งต้นตอนระบบอาหารเห็นครั้งแรก
+        from . import food as FOOD
+        sim.granary = {}
+        sim.food_stats = FOOD.new_stats()
+        sim.food_day = sim.day
 
 
 def _backfill_new_attrs(sim):

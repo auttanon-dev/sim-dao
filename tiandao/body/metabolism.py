@@ -250,7 +250,7 @@ def climate_of(day: int) -> tuple:
 
 # ---------------------------------------------------------------- เดินเวลา
 def tick(character, body, days: float, ambient: float = None, exertion: float = 0.0,
-         clothing: float = 0.0, wind: float = 0.0) -> dict:
+         clothing: float = 0.0, wind: float = 0.0, fed: float = 1.0) -> dict:
     """เดินพลังงานและอุณหภูมิไปตามเวลาที่ผ่านไป — แก้ตัวละครในที่
 
     กินพลังงานจากคลังไกลโคเจนก่อน แล้วจึงจากไขมัน (ซึ่งเฟสนี้ยังไม่ลดมวลไขมันจริง —
@@ -264,9 +264,9 @@ def tick(character, body, days: float, ambient: float = None, exertion: float = 
     store = getattr(character, "fuel", 1.0) * cap
     from_glycogen = min(store, used)
     character.fuel = max(0.0, (store - from_glycogen) / cap) if cap > 0 else 0.0
-    # กินอาหารตามปกติเติมคลังกลับ — โลกนี้ยังไม่มีระบบอาหารรายมื้อ จึงเติมเข้าหาเต็ม
-    # ด้วยอัตราหนึ่ง ซึ่งเท่ากับสมมติว่าคนหาอะไรกินได้ตามปกติเว้นแต่มีอะไรมาขวาง
-    character.fuel = PHYS.relax(character.fuel, 1.0, K.REFEED_RATE, days)
+    # กินอาหารเติมคลังกลับเข้าหาเต็มด้วยอัตราหนึ่ง เฉพาะวันที่ได้กินจริง — `fed` มาจากยุ้งฉาง
+    # (tiandao/food.py) ถ้าปิดระบบอาหารอยู่ fed = 1 คือสมมติแบบเดิมว่าคนหาอะไรกินได้ตามปกติ
+    character.fuel = PHYS.relax(character.fuel, 1.0, K.REFEED_RATE, days * fed)
 
     amb = K.DEFAULT_AMBIENT if ambient is None else ambient
     character.core_temp = step_temperature(

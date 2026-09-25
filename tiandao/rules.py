@@ -839,7 +839,8 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     # ข้าม gap ทีเดียว เพราะเอนจินนี้กระโดดข้ามเวลาเป็นวัน ไม่มี tick ต่อเนื่องให้เดิน
     # สภาพร่างกายเดินไปตามเวลาจริงทุกครั้ง ไม่ใช่เฉพาะตอนมีอะไรผิดปกติ — อุณหภูมิกับ
     # พลังงานต้องถูกคิดแม้ตอนสบายดี ไม่งั้นคนจะไม่มีวันหนาวและไม่มีวันหิว
-    BODY.tick(ch, gap_days, day=getattr(sim, "day", 0))
+    from . import food as FOOD
+    BODY.tick(ch, gap_days, day=getattr(sim, "day", 0), fed=FOOD.fed_share(ch))
     # ทางตายที่ไม่ผ่านการปะทะ — บาดแผลที่ไม่มีใครห้ามเลือด และอากาศที่ร่างสู้ไม่ไหว
     # ถ้าไม่มีสองทางนี้ คนจะค้างอยู่ที่เลือดสามสิบเปอร์เซ็นต์หรืออุณหภูมิยี่สิบองศาตลอดกาล
     if ch.alive and ch.blood_frac < BODY.constants.BLOOD_DEATH_BELOW:

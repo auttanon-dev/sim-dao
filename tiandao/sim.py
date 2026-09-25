@@ -30,6 +30,7 @@ from . import chronicle as CH
 from . import seasons as SEASONS
 from . import emotions as EM
 from . import body as BODY
+from . import food as FOOD
 from .ai import BrainManager, EventBus
 from .console import safe_print
 
@@ -71,6 +72,9 @@ class Sim:
         self.last_day = 0
         self.world_tick_day = 0   # ใบนัดถัดไปของนาฬิกาโลก (ดู _world_tick)
         self.eco_day = 0          # วันล่าสุดที่คิดการฟื้นของทรัพยากรไปแล้ว (ดู _advance_eco)
+        self.food_day = 0         # วันล่าสุดที่ยุ้งฉางคิดไปแล้ว (ดู tiandao/food.py)
+        self.granary = {}         # place_idx -> สำรับในยุ้งฉางของที่นั้น
+        self.food_stats = FOOD.new_stats()
         self.seq = 0
         self.cast = []
         self.used_names = set()          # ชื่อที่ถูกใช้แล้วทั้งจักรวาล (unique_name)
@@ -883,6 +887,8 @@ class Sim:
             if not natural:
                 gain *= C.LORD_POOL_VIOLENT_X
             self.lord_pool = getattr(self, "lord_pool", 0.0) + gain
+        if C.FOOD_ENABLED:
+            FOOD.on_death(self, ch)
         self.alive_cids.discard(ch.cid)
         self._alive_ver = getattr(self, "_alive_ver", 0) + 1
         self._world_counts_dirty = True
@@ -1650,6 +1656,9 @@ class Sim:
         self.day = max(self.day, self.world_tick_day)
         self.world_tick_day = self.day + C.WORLD_TICK_DAYS
         self._advance_eco()
+        if C.FOOD_ENABLED:
+            FOOD.tick(self, self.day - self.food_day)
+        self.food_day = self.day
         WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
         # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
         # โปรไฟล์จริง: 5.0 วินาทีจาก 100 (5%) โดยได้ผลเท่ากันทุกประการถ้าสะสมเป็นก้อน
@@ -1888,6 +1897,15 @@ class Sim:
 
         CRISES.tick(self)
 
+    def requeue(self, ch, day):
+        """ย้ายเทิร์นที่รออยู่ของคนนี้ไปเป็นวันที่กำหนด — คิวต้องมีใบเดียวต่อคน (ดู persist._repair_queue)
+
+        O(ขนาดคิว) จึงใช้เฉพาะเหตุที่นานๆ เกิด เช่น ความหิวดึงคนออกจากด่านหรือส่งคนไปหาอาหาร
+        """
+        self.queue = [(d, c) for d, c in self.queue if c != ch.cid]
+        heapq.heapify(self.queue)
+        heapq.heappush(self.queue, (max(day, self.day), ch.cid))
+
     def _step(self):
         rng = self.rng
         actor = None
@@ -2088,7 +2106,11 @@ class Sim:
                 if self.day < ch.seclude_until:
                     self.schedule(ch, ch.seclude_until - self.day)
                     continue
-                yrs = max(1, (self.day - int(ch.seclude_snap.get("day", self.day))) // 365)
+                days_in = self.day - int(ch.seclude_snap.get("day", self.day))
+                # ออกก่อนกำหนดเพราะเสบียงหมด (tiandao/food.py) ได้ผลเท่าเวลาที่อยู่จริง ไม่ปัดขึ้นเป็นหนึ่งปี
+                cut_short = getattr(ch, "seclude_cut", False)
+                ch.seclude_cut = False
+                yrs = days_in / 365.0 if cut_short else max(1, days_in // 365)
                 # เวลาที่ "ได้ใช้" ไม่เท่ากับเวลาที่โลกภายนอกผ่านไป ถ้าปราณตรงนั้นหนาแน่นพอ
                 gamma = float(ch.seclude_snap.get("gamma", 1.0) or 1.0)
                 felt = yrs * gamma
@@ -2101,8 +2123,11 @@ class Sim:
                     base = ch.emo_base.get(key, ch.emotions[key])
                     ch.emotions[key] += (base - ch.emotions[key]) * C.SECLUDE_FOCUS
                 d_out = self.seclusion_diff(ch, wv, yrs)
+                if cut_short:
+                    d_out["เหตุที่ออก"] = "เสบียงหมดก่อนครบกำหนด"
+                spent = f"{yrs:.1f}" if cut_short else f"{yrs}"
                 self.emit(wv, "ออกจากด่าน", ch, None, ["อดทน", "รู้แจ้ง"], "ออกจากด่าน",
-                          f"{ch.name}ออกจากด่านหลังปิดตัวไป {yrs} ปี — "
+                          f"{ch.name}ออกจากด่านหลังปิดตัวไป {spent} ปี — "
                           f"{d_out.get('โลกที่เปลี่ยนไป', 'โลกยังเหมือนเดิม')}", 0, d_out)
                 self.schedule(ch, rng.randint(3, 30))
                 continue
@@ -2272,7 +2297,7 @@ class Sim:
         # เหตุการณ์ "สิ้นอายุขัย" ได้ทั้งที่ intent ของเด็กถูกกันไว้ด้านล่างแล้ว
         actor_gap = self.day - actor.last_day
         if actor.age(self.day) < 14:
-            BODY.tick(actor, actor_gap, day=self.day)
+            BODY.tick(actor, actor_gap, day=self.day, fed=FOOD.fed_share(actor))
         else:
             R.age_and_decay(self, actor, world, actor_gap, rng)
         actor.last_day = self.day
@@ -4924,6 +4949,8 @@ class Sim:
                 if "พัวพันกับมาร" not in t.traits: t.traits.append("พัวพันกับมาร")
                 
             child = self.spawn(w, age_years=0)
+            if C.FOOD_ENABLED:
+                child.food = 0.0       # ทารกไม่ได้พกเสบียงมา กินจากยุ้งฉางของที่ที่เกิด
             blood = {}
             for kk in C.BLOODS:
                 v = (a.blood.get(kk, 0.0) + t.blood.get(kk, 0.0)) * CL.INHERIT_MIX

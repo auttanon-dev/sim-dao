@@ -220,12 +220,14 @@ def train(character, work: float = 1.0) -> float:
 
 
 def tick(character, days: float, body_seed: int = 0, day: int = None,
-         exertion: float = 0.0, lod_level=None) -> dict:
+         exertion: float = 0.0, lod_level=None, fed: float = 1.0) -> dict:
     """เดินสภาพร่างกายไปตามเวลาที่ผ่านไป — จุดเดียวที่ผู้เรียกต้องรู้จัก
 
     เลือดออก · สร้างเลือดใหม่ · คลายความล้า · แผลสมาน ทั้งหมดในครั้งเดียว
     ทุกอย่างอินทิเกรตเป็นรูปแบบปิดข้ามช่วงเวลา จึงเรียกครั้งเดียวต่อหนึ่ง gap ได้เลย
     ไม่ต้องแบ่งเป็นก้าวเล็กๆ และผลไม่ขึ้นกับว่าแบ่งละเอียดแค่ไหน
+
+    `fed` คือสัดส่วนวันที่ได้กินในช่วงนี้ (tiandao/food.py) — วันที่ไม่ได้กินไม่เติมคลังพลังงาน
 
     ลำดับสำคัญ: เลือดออกใช้สภาพของแผล **ก่อน** แผลจะสมาน ไม่งั้นแผลที่หายแล้ว
     จะยังไม่เคยทำให้เสียเลือดเลยสักหยด
@@ -236,7 +238,8 @@ def tick(character, days: float, body_seed: int = 0, day: int = None,
     ambient, clothing = (metabolism.climate_of(day) if day is not None
                          else (None, None))
     log.update(metabolism.tick(character, body, days, ambient, exertion,
-                               constants.DEFAULT_CLOTHING if clothing is None else clothing))
+                               constants.DEFAULT_CLOTHING if clothing is None else clothing,
+                               fed=fed))
     state = getattr(character, "injuries", None)
     if state:
         cond = Condition.of(character)

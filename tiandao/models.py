@@ -263,6 +263,11 @@ class Character:
     fate_changed: int = 0                               # เปลี่ยนชะตาที่เห็นได้สำเร็จกี่ครั้ง
     fate_kept: int = 0                                  # กี่ครั้งที่มันเกิดตามนิมิตอยู่ดี
     seclude_until: int = 0
+    # อาหาร (tiandao/food.py) — food คือเสบียงติดตัวเป็นสำรับ None = ระบบอาหารยังไม่เคยเห็นคนนี้
+    food: Optional[float] = None
+    hunger_days: float = 0.0            # วันที่ไม่ได้กินติดกันตอนนี้
+    food_fed: float = 0.0               # วันที่กินอิ่ม สะสมไว้ให้ร่างกายใช้ตอนเทิร์นถัดไป
+    food_missed: float = 0.0            # วันที่ไม่ได้กิน สะสมไว้ให้ร่างกายใช้ตอนเทิร์นถัดไป
     # วันที่หายเข้าไปในแดนลับของตัวเอง (จาก "ซ่อนตัว") — ใช้บอกตอนออกมาว่าหายไปกี่ปี
     # และใช้เทียบว่าขั้นพลังไม่ขยับเลยระหว่างนั้น (ดู R.in_secret_realm)
     hide_day: int = 0
@@ -504,6 +509,10 @@ class Character:
         self.__dict__.setdefault("blood_frac", 1.0)
         self.__dict__.setdefault("bleed", 0.0)
         self.__dict__.setdefault("fuel", 1.0)
+        self.__dict__.setdefault("food", None)
+        self.__dict__.setdefault("hunger_days", 0.0)
+        self.__dict__.setdefault("food_fed", 0.0)
+        self.__dict__.setdefault("food_missed", 0.0)
         self.__dict__.setdefault("core_temp", 37.0)
         self.__dict__.setdefault("injuries", {})
         self.__dict__.setdefault("body_seed", 0)
