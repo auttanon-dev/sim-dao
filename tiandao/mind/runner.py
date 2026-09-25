@@ -197,6 +197,25 @@ class MindRunner:
         sim.mind.activity = ""
         raw = text or ""
         text = ST.clean_story(raw)
+        fact_errors = ST.validate_facts(entry, text)
+        if fact_errors:
+            # โมเดลเขียนลื่นแต่กลับผู้ชนะมีอันตรายกว่าการไม่มีร้อยแก้ว ลองแก้หนึ่งครั้งโดย
+            # ชี้ข้อผิดพลาดตรงๆ ถ้ายังผิดให้ทิ้งและคงบันทึกข้อเท็จจริงของเอนจินไว้แทน
+            try:
+                correction = (user + "\n\n[ฉบับก่อนต้องแก้] " + " / ".join(fact_errors)
+                              + f"\nผลที่ต้องตรงทุกประการ: {entry.get('text', '')}"
+                              + "\nเขียนฉากใหม่ทั้งหมดและจบให้ถึงผลนี้ ห้ามอธิบายการแก้ไข\n"
+                              + raw[:5000])
+                raw = self.backend.write(system, correction) or ""
+                text = ST.clean_story(raw)
+                fact_errors = ST.validate_facts(entry, text)
+            except Exception as exc:
+                fact_errors = [f"เขียนแก้ไม่สำเร็จ: {exc}"]
+            if fact_errors:
+                sim.mind.activity = ""
+                sim.mind.stats["errors"] += 1
+                self.message = f"เรื่องเล่าของ {entry['name']} ขัดผลจริง จึงข้ามไป"
+                return
         echoed = any(m in raw for m in MC.STORY_INSTRUCTION_MARKS)
         if echoed and len(text.strip()) < MC.STORY_MIN_CHARS:
             # โมเดลลอกคำสั่งกลับมาแทนที่จะเล่าฉาก แล้วเหลือเนื้อไม่พอ — ไม่บันทึกดีกว่าบันทึกขยะ
@@ -226,6 +245,7 @@ class MindRunner:
             "activity": mind.activity, "year": sim.day // 365, "day": sim.day, "steps": self.steps,
             "alive_world": len(sim.alive_cids), "stats": dict(mind.stats),
             "story_queue": len(mind.story_queue), "backend": self.backend.public() if self.backend else {},
+            "limits": {"minutes": self.cfg.max_minutes, "mind_count": self.cfg.capacity},
             "minds": mind.summary(sim),
         }
 
@@ -252,8 +272,11 @@ def read_journal(path, cid=None, limit=200, before_seq=None, types=None):
             if before_seq is not None and e.get("seq", 0) >= before_seq:
                 continue
             entries.append(e)
+    # backfill วัยเด็กถูกเขียนตอนตัวละครถูกเลือกเป็นผู้มีจิตใจ จึงอยู่ท้ายไฟล์ทางกายภาพ
+    # แต่วันของมันเก่ากว่า ต้องเรียงด้วยเวลาโลก ไม่ใช่ตำแหน่งบรรทัดในไฟล์
+    entries.sort(key=lambda e: (e.get("day", 0), e.get("seq", -1), e.get("at", 0)), reverse=True)
     seen, out = set(), []
-    for e in reversed(entries):
+    for e in entries:
         if e.get("id") in seen:
             continue
         seen.add(e.get("id"))

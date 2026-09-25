@@ -24,10 +24,11 @@ demo:
 
     run_away:
       label: หนี
-      requirements: [enemy_visible]
+      requirements: [enemy_visible, can_move]      # ยืนไม่ไหวก็หนีไม่ได้ (§32)
       rewards: {safety: 0.8, survival: 0.5}
       costs: {stamina: 10, time: 2}
-      risk: {injury: 0.05}
+      # escape: โอกาสสำเร็จมาจากความเร็วเทียบผู้ไล่ ไม่ใช่ค่า success คงที่ (ดู scoring.escape_odds)
+      risk: {injury: 0.05, escape: true}
       success: 0.85
       relevant_goals: [survive]
       personality: {caution: 0.8, bravery: -0.6}

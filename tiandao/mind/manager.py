@@ -35,6 +35,7 @@ from .. import hopfield as HF
 from .. import travel as TR
 from .. import emotions as EM
 from .. import events as E
+from .. import config as C
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class Mind:
     joined_day: int
     origin_note: str = ""
     alive: bool = True
+    enabled: bool = True              # พักจิตใจได้เมื่อผู้ใช้ลดจำนวน โดยไม่ลบประวัติของตัวละคร
     death_day: Optional[int] = None
     death_cause: str = ""
     long_goal: str = ""
@@ -81,6 +83,8 @@ class Mind:
     shaken: bool = False
     recall_streak: int = 0        # ตอบด้วยความจำติดกันมาแล้วกี่ครั้ง — กันชีวิตกลายเป็นลูป
     recent_acts: List[str] = field(default_factory=list)   # สิ่งที่ทำล่าสุด (กันทำซ้ำ)
+    # เซฟเก่าที่มีจิตใจอยู่ก่อนระบบประวัติวัยเด็ก ต้องเติมสมุดชีวิตเพียงครั้งเดียวหลังอัปเกรด
+    history_backfilled: bool = False
 
     def __setstate__(self, state):
         # เซฟก่อนมีบาดแผลในใจ — dataclass ไม่เติมค่าเริ่มต้นให้ตอนโหลด pickle
@@ -91,6 +95,8 @@ class Mind:
         self.__dict__.setdefault("shaken", False)
         self.__dict__.setdefault("recall_streak", 0)
         self.__dict__.setdefault("recent_acts", [])
+        self.__dict__.setdefault("enabled", True)
+        self.__dict__.setdefault("history_backfilled", False)
 
     def remember(self, text):
         self.memories.append(text)
@@ -183,10 +189,59 @@ class MindManager:
         if not any(getattr(h, "__self__", None) is self for h in bus._subscribers):
             bus.subscribe(self.on_event)
         self.ensure_cast(sim)
+        self._migrate_childhood_history(sim)
+        self._repair_dead_target_state(sim)
         # โลกที่รันมาก่อนหน้าจะไม่มีใครถือระบบ (ยกตอน _adopt ได้แต่กับจิตใจดวงใหม่) จึงยกให้
         # ตัวเอกที่ตื่นรู้มานานที่สุดตอนต่อชั้นจิตใจเข้าโลก — คนที่ผู้อ่านตามมาตั้งแต่ต้น
         self._grant_system(sim)
         return self
+
+    def _migrate_childhood_history(self, sim):
+        """เติมประวัติให้จิตใจจากเซฟเก่า หลังรู้ตำแหน่ง journal แล้ว และทำครั้งเดียว."""
+        if not self.journal_path:
+            return
+        for mind in self.minds.values():
+            if mind.history_backfilled or not (0 <= mind.cid < len(sim.cast)):
+                continue
+            self._backfill_childhood(sim, sim.cast[mind.cid])
+            mind.history_backfilled = True
+
+    def _repair_dead_target_state(self, sim):
+        """ซ่อมเซฟเก่าที่เป้าหมาย/แผนยังชี้คนตาย ก่อนมี `_finish_dead_target()`.
+
+        เก็บ scar ไว้เป็นอดีต (prompt บอกได้ว่าผู้ก่อตายแล้ว) แต่ห้ามให้เป้าหมายปัจจุบันหรือแผน
+        ยังสั่งไปหาคนนั้น เซฟรันจริงปี 32 พบกรณีนี้กับเซียวเหลียนโดยตรง
+        """
+        revenge_words = ("ล้างแค้น", "แก้แค้น", "เอาคืน", "สำนึกผิด", "ชดใช้")
+        for mind in self.active():
+            dead = {}
+            for scar in mind.scars:
+                cid = scar.get("cid")
+                if isinstance(cid, int) and 0 <= cid < len(sim.cast) and not sim.cast[cid].alive:
+                    dead[cid] = sim.cast[cid].name
+            kept_plan = []
+            for step in mind.plan:
+                cid = step.get("target_cid")
+                if isinstance(cid, int) and 0 <= cid < len(sim.cast) and not sim.cast[cid].alive:
+                    dead[cid] = sim.cast[cid].name
+                else:
+                    kept_plan.append(step)
+            names = [name for name in dead.values() if name]
+            stale_short = any(name in (mind.short_goal or "") for name in names)
+            stale_long = any(name in (mind.long_goal or "") for name in names)
+            plan_changed = len(kept_plan) != len(mind.plan)
+            if not (stale_short or stale_long or plan_changed):
+                continue
+            mind.plan = kept_plan
+            mind.goal_stale = True
+            mind.interrupted = True
+            if stale_short:
+                mind.short_goal = ""
+            if stale_long and any(word in (mind.long_goal or "") for word in revenge_words):
+                mind.long_goal = ""
+            note = " / ".join(names)
+            mind.inbox.append(f"{note}ตายแล้ว เป้าหมายหรือแผนเดิมเกี่ยวกับเขาทำต่อไม่ได้")
+            del mind.inbox[:-MC.INBOX_CAP]
 
     @property
     def backend(self):
@@ -196,7 +251,29 @@ class MindManager:
 
     # ------------------------------------------------------------ คัดตัวละคร
     def active(self):
-        return [m for m in self.minds.values() if m.alive]
+        return [m for m in self.minds.values() if m.alive and m.enabled]
+
+    def set_capacity(self, sim, capacity):
+        """เปลี่ยนจำนวนผู้มีจิตใจทันที โดยพัก/ปลุก component เดิมแทนการลบประวัติ."""
+        self.capacity = max(1, int(capacity))
+        active = sorted(self.active(), key=lambda m: (m.joined_day, m.cid))
+        for mind in active[self.capacity:]:
+            mind.enabled = False
+            mind.plan = []
+            self._pending.pop(mind.cid, None)
+        if len(self.active()) < self.capacity:
+            sleeping = sorted((m for m in self.minds.values() if not m.enabled),
+                              key=lambda m: (m.joined_day, m.cid))
+            for mind in sleeping:
+                if len(self.active()) >= self.capacity:
+                    break
+                if 0 <= mind.cid < len(sim.cast) and sim.cast[mind.cid].alive:
+                    mind.alive = True
+                    mind.enabled = True
+                    mind.goal_stale = True
+                    mind.interrupted = True
+        self.ensure_cast(sim)
+        return len(self.active())
 
     def _eligible(self, sim, ch, taken_names):
         if not ch.alive or ch.cid in self.minds or ch.hidden:
@@ -314,6 +391,9 @@ class MindManager:
         m = Mind(cid=ch.cid, name=ch.name, joined_day=sim.day, origin_note=note,
                  last_realm=ch.realm, last_org=ch.org)
         self.minds[ch.cid] = m
+        if self.journal_path:
+            self._backfill_childhood(sim, ch)
+            m.history_backfilled = True
         # ระบบจำลองอนาคตมีได้คนเดียวในโลก และเป็นของ "ตัวเอกคนแรกที่ตื่นรู้" (ดู foresight.py)
         # วางไว้ที่นี่เพราะนี่คือจุดเดียวที่จิตใจดวงใหม่ถือกำเนิด ไม่ว่ามาจากทางไหนก็ผ่านตรงนี้
         if getattr(MC, "SYSTEM_FORESIGHT_OWNER", True) and not any(
@@ -332,12 +412,46 @@ class MindManager:
                        "identity": P.short_identity(sim, ch), "place": P.place_label(sim, ch.place)})
         return m
 
+    def _backfill_childhood(self, sim, ch):
+        """เติมกำเนิดและวัยเด็กก่อนวันที่ตื่นรู้ลงสมุดชีวิตตามลำดับเวลาจริง."""
+        parent_names = [sim.cast[cid].name for cid in getattr(ch, "parents", ())
+                        if 0 <= cid < len(sim.cast)]
+        if parent_names:
+            born_text = f"{ch.name}ถือกำเนิด เป็นบุตรของ" + "และ".join(parent_names[:2])
+        elif ch.born_day >= 0:
+            born_text = f"{ch.name}ถือกำเนิดขึ้นในโลก แต่ไม่ปรากฏชื่อบิดามารดาในบันทึก"
+        else:
+            born_text = f"{ch.name}ถือกำเนิดก่อนยุคที่โลกเริ่มจดบันทึก"
+        childhood = list(getattr(ch, "childhood", ()) or ())
+        birth_seq = min((int(x.get("seq", 1)) for x in childhood if isinstance(x, dict)), default=1) - 1
+        self._journal({"type": "birth", "id": f"birth-{ch.cid}", "seq": birth_seq,
+                       "day": ch.born_day, "year": ch.born_day // 365,
+                       "cid": ch.cid, "name": ch.name, "text": born_text,
+                       "parents": parent_names, "identity": P.short_identity(sim, ch)},
+                      backfill=True)
+        for item in sorted(childhood, key=lambda x: x.get("day", 0)):
+            day = int(item.get("day", ch.born_day))
+            if day >= sim.day:
+                continue
+            self._journal({"type": "childhood", "id": f"child-{ch.cid}-{day}",
+                           "seq": int(item.get("seq", birth_seq + 1)),
+                           "day": day, "year": day // 365, "cid": ch.cid, "name": ch.name,
+                           "action": "เติบโต", "outcome": item.get("outcome", "เติบโต"),
+                           "text": item.get("text", ""),
+                           "place": P.place_label(sim, item.get("place", ch.place))},
+                          backfill=True)
+
     # ------------------------------------------------------------ ตัดสินใจ (เรียกจาก sim._step)
     def choose(self, actor, sim, weights, others, rng):
         mind = self.minds.get(actor.cid)
-        if mind is None or not mind.alive:
+        if mind is None or not mind.alive or not mind.enabled:
             return None
         table = _table()
+        # เมนูต้องสะท้อนสิ่งที่ทำได้จริง ไม่ใช่รอให้เอนจินตอบภายหลังว่าไม่มีอะไรจะสอน
+        # ซ้ำเป็นสิบครั้ง ตัวเลือกที่ต้องมีเป้าถูกกรองอีกชั้นเมื่อรู้คนที่โมเดลเลือกแล้ว
+        weights = dict(weights)
+        if not any(self._can_teach(actor, other) for other in others):
+            weights["ถ่ายทอดวิชา"] = 0.0
         # ฟ้าลิขิต: เรื่องที่ไม่มีใครเลือกเอง ยังเกิดตามน้ำหนักเดิม
         total = sum(v for v in weights.values() if v > 0)
         fate_w = {k: weights.get(k, 0) for k in A.INVOLUNTARY if weights.get(k, 0) > 0}
@@ -425,6 +539,15 @@ class MindManager:
 
         if step is None:
             info, steps, err = self._think(mind, actor, sim, weights, others, table, interrupted)
+            feasible = []
+            for candidate in steps:
+                if self._step_ok(candidate, actor, weights, others, table):
+                    feasible.append(candidate)
+                elif feasible:
+                    break
+            steps = feasible
+            if not steps and not err:
+                err = "แผนที่ตอบมาทำไม่ได้จริงในสถานการณ์นี้"
             if steps:
                 step, plan = steps[0], steps[1:]
                 source = "คิดใหม่"
@@ -559,6 +682,8 @@ class MindManager:
                 return _no("หาเป้าไม่ได้")
             step.target_cid = t.cid
             step.target_name = t.name
+        if not self._step_ok(step, actor, weights, others, table):
+            return _no("เป้าทำไม่ได้")
         return step
 
     def _recall_log(self, got):
@@ -588,11 +713,34 @@ class MindManager:
                 return max(bonds, key=lambda o: (actor.bonds.get(o.cid, 0), -o.cid))
         return min(pool, key=lambda o: o.cid)
 
+    @staticmethod
+    def _can_teach(actor, target):
+        mastery = getattr(actor, "mastery", {})
+        if not isinstance(mastery, dict):
+            return False
+        target_skills = set(getattr(target, "skills", ()) or ())
+        return any(name not in target_skills and mastery.get(name, 0) >= C.TEACH_MIN_REPS
+                   for name in (getattr(actor, "skills", ()) or ()))
+
     def _step_ok(self, step, actor, weights, others, table):
         if weights.get(step.kind, 0) <= 0:
             return False
         if A.needs_target(step.kind, table):
-            return any(c.cid == step.target_cid for c in others)
+            target = next((c for c in others if c.cid == step.target_cid), None)
+            if target is None:
+                return False
+            if step.kind == "ถ่ายทอดวิชา":
+                # "อยากเรียนจากเขา" คือทิศตรงข้ามกับ action สอนเขา ปฏิเสธแทนการบันทึก
+                # เหตุผลกับการกระทำที่ขัดกันลงเป็นความทรงจำถาวร
+                reverse = ("เรียนรู้จาก", "ได้วิชาจาก", "ขอวิชาจาก", "ให้เขาสอน")
+                if any(word in (step.why or "") for word in reverse):
+                    return False
+                return self._can_teach(actor, target)
+            if step.kind == "ให้สัญญา":
+                # คำสัญญาเดิมยังอยู่ การกล่าวซ้ำกับคนเดิมโดยไม่มีเนื้อหาใหม่ไม่ใช่เหตุการณ์ใหม่
+                if actor.bonds.get(target.cid, 0) > 0 and target.bonds.get(actor.cid, 0) > 0:
+                    return False
+            return True
         return True
 
     def _notice_changes(self, mind, ch):
@@ -703,6 +851,9 @@ class MindManager:
                                                   for d in pend.plan_left],
             "error": pend.error, "seconds": info.get("seconds"),
             "alive": actor.alive,
+            # snapshot หลังเอนจินตัดสินผล ใช้บังคับนักเล่าเรื่องไม่ให้แต่งว่าคนที่ยังอยู่ตายไปแล้ว
+            "actor_alive_after": bool(actor.alive),
+            "target_alive_after": bool(target.alive) if target is not None else None,
         }
         if pend.source == "คิดใหม่":
             mind.plan_origin, mind.plan_thought = entry["id"], entry["thought"]
@@ -715,6 +866,8 @@ class MindManager:
         self._journal(entry)
         who = f"กับ{tname}" if tname else ""
         mind.remember(f"ปีที่ {entry['year']}: ข้า{kind}{who} — {event.outcome}: {event.text}")
+        if target is not None and not target.alive:
+            self._finish_dead_target(mind, target, kind, event)
         if pend.source in ("คิดใหม่", "ตามแผน"):
             self._maybe_story(entry, event)
         if not actor.alive:
@@ -722,11 +875,42 @@ class MindManager:
         if target is not None and target.cid in self.minds and not target.alive:
             self._mark_dead(sim, target, event)
 
+    @staticmethod
+    def _finish_dead_target(mind, target, kind, event):
+        """ปิดเป้าหมายที่สำเร็จ/หมดความหมายเมื่อคนที่ลงมือด้วยตาย
+
+        เจอจริงในรัน Compare-Minds: เหอม่อสังหารกู่ซานเฉินแล้ว แต่ long_goal ยังเป็นการทำให้ลูก
+        สำนึกผิด โมเดลจึงพูดว่าจะล้างแค้นคนตายต่ออีกหลายปี การตายของเป้าหมายต้องบังคับให้คิดชีวิตใหม่
+        ในครั้งถัดไป และแผนเก่าที่อ้างคนตายต้องไม่ถูกนำมาทำต่อ
+        """
+        mind.remember(f"ปีที่ {event.day // 365}: {target.name}ตายแล้วจากเหตุการณ์นี้ "
+                      "ข้าต้องยอมรับว่าเป้าหมายเดิมเกี่ยวกับเขาจบลงแล้ว")
+        mind.inbox.append(f"{target.name}ตายแล้ว เป้าหมายหรือแผนที่มุ่งไปหาเขาทำต่อไม่ได้")
+        del mind.inbox[:-MC.INBOX_CAP]
+        mind.plan = []
+        mind.goal_stale = True
+        mind.interrupted = True
+        mind.scars = [s for s in mind.scars if s.get("cid") != target.cid]
+
+        # ถ้าเป้าหมายระบุชื่อคนตาย หรือเป็นเป้าหมายแก้แค้นของการกระทำที่เพิ่งจบ ให้ล้างข้อความทิ้ง
+        # ไม่ส่งประโยคที่หมดอายุย้อนเข้า prompt ให้โมเดลยึดติดซ้ำ ส่วน goal_stale ทำให้ขอเป้าหมายใหม่
+        revenge_words = ("ล้างแค้น", "แก้แค้น", "เอาคืน", "สำนึกผิด", "ชดใช้")
+        if target.name in mind.short_goal or kind in MC.HOSTILE_TARGET_KINDS:
+            mind.short_goal = ""
+        if target.name in mind.long_goal or (kind in MC.HOSTILE_TARGET_KINDS
+                                              and any(w in mind.long_goal for w in revenge_words)):
+            mind.long_goal = ""
+
     def on_event(self, ev, sim):
         """ทุกเหตุการณ์ของโลกผ่านที่นี่ — ต้องถูกมาก (เช็ค dict สองครั้งแล้วจบสำหรับคนทั่วไป)"""
         a, t = ev.actor, ev.target
-        in_a = a in self.minds
-        in_t = t is not None and t in self.minds
+        # คนในแผนอาจถูกบุคคลที่สามฆ่า เหตุการณ์นั้นไม่มี mind เป็น actor/target แต่แผน
+        # "ไปช่วย/ไปสอน" ยังต้องหมดอายุทันที ไม่เช่นนั้นอาจค้างเป็นพันวัน
+        for cid in (a, t):
+            if isinstance(cid, int) and 0 <= cid < len(sim.cast) and not sim.cast[cid].alive:
+                self._retire_dead_references(sim.cast[cid])
+        in_a = a in self.minds and self.minds[a].enabled
+        in_t = t is not None and t in self.minds and self.minds[t].enabled
         if not in_a and not in_t:
             return
         cast = sim.cast
@@ -780,6 +964,29 @@ class MindManager:
                           , story=ev.outcome in MC.STORY_HAPPENED_OUTCOMES, event=ev, mind=m)
             if not cast[t].alive:
                 self._mark_dead(sim, cast[t], ev)
+
+    def _retire_dead_references(self, dead):
+        """ยกเลิกอนาคตที่ต้องมีคนตายอยู่ แต่เก็บการไว้อาลัย/สืบความจริง/แก้แค้นไว้."""
+        future_verbs = ("ช่วย", "ไปหา", "สอน", "ถ่ายทอด", "ประลอง", "ให้สัญญา",
+                        "แต่งงาน", "มีทายาท", "ปกป้อง", "ร่วมเดินทาง")
+        for mind in self.active():
+            if mind.cid == dead.cid:
+                continue
+            kept = [p for p in mind.plan if p.get("target_cid") != dead.cid]
+            changed = len(kept) != len(mind.plan)
+            short = mind.short_goal or ""
+            if dead.name in short and any(word in short for word in future_verbs):
+                mind.short_goal = ""
+                changed = True
+            if not changed:
+                continue
+            mind.plan = kept
+            mind.goal_stale = True
+            mind.interrupted = True
+            note = f"{dead.name}ตายแล้ว แผนที่ต้องพบหรือช่วยเขาทำต่อไม่ได้"
+            if note not in mind.inbox:
+                mind.inbox.append(note)
+                del mind.inbox[:-MC.INBOX_CAP]
 
     @staticmethod
     def _add_scar(m, by_cid, by_name, ev):
@@ -859,7 +1066,7 @@ class MindManager:
             self.story_queue.append(entry)
 
     # ------------------------------------------------------------ บันทึก
-    def _journal(self, entry, story=False, event=None, mind=None):
+    def _journal(self, entry, story=False, event=None, mind=None, backfill=False):
         # วันที่แบบปฏิทินโลก + ช่วงเวลาของเหตุการณ์ (วัน/เดือน/ปี) — ก่อนหน้านี้บันทึกมีแต่ "ปี"
         # ผู้อ่านจึงเห็นทุกอย่างเป็นการกระโดดข้ามปี ทั้งที่ในเครื่องยนต์มีวันจริงอยู่แล้ว
         if entry.get("day") is not None and "date" not in entry:
@@ -876,8 +1083,9 @@ class MindManager:
         ล่าสุดของตัวละครให้นักเล่าเรื่องแทน (สำเนาไปคิว ไม่เขียนลงบันทึกให้บวม)
         """
         entry.setdefault("at", time.time())
-        self.recent.append(entry)
-        del self.recent[:-300]
+        if not backfill:
+            self.recent.append(entry)
+            del self.recent[:-300]
         if story and event is not None and mind is not None:
             self._maybe_story(dict(entry, long_goal=mind.long_goal, emotion=mind.emotion), event)
         if not self.journal_path:
@@ -891,7 +1099,8 @@ class MindManager:
     def summary(self, sim):
         out = []
         # ลำดับคงที่ (ตามวันที่ตื่นรู้) — รายชื่อในหน้าอ่านจะไม่กระโดดสลับที่ระหว่างที่ผู้อ่านกำลังเลือก
-        for m in sorted(self.minds.values(), key=lambda m: (not m.alive, m.joined_day, m.cid)):
+        for m in sorted((x for x in self.minds.values() if x.enabled),
+                        key=lambda m: (not m.alive, m.joined_day, m.cid)):
             c = sim.cast[m.cid]
             out.append({
                 "cid": m.cid, "name": m.name, "alive": m.alive, "realm": c.realm_name(),

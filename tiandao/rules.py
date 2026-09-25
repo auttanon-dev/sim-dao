@@ -828,6 +828,10 @@ def hold_realm(ch: Character, qi_per_year: float, gap_days: int) -> int:
 
 def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     years = gap_days / 365.0
+    # เซฟก่อน Phase 8 ไม่มี body_age: ใช้อายุจริงจากวันเกิดเป็นพื้น ไม่ทำให้เซียนอายุหลายร้อย
+    # กลับมีสรีรวิทยาอายุ 20 ปีเพียงเพราะเพิ่งโหลดเซฟเก่า
+    _start_day = getattr(sim, "day", 0) - max(0, gap_days)
+    ch.body_age = max(float(getattr(ch, "body_age", 0.0)), float(ch.age(_start_day)))
     # วัดอัตราของตัวเขาเองก่อนอย่างอื่น — นี่คือจุดเดียวที่ตัวละครทุกคนผ่านทุกครั้งที่โลกเดิน
     track_rates(ch, getattr(sim, "day", ch.acc_mark_day))
     # สภาพร่างกายเดินไปตามเวลาที่ผ่านไปจริง: เลือดออกจากแผลที่ยังเปิด สร้างเลือดใหม่
@@ -840,6 +844,10 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     # ถ้าไม่มีสองทางนี้ คนจะค้างอยู่ที่เลือดสามสิบเปอร์เซ็นต์หรืออุณหภูมิยี่สิบองศาตลอดกาล
     if ch.alive and ch.blood_frac < BODY.constants.BLOOD_DEATH_BELOW:
         sim.kill(ch, "เลือดไหลจนหมดจากบาดแผลที่ไม่มีใครห้ามให้")
+        return
+    _organ = BODY.organs.fatal_failure(getattr(ch, "injuries", None))
+    if ch.alive and _organ:
+        sim.kill(ch, f"อวัยวะสำคัญล้มเหลว ({_organ}) จากบาดแผล")
         return
     _margin = BODY.constants.TEMP_DEATH_MARGIN
     if ch.alive and ch.core_temp <= BODY.constants.HYPOTHERMIA_DEATH - _margin:

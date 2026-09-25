@@ -17,6 +17,38 @@ from .relationships import Relation, RelationshipBook
 
 
 @dataclass
+class PhysicalCapability:
+    """คำตอบของ "ร่างกายทำอะไรได้บ้างตอนนี้" (§32) — ระบบตัดสินใจถามผ่านสิ่งนี้เท่านั้น
+
+    แกนกลางไม่รู้จักแบบจำลองร่างกายของโลกใดเลย (ไฟล์นี้ไม่ import tiandao.body) adapter
+    ของโลกเป็นผู้ถามร่างกายแล้วเติมคำตอบลงมา — ของ Sim Dao อยู่ใน simdao.build_context
+
+    `known = False` แปลว่าโลกนั้นไม่มีแบบจำลองร่างกาย ระบบจะกลับไปใช้ hp/stamina
+    เหมือนเดิมทุกจุด จึงเสียบเข้ากับโลกที่ยังไม่มีกายวิภาคได้โดยพฤติกรรมไม่เปลี่ยน
+
+    หน่วย: speed m/s · reaction s · carry kg · strike J · endurance วัน
+    ส่วน fight/effort/arm/leg/severity ไร้หน่วย 0..1 (fight เทียบกับร่างตัวเองตอนสมบูรณ์)
+    """
+    known: bool = False
+    speed: float = 0.0
+    reaction: float = 0.0
+    carry: float = 0.0
+    strike: float = 0.0
+    fight: float = 1.0
+    effort: float = 1.0
+    arm: float = 1.0
+    leg: float = 1.0
+    severity: float = 0.0
+    pain: float = 0.0
+    can_stand: bool = True
+    can_fight: bool = True
+    can_run: bool = True
+    conscious: bool = True
+    endurance: float = 0.0
+    word: str = ""
+
+
+@dataclass
 class AgentState:
     """Character State ที่ตัวละครรู้เกี่ยวกับตัวเอง (ค่าดิบ — normalize ใน needs/risk)"""
     hp: float = 100.0
@@ -33,6 +65,8 @@ class AgentState:
     money: float = 0.0
     location: Any = None
     horizon: float = 0.0         # เวลาชีวิตที่คาดว่าเหลือ (หน่วยเวลาโลก) — 0 = ไม่รู้ ใช้ time_scale
+    # ร่างกายตามที่ **เจ้าตัวรู้สึก** ไม่ใช่ตามที่เป็นจริง (§33) — ฟิสิกส์ของโลกใช้ค่าจริงต่างหาก
+    body: PhysicalCapability = field(default_factory=PhysicalCapability)
 
     @property
     def hp_ratio(self):
@@ -55,6 +89,7 @@ class PerceivedEntity:
     in_danger: float = 0.0               # 0..1 ตามที่เราเชื่อ
     has_loot: bool = False
     level: float = 0.0                   # ระดับที่มองเห็นจากภายนอก (ขั้น/ชั้น)
+    speed: float = 0.0                   # ความเร็วที่เห็น/เดาได้ (m/s) — 0 = ไม่รู้ (ใช้คิดโอกาสหนีรอด)
     relation: Relation = field(default_factory=Relation)
 
 

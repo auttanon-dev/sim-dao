@@ -10,7 +10,8 @@
 ค่าคงที่ทั้งหมดอยู่ใน tiandao/decision/config/*.yaml
 """
 from .config import DecisionConfig, load as load_config
-from .context import AgentMind, AgentState, DecisionContext, Environment, PerceivedEntity
+from .context import (AgentMind, AgentState, DecisionContext, Environment, PerceivedEntity,
+                      PhysicalCapability)
 from .engine import Decision, DecisionEngine
 from .relationships import Relation
 
@@ -29,4 +30,5 @@ def detach(sim):
 
 
 __all__ = ["DecisionEngine", "Decision", "DecisionConfig", "load_config", "AgentMind", "AgentState",
-           "DecisionContext", "Environment", "PerceivedEntity", "Relation", "attach", "detach"]
+           "DecisionContext", "Environment", "PerceivedEntity", "PhysicalCapability", "Relation",
+           "attach", "detach"]

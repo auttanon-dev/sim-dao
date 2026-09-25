@@ -118,7 +118,7 @@ class Body:
         from .condition import resolve
         cond = resolve(cond)
         base = self.muscles[group].available_force(self.gen.neuro_efficiency,
-                                                   cond.effort_factor)
+                                                   cond.effort_factor * cond.muscle_factor)
         if cond.injury:
             from . import injury as INJ
             base *= INJ.capacity(cond.injury, group)

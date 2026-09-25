@@ -84,8 +84,8 @@ def distances_from(src: int, allow_mara_barrier: bool = False) -> Dict[int, floa
     """ระยะทางจาก src ไปทุกจุดที่ไปถึงได้ — Dijkstra รอบเดียวแล้วแคชไว้ต่อ source
 
     ต่างจาก shortest_path_distance() ที่รัน Dijkstra ใหม่ทุกครั้งต่อคู่ (a, b) — ตัวนี้จำเป็นเมื่อ
-    ต้องถามระยะจากคนหนึ่งไปหาคนอีกหลายร้อยคนทุก tick (ดู Sim.social_pool) มีสถานที่แค่ 182 จุด
-    แคชจึงเต็มที่ 182 ชุด ไม่โต
+    ต้องถามระยะจากคนหนึ่งไปหาคนอีกหลายร้อยคนทุก tick (ดู Sim.social_pool) จำนวนต้นทาง
+    มีเพดานเท่ากับ ``len(PL.PLACES)`` แคชจึงโตตามผังโลก ไม่โตตามจำนวนคนหรือจำนวน tick
     """
     if not allow_mara_barrier and src in _DIST_CACHE:
         return _DIST_CACHE[src]
@@ -108,13 +108,38 @@ def distances_from(src: int, allow_mara_barrier: bool = False) -> Dict[int, floa
     return best
 
 
-def travel_speed(realm: int, config=None) -> float:
-    """ระยะทาง (หน่วยกราฟ) ที่เดินได้ต่อวัน — ยิ่ง realm สูงยิ่งเร็ว (เชิงเส้นตาม TRAVEL_REALM_SPEEDUP)"""
+def travel_speed(realm: int, config=None, character=None, friction=None) -> float:
+    """ระยะทางต่อวันจากปราณ *และ* ร่างจริง; ไม่ส่ง character ได้พฤติกรรมเก่าเหมือนเดิม"""
     cfg = config or C
-    return cfg.TRAVEL_BASE_SPEED * (1.0 + cfg.TRAVEL_REALM_SPEEDUP * max(0, realm))
+    speed = cfg.TRAVEL_BASE_SPEED * (1.0 + cfg.TRAVEL_REALM_SPEEDUP * max(0, realm))
+    if character is not None:
+        from . import body as BODY
+        physical = BODY.estimated_max_speed(character, friction)
+        # หน่วยกราฟไม่ใช่เมตร จึงใช้ความเร็ว SI เป็นอัตราส่วนต่อคนอ้างอิง ไม่ปะปนหน่วยตรงๆ
+        ratio = max(0.25, min(1.60, physical / BODY.constants.REFERENCE_RUNNING_SPEED))
+        speed *= ratio
+    return speed
 
 
-def shortest_path_days(from_place: int, to_place: int, realm: int, config=None, allow_mara_barrier: bool = False) -> Optional[int]:
+def terrain_friction(place: int) -> float:
+    """แปลง biome ของแผนที่เป็น μ; fallback เป็นดินเมื่อชั้นแสดงผลใช้ biome ใหม่"""
+    from . import terrain
+    from .body import constants as BK
+    biome = terrain.compute_place_3d_and_biome(place)[3]
+    kind = {
+        "mountains": "หิน", "high_hills": "หิน", "volcanic_crag": "หิน",
+        "floating_sky_island": "หิน", "floating_jade_crag": "หิน",
+        "plains": "หญ้า", "forest": "หญ้า", "steppe_grassland": "หญ้า",
+        "yellow_desert": "ทราย", "ash_wastes": "ทราย",
+        "blood_swamp": "โคลน", "rainforest_himavanta": "โคลน",
+        "snow_peaks": "หิมะ", "shallow_water": "โคลน",
+    }.get(biome, "ดิน")
+    return BK.TERRAIN_FRICTION[kind]
+
+
+def shortest_path_days(from_place: int, to_place: int, realm: int, config=None,
+                       allow_mara_barrier: bool = False, character=None,
+                       friction=None) -> Optional[int]:
     """ระยะทางสั้นสุดแปลงเป็นจำนวนวันเดินทางจริง (ปัดขึ้นอย่างน้อย TRAVEL_MIN_DAYS) — คืน None ถ้าไปไม่ถึง
     (ผู้เรียกต้องจัดการกรณีนี้เอง เช่น fallback ไม่เดินทาง)"""
     cfg = config or C
@@ -123,7 +148,9 @@ def shortest_path_days(from_place: int, to_place: int, realm: int, config=None, 
         return None
     if dist == 0.0:
         return 0
-    days = dist / travel_speed(realm, cfg)
+    if friction is None and character is not None:
+        friction = terrain_friction(from_place)
+    days = dist / travel_speed(realm, cfg, character, friction)
     return max(cfg.TRAVEL_MIN_DAYS, round(days))
 
 

@@ -185,6 +185,8 @@ simdao:
     ซ่อนตัว:
       rewards: {safety: 1.0, survival: 0.4, longevity: 0.3}
       costs: {time: 1900}
+      # ต้องสลัดสายตาคนที่ตามอยู่ให้พ้นก่อนจึงจะหลบได้ — คนที่ขาเจ็บหนีไม่ทันแล้วหลบไม่สำเร็จ
+      risk: {escape: true}
       relevant_goals: [survive, recover]
       personality: {caution: 0.7, bravery: -0.5, ambition: -0.3}
       environment: {danger: 0.6}

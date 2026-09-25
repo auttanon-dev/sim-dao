@@ -29,10 +29,11 @@ from . import settlement as SETTLE
 from . import chronicle as CH
 from . import seasons as SEASONS
 from . import emotions as EM
+from . import body as BODY
 from .ai import BrainManager, EventBus
 from .console import safe_print
 
-# โอกาสพบกันตามระยะทาง คิดครั้งเดียวต่อ "สถานที่ต้นทาง" แล้วแคชไว้ (สถานที่มีแค่ 182 จุด)
+# โอกาสพบกันตามระยะทาง คิดครั้งเดียวต่อสถานที่ต้นทาง; จำนวนใช้ PL.PLACES ปัจจุบันแบบ dynamic
 # อยู่ระดับโมดูล ไม่ใช่บน Sim เพราะ Sim ถูก pickle ทั้งก้อน (ดู persist.py) ไม่ควรพกแคชไปด้วย
 _REACH_CACHE = {}
 
@@ -293,7 +294,8 @@ class Sim:
         if len(options) == 1 or actor.place < 0:
             return rng.choice(options)
         dist = TR.distances_from(actor.place)
-        scale = C.TRAVEL_PREF_RANGE * (TR.travel_speed(actor.realm) / C.TRAVEL_BASE_SPEED)
+        scale = C.TRAVEL_PREF_RANGE * (TR.travel_speed(actor.realm, character=actor)
+                                       / C.TRAVEL_BASE_SPEED)
         if actor.archetype == "ผู้พเนจร":
             scale *= C.TRAVEL_PREF_WANDERER
         weights = []
@@ -324,7 +326,8 @@ class Sim:
         # คนที่ "หายไปจากโลก" ติดต่อไม่ได้ — ฤๅษีที่ซ่อนตัวสร้างแดนลับ และนักโทษที่ถูกคุมขัง
         # (วัดจริงหลังใส่ระบบคุมขัง: ยังมีคนเดินไปถ่ายทอดวิชาและให้คำมั่นสัญญากับคนที่อยู่ในคุก)
         everyone = [c for c in self.living_in(world.wid)
-                    if c.cid != actor.cid and not getattr(c, "hidden", False)]
+                    if c.cid != actor.cid and not getattr(c, "hidden", False)
+                    and c.age(self.day) >= 14]
         if actor.place < 0 or not everyone:
             return everyone
         reach = _reach_from(actor.place)
@@ -354,7 +357,7 @@ class Sim:
                 far.append(c)
 
         # คนที่อยู่ตรงหน้ามาก่อนเสมอ — ถ้ามีคนแถวนี้ คนไกลที่ไม่ได้เกี่ยวข้องอะไรด้วยไม่ควรถูกหยิบ
-        # (ถ้าเอาทุกคนมารวมกัน คนไกลจะท่วมคนใกล้ด้วยจำนวน เพราะมี 182 สถานที่แต่คนพันกว่าคน)
+        # (ถ้าเอาทุกคนมารวมกัน คนไกลจะท่วมคนใกล้ด้วยจำนวน เพราะมีสถานที่หลายร้อยแห่ง)
         if local or linked:
             return local + linked
         # ไม่มีใครอยู่แถวนี้เลย — คนสันโดษกลางป่ายังพอมีโอกาสเจอคนผ่านทาง
@@ -558,6 +561,7 @@ class Sim:
             gender=gender, fear=fear, greed=greed, compassion=compassion,
             ambition=ambition, loyalty=loyalty,
             body_seed=self.seed,        # ร่างกายสร้างกลับมาได้จาก (seed, cid) — ดู tiandao/body/
+            body_age=float(age_years),  # อายุทางสรีรวิทยาเดินต่อด้วย body.adaptation.tick
             # เผ่าวิญญาณศักดิ์สิทธิ์: เดิม `is_spirit` ไม่เคยถูกตั้งเป็น True ที่ไหนเลยทั้งโปรเจกต์
             # สายเลือดวิญญาณมีอยู่จริง (วัดจริง 51 คนเลือดบริสุทธิ์ จาก 1,253 คน) แต่ "เผ่า" ในเชิง
             # พฤติกรรมไม่เคยมีอยู่ — บล็อกบัญชาสวรรค์ที่เขียนไว้จึงไม่เคยทำงานสักครั้ง
@@ -659,6 +663,53 @@ class Sim:
 
     def schedule(self, ch, gap):
         heapq.heappush(self.queue, (self.day + max(1, gap), ch.cid))
+
+    def _childhood_turn(self, child, world, elapsed, rng):
+        """เดินหนึ่งปีวัยเด็กโดยไม่เปิดการกระทำของผู้ใหญ่.
+
+        เด็กยังปรากฏในโลกและอาจได้รับผลจากภัยระดับโลก แต่เทิร์นส่วนตัวมีเพียงการเติบโต
+        การเรียนรู้ และครอบครัว บันทึกย่อถูกเก็บกับตัวละครเพื่อนำไปสร้างชีวประวัติภายหลัง
+        โดยไม่ต้องรักษา ``sim.log`` ทั้งก้อนตลอดอายุโลก
+        """
+        age = max(0, child.age(self.day))
+        parents = [self.cast[cid] for cid in getattr(child, "parents", ())
+                   if 0 <= cid < len(self.cast)]
+        living_parents = [p for p in parents if p.alive]
+        if living_parents:
+            home = "และ".join(p.name for p in living_parents[:2])
+            if age <= 2:
+                outcome = "ได้รับการเลี้ยงดู"
+                text = f"{child.name}เติบโตในอ้อมอกของ{home}"
+            elif age <= 6:
+                outcome = "เรียนรู้โลก"
+                text = f"{child.name}วัย {age} ปี เรียนรู้ผู้คนและสถานที่รอบตัวโดยมี{home}คอยดูแล"
+            elif age <= 10:
+                outcome = "ช่วยครอบครัว"
+                text = f"{child.name}วัย {age} ปี เริ่มช่วยงานและเรียนรู้วิถีชีวิตจาก{home}"
+            else:
+                outcome = "เตรียมเติบใหญ่"
+                text = f"{child.name}วัย {age} ปี ฝึกความรับผิดชอบและค้นหาวิถีของตนภายใต้การดูแลของ{home}"
+        else:
+            if parents:
+                outcome = "เติบโตโดยไร้ผู้ปกครอง"
+                text = f"{child.name}วัย {age} ปี เติบโตต่อมาโดยไม่มีบิดามารดาอยู่เคียงข้าง"
+            else:
+                outcome = "เติบโต"
+                text = f"{child.name}วัย {age} ปี เรียนรู้การใช้ชีวิตจากผู้คนรอบตัว"
+
+        event = self.emit(world, "เติบโต", child, None, ["วัยเด็ก"], outcome,
+                          text, elapsed, {"อายุ": f"{age} ปี"})
+        history = getattr(child, "childhood", None)
+        if not isinstance(history, list):
+            history = child.childhood = []
+        if not any(h.get("age") == age for h in history if isinstance(h, dict)):
+            history.append({"day": self.day, "age": age, "text": text,
+                            "place": child.place, "outcome": outcome, "seq": event.seq})
+            del history[:-14]
+        # กลับมาอีกครั้งใกล้วันเกิดถัดไป จึงมีประวัติพออ่านแต่ไม่ท่วมคิวโลก
+        next_birthday = child.born_day + (age + 1) * 365
+        self.schedule(child, max(30, next_birthday - self.day + rng.randint(0, 30)))
+        return event
 
     def repopulate(self, world, elapsed):
         if world.kind == "chaos":
@@ -1624,7 +1675,9 @@ class Sim:
                     c["law_strictness"] = strictness
                     
                     # Spawn the Ruler
-                    ruler = self.spawn(self.worlds[0]) # Spawn in mortal world
+                    # เจ้าเมืองคือผู้ใหญ่ที่มีตำแหน่ง ไม่ใช่ทารกอายุศูนย์ปีซึ่งถูกเปลี่ยนชื่อ
+                    # แล้วส่งไปปกครองเมืองทันที
+                    ruler = self.spawn(self.worlds[0], age_years=rng.randint(30, 60))
                     # เมืองหลายเมืองใช้ชื่อเจ้าเมืองชุดเดียวกัน (นายอำเภอ "หวังป๋อ" ทุกเมือง) —
                     # ผ่าน unique_name ให้คนที่สองได้ชื่อที่ต่างออกไป ไม่งั้นบันทึกแยกเจ้าเมืองไม่ออก
                     ruler.name = self.unique_name(ruler_name, old=ruler.name)
@@ -1645,6 +1698,16 @@ class Sim:
             if not ch.alive:
                 continue
             self.day = max(self.day, day)
+            if ch.age(self.day) < 14:
+                # ด่านอายุต้องมาก่อนระบบพลังงาน/ล่าอสูรและสถานะเดินทางทั้งหมด มิฉะนั้น
+                # แม้จะกรอง intent ด้านล่างแล้ว ทารกก็ยังออกล่าอสูรจาก routine ด้านบนได้
+                # พร้อมซ่อมสถานะผู้ใหญ่ที่อาจติดมากับเซฟจากรุ่นก่อน
+                ch.hidden = False
+                ch.seclude_until = 0
+                ch.travel_dest = -1
+                ch.building_dest = -1
+                actor = ch
+                break
             # --- Routine & Energy System ---
             # Update MP limits
             ch.max_mp = max(100.0, float(ch.realm * 100))
@@ -1832,8 +1895,12 @@ class Sim:
                 # Divine Spirits Hunting Demons
                 # ------------------------------------------------
                 living_now = self.living()
-                spirits = [c for c in living_now if getattr(c, "is_spirit", False)]
-                demons = [c for c in living_now if getattr(c, "is_demon", False)]
+                # บัญชาสวรรค์เป็นหน้าที่รบของผู้ใหญ่ ทั้งผู้ล่าและเป้าหมายต้องพ้นวัยเด็ก
+                # มิฉะนั้นสิ่งมีชีวิตที่เกิดมาพร้อมสายเลือดวิญญาณ/มารจะออกรบตั้งแต่อายุหนึ่งปี
+                spirits = [c for c in living_now
+                           if c.age(self.day) >= 14 and getattr(c, "is_spirit", False)]
+                demons = [c for c in living_now
+                          if c.age(self.day) >= 14 and getattr(c, "is_demon", False)]
                 if spirits and demons:
                     if self.rng.random() < 0.3: # 30% chance for a holy crusade
                         hunter = self.rng.choice(spirits)
@@ -1858,7 +1925,12 @@ class Sim:
                 # เป็นอ้างอิงถึงคนละคนไปเลย ทุก ~30 วันที่บล็อกนี้ทำงาน — เจ้าของ turn จริงไม่เคยถูก
                 # schedule ต่อเลย ทำให้หลุดจากคิวถาวรทีละคน สะสมจนคิวว่างหมดทั้งที่ยังมีคนเป็นๆ อยู่
                 for pc in living_now:
-                    if not getattr(pc, "is_demon", False) and not getattr(pc, "is_spirit", False) and not getattr(pc, "is_beast", False):
+                    # จิตมารเป็นวิกฤตของคนที่เติบโตพอจะมีกรรม/ความทะเยอทะยานของตนเอง
+                    # เด็กเคยถูกเลือกจากลูปประชากรโลกนี้ แม้เทิร์นของเด็กเองจะถูกกันไว้แล้ว
+                    if (pc.age(self.day) >= 14
+                            and not getattr(pc, "is_demon", False)
+                            and not getattr(pc, "is_spirit", False)
+                            and not getattr(pc, "is_beast", False)):
                         if getattr(pc, "karmic_debt", 0) > 1000 or getattr(pc, "ambition", 0) > 80:
                             if self.rng.random() < 0.05: # 5% chance every 30 days
                                 pc.is_demon = True
@@ -1920,7 +1992,8 @@ class Sim:
                         stealth_level = self.rng.randint(50, 100)
                         if stealth_level > getattr(target_sect, "alert_level", 50):
                             intel_gathered = self.rng.randint(10, 50)
-                            target_sect.threat_level = getattr(target_sect, "threat_level", 0) + intel_gathered
+                            target_sect.threat_level = min(
+                                100, getattr(target_sect, "threat_level", 0) + intel_gathered)
                             # log silently or print (using print here for engine logs as requested by user)
                             safe_print(f"\n🕵️‍♂️ [องครักษ์เสื้อแพร] แทรกซึมสำเร็จ! พบว่า {target_sect.name} ซ่องสุมกำลัง (ภัยคุกคาม: {target_sect.threat_level}/100)")
                         else:
@@ -2125,7 +2198,14 @@ class Sim:
         world = self.world(actor.world_id)
 
         # แก่/เสื่อมคิดเฉพาะตอนตัวละครขยับ (เร็วกว่าไล่ทุกคนทุกเหตุการณ์)
-        R.age_and_decay(self, actor, world, self.day - actor.last_day, rng)
+        # เด็กยังต้องให้กายวิภาคเดินตามเวลาจริง แต่ยังไม่ควรถูกคิดค่าคงสภาพขั้นพลัง
+        # ความเสื่อม อายุขัย หรือจิตมารด้วยกฎของผู้ใหญ่ ก่อนหน้านี้เด็กอายุสิบปีจึงมี
+        # เหตุการณ์ "สิ้นอายุขัย" ได้ทั้งที่ intent ของเด็กถูกกันไว้ด้านล่างแล้ว
+        actor_gap = self.day - actor.last_day
+        if actor.age(self.day) < 14:
+            BODY.tick(actor, actor_gap, day=self.day)
+        else:
+            R.age_and_decay(self, actor, world, actor_gap, rng)
         actor.last_day = self.day
 
         # นับประชากรใหม่เป็นรอบ ก่อนเอาตัวเลขไปคิดปราณที่ไหลเข้าโลก
@@ -2253,6 +2333,12 @@ class Sim:
         if (world.kind == "mortal" and world.place_key == 0
                 and self.chaos_wid is not None and rng.random() < C.CHAOS_INVADE_P):
             self.chaos_invade(world, elapsed, rng)
+
+        # เด็กมีชีวิตและประวัติของตัวเอง แต่ยังไม่ใช้เมนูการกระทำของผู้ใหญ่ การปล่อยลงไป
+        # ใน intent ปกติเคยทำให้ทารกอายุ 0 ปีประลอง ปล้น ปิดด่าน และตายจากการล่าอสูร
+        # เก็บหนึ่งบันทึกต่อปีไว้บน Character เพื่อให้ชั้นจิตใจที่รับเขาตอนโตย้อนอ่านได้
+        if actor.age(self.day) < 14:
+            return self._childhood_turn(actor, world, elapsed, rng)
 
         others = self.social_pool(actor, world, rng)
 
@@ -2537,7 +2623,8 @@ class Sim:
         """เผ่าโกลาหลมาถึงโลกมนุษย์แล้วทำอะไร:
         เล็งสถานที่ที่มวลปราณหนาแน่นที่สุด ทำลายสิ่งก่อสร้าง กลืนกินแร่และของ
         แล้วขยายรอยแยกให้กว้างขึ้นเพื่อดึงขุนพลระดับสูงลงมาสมทบ"""
-        pool = [c for c in self.living_in(self.chaos_wid) if c.alive and not c.hidden]
+        pool = [c for c in self.living_in(self.chaos_wid)
+                if c.alive and not c.hidden and c.age(self.day) >= 14]
         cap = int(world.rift / C.RIFT_RANK_PER) + 1
         raiders = [c for c in pool if c.chaos_rank <= cap] or pool
         if not raiders:
@@ -2565,7 +2652,8 @@ class Sim:
                 
         spot = rng.choice(cands)
         spot_name = PL.PLACES[spot][0]
-        defenders = [x for x in self.living_in(world.wid) if x.place == spot]
+        defenders = [x for x in self.living_in(world.wid)
+                     if x.place == spot and x.age(self.day) >= 14]
         d = {"รอยแยก": f"กว้าง {world.rift:.1f} — ขั้นที่ลงมาได้ถึง {C.CHAOS_RANKS[min(cap, len(C.CHAOS_RANKS)-1)]}",
              "ถูกกด": f"ลงมาโลกมนุษย์แล้วถูกกดลง {C.CHAOS_DESCEND_PUSH} ขั้นตามกฎของโลกล่าง"}
         if defenders:
@@ -3062,8 +3150,8 @@ class Sim:
 
     def chaos_raid(self, world, elapsed, rng):
         """เผ่าโกลาหลบุกมาทำลายทุกอย่างให้กลับเป็นความว่างก่อนกำเนิดจักรวาล"""
-        raiders = self.living_in(self.chaos_wid)
-        prey = self.living_in(world.wid)
+        raiders = [c for c in self.living_in(self.chaos_wid) if c.age(self.day) >= 14]
+        prey = [c for c in self.living_in(world.wid) if c.age(self.day) >= 14]
         if not raiders or not prey:
             return
         c = rng.choice(raiders)
@@ -3086,8 +3174,9 @@ class Sim:
 
     def mara_raid(self, world, elapsed, rng):
         mara_world = self.world(world.lateral[0])
-        raiders = [c for c in self.living_in(mara_world.wid) if c.realm >= 2]
-        prey = self.living_in(world.wid)
+        raiders = [c for c in self.living_in(mara_world.wid)
+                   if c.realm >= 2 and c.age(self.day) >= 14]
+        prey = [c for c in self.living_in(world.wid) if c.age(self.day) >= 14]
         if not raiders or not prey:
             return
             
@@ -3492,7 +3581,11 @@ class Sim:
                     if rng.randint(1, 100) <= 15:
                         other_chars = [c for c in self.living_in(w.wid) if c.cid != a.cid]
                         if other_chars:
-                            b = rng.choice(other_chars)
+                            # คู่ครองต้องเป็นผู้ใหญ่ เดิมเด็กในเมืองถูกสุ่มมาแต่งงานและมีลูกได้
+                            adult_chars = [c for c in other_chars if c.age(self.day) >= C.ADULT_AGE]
+                            if not adult_chars:
+                                return "ทั่วไป", pre_msg + f"{a.name}เดินชมเมืองโดยไม่มีเหตุสำคัญ", d
+                            b = rng.choice(adult_chars)
                             if not hasattr(b, "companions"): b.companions = {}
                             if not hasattr(b, "nemeses"): b.nemeses = {}
                             
@@ -3524,6 +3617,11 @@ class Sim:
                                     if rng.random() < 0.5:
                                         child = self.spawn(w)
                                         child.parent_name = a.name
+                                        child.parents = [a.cid, b.cid]
+                                        child.bonds[a.cid] = 10
+                                        child.bonds[b.cid] = 10
+                                        a.children.append(child.cid)
+                                        b.children.append(child.cid)
                                         child.generation = getattr(a, "generation", 1) + 1
                                         child.money[w.wid] = a.money.get(w.wid, 0) // 2
                                         msg += f" 🍼 [สายเลือดสืบทอด] ให้กำเนิดทายาทชื่อ [{child.name}] (รุ่นที่ {child.generation})!"
@@ -3940,6 +4038,8 @@ class Sim:
                 reps = _mast.get(name, 0)
                 before = PHYS.practice_mastery(reps, C.PRACTICE_EXPONENT)
                 _mast[name] = reps + 1
+                from . import body as BODY
+                BODY.train(a, 0.75)
                 after = PHYS.practice_mastery(reps + 1, C.PRACTICE_EXPONENT)
                 a.insight += C.DEEPEN_INSIGHT * (after - before) * 10.0
                 d["ฝึกซ้ำ"] = f"{name} — ครั้งที่ {reps + 1}"
@@ -4001,6 +4101,8 @@ class Sim:
             _pw = max(0.05, min(0.95, p))
             d["p"] = _pw
             if rng.random() > _pw:
+                from . import body as BODY
+                BODY.train(a, 0.45)  # ฝึกพลาดก็ยังลงแรง แม้ความเข้าใจยังไม่สำเร็จ
                 a.decay += C.LEARN_BACKFIRE * (0.5 + 0.4 * grade)
                 # ฝึกพลาดก็ได้บทเรียน — ไม่มากเท่าสำเร็จ แต่ไม่ใช่เสียเปล่าทั้งหมด
                 a.insight += C.TRAIN_FAIL_INSIGHT
@@ -4015,6 +4117,8 @@ class Sim:
             a.insight += C.TRAIN_INSIGHT_BASE + C.TRAIN_INSIGHT_PER_GRADE * grade
             a.refine += C.TRAIN_REFINE * (1.0 + 0.5 * grade)
             a.learn_skill(sk[0])        # เรียนจบครั้งแรก = ฝึกไปแล้วหนึ่งครั้ง
+            from . import body as BODY
+            BODY.train(a, 1.0 + 0.25 * grade)
             d["วิชา"] = f"{SK.GRADE_NAME[sk[3]]} · สาย{sk[1]} — {sk[4]}"
             d["ทาง"] = f"{PATHS.skill_path(sk[0])}บำเพ็ญ · ตอนนี้เป็น{PATHS.path_of(a)}"
             d["ที่ฝึก"] = self.place_name(a)
@@ -4658,7 +4762,9 @@ class Sim:
                     dest = self.pick_destination(a, safe_pl, rng)
                     tail_want = False
                 allow_barrier = getattr(self, "mara_seal_broken", False) or (getattr(self, "mara_seal", 100.0) <= getattr(C, "MARA_SEAL_WEAK_THRESHOLD", 30.0) and rng.random() < getattr(C, "MARA_SEAL_LEAK_P", 0.15))
-                days = TR.shortest_path_days(a.place, dest, a.realm, allow_mara_barrier=allow_barrier)
+                days = TR.shortest_path_days(a.place, dest, a.realm,
+                                             allow_mara_barrier=allow_barrier,
+                                             character=a)
                 if days is None:
                     # ไม่ควรเกิดจริง (pl มาจาก world_key เดียวกันซึ่งเชื่อมกันหมดในตัว geo.py เสมอ)
                     # กันไว้เผื่อข้อมูลกราฟผิดพลาดในอนาคต — ไม่เดินทาง แทนที่จะพัง
@@ -4800,12 +4906,6 @@ class Sim:
             child.blood = blood
             child.bonds[a.cid] = 10
             child.bonds[t.cid] = 10
-            p_realm = a.realm + t.realm
-            if p_realm > 0:
-                child.insight += p_realm * 2.0
-                child.refine += p_realm * 2.0
-                d["ทายาทผู้ฝึกตน"] = f"{child.name} ได้รับพรสวรรค์มหาศาลตั้งแต่เกิด!"
-            
             # โบนัสทายาทผู้ฝึกตน
             p_realm = a.realm + t.realm
             if p_realm > 0:

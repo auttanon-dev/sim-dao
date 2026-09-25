@@ -182,7 +182,15 @@ def compute_place_3d_and_biome(place_idx: int) -> Tuple[float, float, float, str
     name, world_key, grade, ptype, res, furn, sec_parent, is_sealed = p
     x, y = GEO.COORDS[place_idx]
     
-    realm_info = REALM_PROPERTIES.get(world_key, REALM_PROPERTIES[0])
+    # br000..br107 เป็นแดนเซียนสาขา ไม่ใช่โลกมนุษย์ การ fallback ไป key 0 เดิมทำให้
+    # ทั้ง 540 สถานที่มีภูมิประเทศ mortal ทั้งที่อยู่บนแดนเซียนลอยฟ้า
+    realm_info = REALM_PROPERTIES.get(world_key)
+    if realm_info is None and isinstance(world_key, str) and world_key.startswith("br"):
+        realm_info = dict(REALM_PROPERTIES[1])
+        realm_info["name"] = PL.BRANCH_NAMES[int(world_key[2:])]
+        realm_info["center"] = (x, y)
+    if realm_info is None:
+        realm_info = REALM_PROPERTIES[0]
     base_z = realm_info["base_z"]
     theme = realm_info["theme"]
     
@@ -402,7 +410,10 @@ def get_all_places_data() -> List[Dict[str, Any]]:
         name, w, grade, ptype, res, furn, sec_parent, is_sealed = p
         x, y, z, biome_key, biome_name = compute_place_3d_and_biome(i)
         
-        realm_name = REALM_PROPERTIES.get(w, {}).get("name", str(w))
+        if isinstance(w, str) and w.startswith("br"):
+            realm_name = PL.BRANCH_NAMES[int(w[2:])]
+        else:
+            realm_name = REALM_PROPERTIES.get(w, {}).get("name", str(w))
         
         places_data.append({
             "idx": i,

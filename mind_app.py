@@ -8,10 +8,11 @@ from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 
 from tiandao.mind.runner import RUNNER, RunConfig, read_journal
+from tiandao.mind.novel import NOVEL
 
 ROOT = Path(__file__).resolve().parent
 
@@ -78,6 +79,8 @@ def mind(cid: int):
 
 @app.post("/api/start")
 def start():
+    if NOVEL.running():
+        raise HTTPException(409, "กำลังแต่งนิยายอยู่ กรุณารอหรือสั่งพักก่อนเดินโลก")
     try:
         return RUNNER.start()
     except RuntimeError as exc:
@@ -87,6 +90,53 @@ def start():
 @app.post("/api/stop")
 def stop():
     return RUNNER.stop()
+
+
+@app.post("/api/config")
+def configure(body: dict = Body(...)):
+    if RUNNER.state in ("running", "stopping"):
+        raise HTTPException(409, "ต้องพักโลกก่อนเปลี่ยนเวลาและจำนวนผู้มีจิตใจ")
+    minutes = float(body.get("minutes", RUNNER.cfg.max_minutes or 25))
+    count = int(body.get("count", RUNNER.cfg.capacity))
+    if not 0.1 <= minutes <= 10080:
+        raise HTTPException(422, "เวลากำหนดได้ตั้งแต่ 0.1 ถึง 10,080 นาที")
+    if not 1 <= count <= 200:
+        raise HTTPException(422, "จำนวนผู้มีจิตใจกำหนดได้ตั้งแต่ 1 ถึง 200 คน")
+    RUNNER.cfg.max_minutes = minutes
+    RUNNER.cfg.capacity = count
+    RUNNER.sim.mind.set_capacity(RUNNER.sim, count)
+    RUNNER.save()
+    return RUNNER.status()
+
+
+@app.get("/api/novel/status")
+def novel_status():
+    return NOVEL.status()
+
+
+@app.post("/api/novel/start")
+def novel_start(body: dict = Body(...)):
+    if RUNNER.state in ("running", "stopping"):
+        raise HTTPException(409, "กรุณาพักโลกก่อนแต่งนิยาย เพื่อไม่ให้สองงานแย่งโมเดล")
+    try:
+        return NOVEL.start(RUNNER.sim, RUNNER.cfg.journal_path, int(body["cid"]), RUNNER.backend,
+                           RUNNER.cfg.out_dir, chapters=int(body.get("chapters", 6)))
+    except (KeyError, TypeError, ValueError, RuntimeError) as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@app.post("/api/novel/stop")
+def novel_stop():
+    return NOVEL.stop()
+
+
+@app.get("/api/novel/download")
+def novel_download():
+    data = NOVEL.status()
+    if not data["out_path"] or not os.path.exists(data["out_path"]):
+        raise HTTPException(404, "ยังไม่มีไฟล์นิยาย")
+    return FileResponse(data["out_path"], media_type="text/markdown",
+                        filename=os.path.basename(data["out_path"]))
 
 
 @app.get("/api/mind/{cid}/biography.md")
@@ -113,7 +163,7 @@ def biography(cid: int):
                 out += ["", e["story"]]
         elif t == "decision":
             out += [head, f"{e['name']} {e['action']} กับ{profile['name']} — {e['outcome']}: {e['text']}"]
-        elif t in ("received", "event", "join", "death"):
+        elif t in ("birth", "childhood", "received", "event", "join", "death"):
             out += [head, e.get("text", "")]
         out.append("")
     return PlainTextResponse("\n".join(out), headers={

@@ -27,6 +27,8 @@ from tiandao import body as B                          # noqa: E402
 from tiandao.body import balance as BAL                # noqa: E402
 from tiandao.body import injury as INJ                 # noqa: E402
 from tiandao.body import capability, constants as K    # noqa: E402
+from tiandao.body import perception as PER             # noqa: E402
+from tiandao.body.condition import Condition           # noqa: E402
 from tiandao.models import Character                   # noqa: E402
 
 
@@ -49,12 +51,14 @@ def show(node, indent=2):
 
 def one(cid, seed, gender, friction, fatigue, hurt_j=0.0, hurt_region="left_leg"):
     ch = make(cid, seed, gender)
+    ch.fatigue = fatigue          # ความล้าเป็นสภาพของตัวละคร ทุกฟังก์ชันอ่านเองจากตรงนี้
+    cond = Condition.of(ch)
     body = B.body_of(ch)
     blow = B.hurt(ch, hurt_j, region=hurt_region, key=("report",)) if hurt_j else None
     print("=" * 74)
     print(f"  {ch.name}  (โลก seed {seed} · cid {cid} · {gender})")
     print("=" * 74)
-    show(B.explain(ch, friction=friction, fatigue=fatigue))
+    show(B.explain(ch, friction=friction))
 
     # ---- โซ่การคำนวณที่นำไปสู่ "แรงที่พื้น" ให้เห็นทีละขั้น ----
     leg = body.muscles["leg"]
@@ -71,7 +75,7 @@ def one(cid, seed, gender, friction, fatigue, hurt_j=0.0, hurt_region="left_leg"
 
     print("\n  ความสามารถบนพื้นแต่ละแบบ (m/s):")
     for name, mu in sorted(K.TERRAIN_FRICTION.items(), key=lambda kv: -kv[1]):
-        print(f"    {name:<10} μ={mu:.2f}   {capability.max_running_speed(body, mu, fatigue):5.2f}")
+        print(f"    {name:<10} μ={mu:.2f}   {capability.max_running_speed(body, mu, cond):5.2f}")
 
     print("\n  โครงกระดูกรับแรงได้แค่ไหน (กระดูกต้นขา · แรงผ่านตัวมันเอง):")
     femur = body.skeleton["femur"]
@@ -102,8 +106,8 @@ def one(cid, seed, gender, friction, fatigue, hurt_j=0.0, hurt_region="left_leg"
         show(blow, indent=4)
         print("\n  บาดเจ็บและความสามารถที่เหลือหลังโดน:")
         show(INJ.explain(body, ch.injuries), indent=4)
-        print(f"    วิ่งได้ {capability.max_running_speed(body, friction, fatigue, ch.injuries):.2f} m/s"
-              f"  (ก่อนโดน {capability.max_running_speed(body, friction, fatigue):.2f})")
+        print(f"    วิ่งได้ {capability.max_running_speed(body, friction, Condition.of(ch)):.2f} m/s"
+              f"  (ก่อนโดน {capability.max_running_speed(body, friction, cond):.2f})")
         print("\n  เวลาเยียวยา:")
         for days in (0, 30, 90, 180, 365, 730):
             state = copy.deepcopy(ch.injuries)
@@ -111,12 +115,38 @@ def one(cid, seed, gender, friction, fatigue, hurt_j=0.0, hurt_region="left_leg"
             print(f"    {days:>4} วัน   ความสามารถขา {INJ.capacity(state, 'leg'):.3f}"
                   f"   ความบาดเจ็บรวม {INJ.severity(state):.4f}")
 
-    print("\n  ถ้าความล้าเพิ่มขึ้น (Phase 5 จะเป็นผู้จ่ายค่านี้เข้ามาจริง):")
+    print("\n  ถ้าความล้าเพิ่มขึ้น (ค่าจริงมาจาก circulation.exert ระหว่างที่โลกเดิน):")
     for f in (0.0, 0.25, 0.50, 0.75):
-        print(f"    ความล้า {f:.0%}  วิ่ง {capability.max_running_speed(body, friction, f):5.2f} m/s"
-              f" · กระโดด {capability.jump_height(body, f):5.3f} m"
-              f" · แบก {capability.carry_capacity(body, f):5.1f} kg"
-              f" · ตอบสนอง {capability.reaction_time(body, f):.3f} s")
+        tired = Condition(fatigue=f)
+        print(f"    ความล้า {f:.0%}  วิ่ง {capability.max_running_speed(body, friction, tired):5.2f} m/s"
+              f" · กระโดด {capability.jump_height(body, tired):5.3f} m"
+              f" · แบก {capability.carry_capacity(body, tired):5.1f} kg"
+              f" · ตอบสนอง {capability.reaction_time(body, tired):.3f} s")
+
+    # ---- §32: สิ่งที่ระบบตัดสินใจถาม · §33: สิ่งที่เจ้าตัวคิดว่าตัวเองเป็น ----
+    print("\n  คำถามที่ระบบตัดสินใจถามร่างกายนี้ (§32):")
+    caps = B.capabilities(ch, friction=friction)
+    print(f"    ยืนไหว {caps['can_stand']} · วิ่งไหว {caps['can_run']} · สู้ไหว {caps['can_fight']}"
+          f" · รู้สึกตัว {caps['conscious']}")
+    print(f"    วิ่ง {caps['speed']:.2f} m/s · ตอบสนอง {caps['reaction']:.3f} s"
+          f" · แบก {caps['carry']:.1f} kg · หมัด {caps['strike']:.0f} J"
+          f" · อดได้ {caps['endurance']:.0f} วัน")
+    print(f"    แขนใช้ได้ {caps['arm']:.2f} · ขาใช้ได้ {caps['leg']:.2f}"
+          f" · แรงที่เรียกใช้ได้ {caps['effort']:.2f} · สรุปด้วยคำเดียว: {caps['word']}")
+
+    print("\n  ร่างจริง vs ร่างที่เจ้าตัวรู้สึก (§33 — คนละอย่างกันโดยตั้งใจ):")
+    print(f"    ความเร็วที่ *คิดว่า* ตัวเองวิ่งได้ (ของจริง {caps['speed']:.2f} m/s) — "
+          f"แต่ละวันรู้สึกไม่เท่ากัน")
+    print(f"    {'อคติ':>10}" + "".join(f"{f'วันที่ {d}':>12}" for d in range(5))
+          + f"{'คำที่จะพูด':>14}")
+    for label, bias in (("ขลาด", -1.0), ("กลางๆ", 0.0), ("กล้า", 1.0)):
+        seen = [B.capabilities(ch, felt=B.felt(ch, day=d, bias=bias), friction=friction)
+                for d in range(5)]
+        print(f"    {label:>10}" + "".join(f"{s['speed']:>12.2f}" for s in seen)
+              + f"{seen[0]['word']:>14}")
+    lo, hi = PER.band(ch)["blood"]
+    print(f"    ช่วงที่พอบอกได้เรื่องเลือด: {lo:.0%}–{hi:.0%}"
+          f"  (ของจริง {1.0 - cond.blood:.0%})")
 
 
 def population(n, seed, friction):

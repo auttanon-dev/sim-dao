@@ -95,7 +95,10 @@ class TestKeepImportantOutcome(Base):
             self.mm.on_event(ev, self.sim)
         import json, os
         path = os.path.join(self.tmp, "journal.jsonl")
-        lines = [json.loads(l) for l in open(path, encoding="utf-8")] if os.path.exists(path) else []
+        lines = []
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as stream:
+                lines = [json.loads(line) for line in stream]
         wins = [e for e in lines if e.get("cid") == self.me.cid and e.get("outcome") == "ปราบมารได้"]
         self.assertEqual(len(wins), 3, "ปราบมารได้ต้องไม่ถูกยุบรวมเหมือนการถูกบุกซ้ำๆ")
 

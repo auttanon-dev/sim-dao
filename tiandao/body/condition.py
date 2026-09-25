@@ -26,24 +26,37 @@ from . import constants as K
 class Condition:
     """สภาพปัจจุบันของร่างหนึ่ง — อ่านอย่างเดียว สร้างใหม่ทุกครั้งที่ถาม ราคาถูกมาก"""
 
-    __slots__ = ("fatigue", "blood", "fuel", "core_temp", "injury")
+    __slots__ = ("fatigue", "blood", "fuel", "core_temp", "injury",
+                 "muscle_factor", "cardio_factor", "bone_factor", "nerve_factor",
+                 "recovery_factor")
 
     def __init__(self, fatigue: float = 0.0, blood: float = 1.0, injury=None,
-                 fuel: float = 1.0, core_temp: float = None):
+                 fuel: float = 1.0, core_temp: float = None, muscle_factor: float = 1.0,
+                 cardio_factor: float = 1.0, bone_factor: float = 1.0,
+                 nerve_factor: float = 1.0, recovery_factor: float = 1.0):
         self.fatigue = min(1.0, max(0.0, float(fatigue)))
         self.blood = min(1.5, max(0.0, float(blood)))
         self.fuel = min(1.0, max(0.0, float(fuel)))
         self.core_temp = (K.CORE_TEMP_NORMAL if core_temp is None else float(core_temp))
         self.injury = injury or None
+        self.muscle_factor = max(0.05, float(muscle_factor))
+        self.cardio_factor = max(0.05, float(cardio_factor))
+        self.bone_factor = max(0.05, float(bone_factor))
+        self.nerve_factor = max(0.05, float(nerve_factor))
+        self.recovery_factor = max(0.05, float(recovery_factor))
 
     @classmethod
     def of(cls, character) -> "Condition":
         """อ่านสภาพจากตัวละครโดยตรง — จุดเดียวที่รู้ว่าฟิลด์ไหนเก็บอะไร"""
+        from . import adaptation
+        factors = adaptation.factors(character)
         return cls(getattr(character, "fatigue", 0.0),
                    getattr(character, "blood_frac", 1.0),
                    getattr(character, "injuries", None),
                    getattr(character, "fuel", 1.0),
-                   getattr(character, "core_temp", K.CORE_TEMP_NORMAL))
+                   getattr(character, "core_temp", K.CORE_TEMP_NORMAL),
+                   factors["muscle"], factors["cardio"], factors["bone"],
+                   factors["nerve"], factors["recovery"])
 
     # ---------------------------------------------------------------- ตัวคูณที่ได้จากสภาพ
     @property
@@ -56,13 +69,15 @@ class Condition:
         เลือดพร่องเล็กน้อยแทบไม่มีผล เพราะร่างชดเชยด้วยการเร่งหัวใจ — ผลจึงไม่เป็นเส้นตรง
         แต่ทรุดเร็วเมื่อพ้นระดับที่ชดเชยไหว
         """
+        from . import organs
+        organ = organs.oxygen_factor(self.injury)
         if self.blood >= K.BLOOD_COMPENSATED_ABOVE:
-            return 1.0
+            return organ
         span = K.BLOOD_COMPENSATED_ABOVE - K.BLOOD_FATAL_BELOW
         if span <= 0.0:
             return 0.0
         left = (self.blood - K.BLOOD_FATAL_BELOW) / span
-        return max(0.0, min(1.0, left)) ** K.BLOOD_PERFORMANCE_EXPONENT
+        return (max(0.0, min(1.0, left)) ** K.BLOOD_PERFORMANCE_EXPONENT) * organ
 
     @property
     def fuel_factor(self) -> float:
@@ -90,9 +105,15 @@ class Condition:
                 * self.fuel_factor * self.thermal_factor)
 
     @property
+    def pain(self) -> float:
+        from . import pain
+        return pain.level(self.injury)
+
+    @property
     def conscious(self) -> bool:
         """ยังรู้สึกตัวอยู่ไหม — เลือดต่ำกว่าระดับหนึ่งสมองไม่ได้ออกซิเจนพอ"""
-        return self.blood > K.BLOOD_UNCONSCIOUS_BELOW
+        from . import organs
+        return self.blood > K.BLOOD_UNCONSCIOUS_BELOW and organs.conscious(self.injury)
 
     def explain(self) -> dict:
         from . import metabolism as MET
@@ -108,6 +129,10 @@ class Condition:
             "ตัวคูณแรงรวม": round(self.effort_factor, 3),
             "รู้สึกตัว": self.conscious,
             "มีบาดเจ็บ": bool(self.injury),
+            "ความปวด": round(self.pain, 3),
+            "กล้ามเนื้อ (วัย+การฝึก)": round(self.muscle_factor, 3),
+            "หัวใจปอด (วัย+การฝึก)": round(self.cardio_factor, 3),
+            "กระดูก (วัย+การฝึก)": round(self.bone_factor, 3),
         }
 
 

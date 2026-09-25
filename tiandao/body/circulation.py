@@ -57,7 +57,7 @@ def stroke_volume(body, cond) -> float:
 
     ∝ ปริมาตรเลือดที่มีอยู่ — เลือดน้อยลง หัวใจก็มีของให้ส่งน้อยลงในแต่ละครั้ง
     """
-    return blood_volume(body) * K.STROKE_VOLUME_FRACTION * cond.blood
+    return blood_volume(body) * K.STROKE_VOLUME_FRACTION * cond.blood * cond.cardio_factor
 
 
 def cardiac_output(body, cond, exertion: float = 0.0) -> float:
@@ -120,9 +120,9 @@ def tick(character, body, days: float) -> dict:
 
     # สร้างเลือดใหม่เข้าหาระดับปกติ — ช้ากว่าการเสียมาก (ครึ่งทางในราวห้าสัปดาห์)
     character.blood_frac = PHYS.relax(getattr(character, "blood_frac", 1.0), 1.0,
-                                      K.BLOOD_REGEN_RATE, days)
+                                      K.BLOOD_REGEN_RATE * cond.recovery_factor, days)
     character.fatigue = PHYS.relax(getattr(character, "fatigue", 0.0), 0.0,
-                                   K.FATIGUE_RECOVERY_RATE, days)
+                                   K.FATIGUE_RECOVERY_RATE * cond.recovery_factor, days)
     return {"เสียเลือด (เท่าของปกติ)": round(lost, 4),
             "เลือดคงเหลือ": round(character.blood_frac, 4),
             "อัตราที่ยังไหลอยู่": round(character.bleed, 5),

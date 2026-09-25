@@ -91,7 +91,15 @@ def _ally_in_danger(ctx, spec, target):
 
 
 def _can_attack(ctx, spec, target):
-    return ctx.state.stamina >= spec.costs.get("stamina", 0.0) and ctx.state.hp > 0
+    """§32: "Decision Engine ห้ามใช้ HP อย่างเดียว" — ถ้ามีแบบจำลองร่างกายให้ถามร่างกาย
+
+    HP ยังเป็นเงื่อนไขอยู่ (ตายแล้วไม่สู้) แต่คนที่ HP เต็มและขาหักสองข้างก็สู้ไม่ได้
+    โลกที่ไม่มีแบบจำลองร่างกาย (known=False) ใช้เกณฑ์เดิมทุกประการ
+    """
+    if ctx.state.stamina < spec.costs.get("stamina", 0.0) or ctx.state.hp <= 0:
+        return False
+    cap = ctx.state.body
+    return cap.can_fight if cap.known else True
 
 
 def _has_food(ctx, spec, target):
@@ -106,6 +114,12 @@ def _not_exhausted(ctx, spec, target):
     return ctx.state.fatigue < 0.95
 
 
+def _can_move(ctx, spec, target):
+    """ขยับตัวเองได้ไหม — ยืนไหวและยังรู้สึกตัว (§32 CanStand)"""
+    cap = ctx.state.body
+    return (cap.can_stand and cap.conscious) if cap.known else True
+
+
 def _target_available(ctx, spec, target):
     return bool(eligible_targets(ctx, spec))
 
@@ -117,6 +131,7 @@ REQUIREMENTS: Dict[str, Callable] = {
     "has_food": _has_food,
     "has_money": _has_money,
     "not_exhausted": _not_exhausted,
+    "can_move": _can_move,
     "target_available": _target_available,
 }
 

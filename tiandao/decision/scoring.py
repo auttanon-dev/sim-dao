@@ -171,7 +171,10 @@ class UtilityScorer:
             else:
                 conf_notes.append(f"ไม่รู้พลังอีกฝ่าย conf={conf:.2f}")
         else:
-            bd.p_success = spec.success
+            esc, esc_note = self.escape_odds(ctx, spec, target)
+            bd.p_success = spec.success if esc is None else esc
+            if esc_note:
+                conf_notes.append(esc_note)
             for k in spec.risk.get("belief_keys", []) or []:
                 if simplified:
                     break
@@ -375,6 +378,33 @@ class UtilityScorer:
         return math.tanh(x / self.cfg.get("legacy_intent.scale", 1.5)), \
             f"intent.weigh={v:.1f} (เฉลี่ย {gm:.1f})"
 
+    def escape_odds(self, ctx, spec, target=None):
+        """P(หนีรอด) จาก **ความเร็ว** ไม่ใช่จากพลัง (§32) — คืน (p, note) หรือ (None, "")
+
+            P = logistic(ln(v_เรา / v_ผู้ไล่) / s)
+
+        รูปเดียวกับ Bradley–Terry ที่ใช้คิดโอกาสชนะ เปลี่ยนแต่ปริมาณ: การไล่กันตัดสิน
+        ด้วยความเร็ว การปะทะตัดสินด้วยพลัง ผู้ไล่ที่นับคือ **คนที่เร็วที่สุด** ที่มองเห็น
+        เพราะหนีพ้นเก้าคนแต่ไม่พ้นคนที่สิบก็คือไม่พ้น
+
+        v_เรา มาจากสภาพที่ **รู้สึก** (§33) จึงเป็นความเร็วที่เจ้าตัวคิดว่าทำได้ ไม่ใช่ของจริง
+        นี่คือที่มาของพฤติกรรมที่พรอมต์ §32 ยกเป็นตัวอย่าง: ขาเจ็บ → v ตก → P(หนี) ต่ำกว่า
+        P(ชนะ) → เลือกสู้ทั้งที่บาดเจ็บ ไม่ใช่เพราะกล้า แต่เพราะหนีไม่พ้น
+        """
+        if not spec.risk.get("escape"):
+            return None, ""
+        cap = ctx.state.body
+        if not cap.known or cap.speed <= 0.0:
+            return None, ""
+        pursuers = [target] if target is not None else [e for e in ctx.entities if e.hostile]
+        speeds = [e.speed for e in pursuers if e is not None and e.speed > 0.0]
+        if not speeds:
+            return None, ""
+        fastest = max(speeds)
+        p = _logistic(math.log(cap.speed / fastest)
+                      / self.cfg.get("risk.escape_scale", 0.32))
+        return p, f"ความเร็ว {cap.speed:.2f} vs ผู้ไล่ {fastest:.2f} m/s → P(หนีรอด)={p:.2f}"
+
     def risk(self, ctx, spec, target, bd, simplified=False):
         cfg = self.cfg
         rk = spec.risk
@@ -423,8 +453,17 @@ class UtilityScorer:
         c = spec.costs
         # แรง: สัดส่วนของแรงที่เหลือที่ต้องใช้ (relative depletion) — แรงเหลือน้อย ทุกหน่วยแพงขึ้น
         #   EC = 1 − exp(−k · s / R)          R = stamina ที่เหลือ × (1 − g·fatigue)
+        # ถ้าโลกมีแบบจำลองร่างกาย (§32) ตัวคูณที่สองมาจากร่างกายจริง: effort_factor ซึ่งรวม
+        # ความล้า เลือดที่เสีย เชื้อเพลิง และอุณหภูมิแกนกลางเข้าด้วยกันแบบ **คูณกัน**
+        # (ดู body/condition.py) แทนการอ่านตัวเลข stamina เดิมซ้ำอีกครั้ง
         stam = c.get("stamina", 0.0)
-        reserve = max(1e-6, st.stamina * max(0.05, 1.0 - cfg.get("costs.fatigue_gain", 1.0) * st.fatigue))
+        cap = st.body
+        floor = cfg.get("costs.reserve_min", 0.05)
+        if cap.known:
+            left = max(floor, cap.effort)
+        else:
+            left = max(floor, 1.0 - cfg.get("costs.fatigue_gain", 1.0) * st.fatigue)
+        reserve = max(1e-6, st.stamina * left)
         ec = 1.0 - math.exp(-cfg.get("costs.stamina_gain", 1.5) * stam / reserve) if stam > 0 else 0.0
         # เวลา: exponential discounting — ρ ขึ้นกับความอดทน (คนใจร้อนลดค่าอนาคตเร็ว)
         #   TC = 1 − exp(−ρ·t)   ρ = (1/τ) · (1 + g·(0.5 − patience)·2)

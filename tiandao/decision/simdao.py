@@ -11,6 +11,12 @@
 
 feedback ผูกผ่าน event_bus (เหมือน brain_manager) จึงไม่ต้องแก้ resolve()/emit() เลย
 
+ร่างกาย → ความสามารถ → การตัดสินใจ (พรอมต์ §32–33)
+  · ก่อนตัดสินใจทุกครั้ง adapter ถาม tiandao.body ว่า "ตอนนี้ทำอะไรได้บ้าง" แล้วใส่คำตอบลง
+    AgentState.body — แกนกลาง (scoring.py) ไม่รู้จัก tiandao.body เลย
+  · สิ่งที่ถามคือ **สภาพที่เจ้าตัวรู้สึก** (body.felt) ไม่ใช่สภาพจริง ฟิสิกส์ของโลกยังใช้ของจริง
+    ทั้งหมด (rules.py) — คนที่กล้าจึงประเมินตัวเองเกินจริงแล้วตัดสินใจผิดได้จริง (§33)
+
 WorldState → Perception → BeliefState
   · พลังจริงของทุกคนอ่านจาก rules.power() **เฉพาะตอนสังเกต** แล้วผ่าน perceive_power() (noise +
     ปกปิดตามช่องว่างขั้น) ก่อนเก็บเป็น belief — scoring อ่านได้แต่ belief
@@ -29,11 +35,30 @@ from . import config as DCFG
 from . import rng as DRNG
 from .actions import ActionRegistry, ActionSpec
 from .beliefs import perceive_power
-from .context import AgentState, DecisionContext, Environment, PerceivedEntity
+from .context import (AgentState, DecisionContext, Environment, PerceivedEntity,
+                      PhysicalCapability)
 from .engine import DecisionEngine
 from .relationships import Relation
 from .scheduler import goal_recheck_due
 from .scoring import _logistic
+
+
+def capability_of(character, felt=None) -> PhysicalCapability:
+    """ถามร่างกายทุกคำถามที่ §32 ระบุ ในครั้งเดียว แล้วห่อเป็นรูปที่แกนกลางรู้จัก
+
+    ส่ง `felt` (สภาพที่ **รู้สึก** — ดู body/perception.py) เมื่อคำตอบจะเอาไปให้ *ใจ* ใช้
+    ไม่ส่งเมื่อต้องการความสามารถ *จริง* จุดแปลงมีที่เดียวคือที่นี่ ทั้งโลกจริงและเทสต์
+    ใช้ทางเดียวกัน — ไม่งั้นเทสต์อาจผ่านบนการแปลงที่โลกจริงไม่ได้ใช้
+    """
+    from .. import body as BODY
+    c = BODY.capabilities(character, felt=felt)
+    return PhysicalCapability(known=True, speed=c["speed"], reaction=c["reaction"],
+                              carry=c["carry"], strike=c["strike"], fight=c["fight"],
+                              effort=c["effort"], arm=c["arm"], leg=c["leg"],
+                              severity=c["severity"], pain=c["pain"], can_stand=c["can_stand"],
+                              can_fight=c["can_fight"], can_run=c["can_run"],
+                              conscious=c["conscious"], endurance=c["endurance"],
+                              word=c["word"])
 
 
 @dataclass
@@ -149,13 +174,29 @@ class SimDecisionEngine(DecisionEngine):
         seen, c = perceive_power(truth, gap, cfg, (self.seed, actor.cid, other.cid, period))
         mind.beliefs.observe(key, seen, "sight", sim.day, cfg, confidence=c, truth=truth)
 
-    def _see_self(self, mind, sim, actor):
+    def _see_self(self, mind, sim, actor, felt=None):
         cfg = self.cfg
         v, conf = mind.beliefs.get("power:self", sim.day, cfg)
         if v is not None and conf >= cfg.get("belief.refresh_confidence", 0.4):
             return
         truth = self._power(sim, actor)
-        mind.beliefs.observe("power:self", truth, "self", sim.day, cfg, truth=truth)
+        seen = truth if felt is None else self._felt_power(actor, truth, felt)
+        mind.beliefs.observe("power:self", seen, "self", sim.day, cfg, truth=truth)
+
+    @staticmethod
+    def _felt_power(actor, truth, felt):
+        """พลังของตัวเองตามที่รู้สึก (§33) — ต่างจากของจริงเฉพาะส่วนที่มาจากร่างกาย
+
+        rules.power() มีพจน์เดียวที่ขึ้นกับสภาพร่าง คือ (1 + w·(ดัชนีพลังกาย − 1)) ส่วนที่เหลือ
+        (ขั้น วิชา ธาตุ ปราณ) เจ้าตัวรู้แน่ชัดเพราะเป็นของตัวเอง จึงปรับเฉพาะอัตราส่วนของพจน์นั้น
+        แทนการคำนวณพลังใหม่ทั้งก้อน — ความจริงยังถูกส่งเป็น `truth` ให้ระบบความเชื่อเทียบได้
+        """
+        from .. import body as BODY
+        w = BODY.BODY_POWER_WEIGHT
+        body = BODY.body_of(actor)
+        real = 1.0 + w * (BODY.capability.strength_index(body, BODY.Condition.of(actor)) - 1.0)
+        seen = 1.0 + w * (BODY.capability.strength_index(body, felt) - 1.0)
+        return truth * seen / real if real > 1e-9 else truth
 
     def _relation(self, actor, c, mind, sim):
         cfg = self.cfg
@@ -207,6 +248,7 @@ class SimDecisionEngine(DecisionEngine):
             loot = any(sim.items[i].kind != "ยาวิเศษ" for i in c.items if i in sim.items)
             ents.append(PerceivedEntity(eid=c.cid, kind="beast" if c.is_beast else "npc", name=c.name,
                                         hostile=hostile, has_loot=loot, level=self._level(c),
+                                        speed=self._see_speed(sim, actor, c) if hostile and lod <= 1 else 0.0,
                                         relation=rel))
             chars[c.cid] = c
         # ใครกำลังคุกคามใคร + เพื่อน "ตกอยู่ในอันตราย" = P(เพื่อนแพ้) ตามความเชื่อของเรา (Bradley–Terry)
@@ -229,6 +271,19 @@ class SimDecisionEngine(DecisionEngine):
                         worst = max(worst, 1.0 - _logistic(math.log(pa / pt) / scale))
                 ally.in_danger = worst
         return ents, chars
+
+    def _see_speed(self, sim, actor, other) -> float:
+        """ความเร็วของอีกฝ่ายตามที่เรามองเห็น (m/s) — ใช้สภาพ **จริง** ของเขา
+
+        การเดินกะเผลกเป็นสิ่งที่มองเห็นได้ ไม่เหมือนพลังปราณที่ปกปิดได้ จึงไม่มีพจน์ปกปิด
+        เหลือแต่ความคลาดเคลื่อนของการกะด้วยตา (log-normal เหมือน perceive_power)
+        """
+        from .. import body as BODY
+        cfg = self.cfg
+        true_speed = BODY.estimated_max_speed(other)
+        sd = cfg.get("perception.speed_noise", 0.10)
+        period = int(sim.day // max(1, cfg.get("perception.refresh_period", 60)))
+        return true_speed * math.exp(sd * DRNG.normal(self.seed, actor.cid, other.cid, period, "speed"))
 
     def _traits(self, ch):
         emo, des = ch.emotions or {}, ch.desires or {}
@@ -253,7 +308,7 @@ class SimDecisionEngine(DecisionEngine):
             "selfishness": cl(0.5 * greed + 0.5 * (1.0 - comp)),
         }
 
-    def _needs(self, ch, sim, ents, mind, self_power, env_danger):
+    def _needs(self, ch, sim, ents, mind, self_power, env_danger, cap=None):
         from ..ai import utility as UT
         cfg = self.cfg
         self._seen_money = getattr(self, "_seen_money", {})
@@ -295,8 +350,16 @@ class SimDecisionEngine(DecisionEngine):
                        ratio * (0.5 + 0.5 * max(drive("อยากเป็นใหญ่"), drive("อยากพ้นทุกข์"))))
         if getattr(ch, "profession", "") in IN.MUNDANE_PROFESSIONS:
             training *= cfg.get("simdao.mundane_training_scale", 0.2)
+        # ร่างกายที่ยืนไม่ไหว/สู้ไม่ได้ ดันความอยากรอดขึ้นเต็มสเกล ส่วนบาดเจ็บที่รู้สึกได้
+        # เข้ามาเป็นอีกหนึ่งพจน์ของ "ตอนนี้ฉันแย่แค่ไหน" (§32 — ไม่ใช่ดู HP อย่างเดียว)
+        body_survival = 0.0
+        body_rest = 0.0
+        if cap is not None and cap.known:
+            body_survival = max(cap.severity, 0.0 if cap.can_stand and cap.can_fight else 1.0)
+            body_rest = 1.0 - cap.effort
         return {
-            "survival": max(1.0 - hp_ratio, min(1.0, ch.decay / 2.0), ut.get("Escape", 0.0)),
+            "survival": max(1.0 - hp_ratio, min(1.0, ch.decay / 2.0), ut.get("Escape", 0.0),
+                            body_survival),
             "safety": max(safety, env_danger * 0.5),
             "longevity": ut.get("Meditate", 0.0),
             "training": training,
@@ -306,10 +369,10 @@ class SimDecisionEngine(DecisionEngine):
             "exploration": 0.5 * ut.get("DaoPursuit", 0.0) * drive("อยากรู้"),
             "social": drive("อยากเป็นที่รัก") * 0.7,
             "hunger": float(getattr(ch, "hunger", 0.0) or 0.0),
-            "rest": max(0.0, 1.0 - getattr(ch, "energy", 100.0) / 100.0),
+            "rest": max(0.0, 1.0 - getattr(ch, "energy", 100.0) / 100.0, body_rest),
         }
 
-    def _facts(self, ch, sim, ents, mind, self_power):
+    def _facts(self, ch, sim, ents, mind, self_power, cap=None):
         from ..ai import goap as OLDGOAP
         cfg = self.cfg
         scale = cfg.get("risk.win_scale", 0.35)
@@ -319,7 +382,10 @@ class SimDecisionEngine(DecisionEngine):
             pe, _ = mind.beliefs.get(f"power:{e.eid}", sim.day, cfg)
             if pe and _logistic(math.log(self_power / pe) / scale) >= 0.5:
                 can_win = True
+        # §32: ถามร่างกายว่า "ยังสู้ได้ไหม ยังวิ่งได้ไหม" แทนการอนุมานจาก HP ตัวเดียว
         hurt = ch.decay > 1.8 or ch.hp < 0.4 * max(1.0, ch.max_hp)
+        if cap is not None and cap.known and not (cap.can_fight and cap.can_run):
+            hurt = True
         return {
             # reuse precondition ของ GOAP เดิม (tiandao/ai/goap.py) — ความรู้เกี่ยวกับตัวเอง
             "at_bottleneck": ch.at_bottleneck(),
@@ -337,6 +403,10 @@ class SimDecisionEngine(DecisionEngine):
             "ally_danger": any(e.relation.affection > 0 and e.in_danger > 0 for e in ents),
             "safe": not hostile and not hurt,
             "recovered": not hurt,
+            # ความสามารถทางกายเป็น fact ให้ GOAP และ requirement ใช้ได้ตรงๆ (§32)
+            "can_fight": True if cap is None or not cap.known else cap.can_fight,
+            "can_run": True if cap is None or not cap.known else cap.can_run,
+            "can_stand": True if cap is None or not cap.known else cap.can_stand,
         }
 
     def _satisfied_facts(self, needs):
@@ -391,9 +461,15 @@ class SimDecisionEngine(DecisionEngine):
         return (cfg.get("simdao.profile_by_archetype", {}) or {}).get(ch.archetype, "default")
 
     def build_context(self, actor, sim, weights, others, lod):
+        from .. import body as BODY
         cfg = self.cfg
         mind = self.mind(actor.cid, actor.name)
-        self._see_self(mind, sim, actor)
+        traits = self._traits(actor)
+        # §33 อคติในการประเมินตัวเอง: กล้า−ขลาด → มองว่าตัวเองไหวกว่า/แย่กว่าที่เป็นจริง
+        # สเกลจริงอยู่ใน body/constants.PERCEPTION_BIAS_GAIN ที่นี่แค่บอกทิศ
+        felt = BODY.felt(actor, sim.day, traits["bravery"] - traits["caution"])
+        cap = capability_of(actor, felt)
+        self._see_self(mind, sim, actor, felt)
         self_power, _ = mind.beliefs.get("power:self", sim.day, cfg)
         ents, chars = self._entities(mind, sim, actor, others, lod)
         # สัตว์อสูรแถวนี้: ถ้าไม่เคยรู้ ให้คาดเดาจากอันตรายของสถานที่ (inference ความมั่นใจต่ำ)
@@ -402,20 +478,25 @@ class SimDecisionEngine(DecisionEngine):
         if mind.beliefs.get(bkey, sim.day, cfg)[0] is None and "ล่าอสูร" in weights:
             mind.beliefs.observe(bkey, self_power * math.exp(env.danger), "inference", sim.day, cfg,
                                  confidence=cfg.get("simdao.beast_prior_confidence", 0.3))
-        st = AgentState(hp=float(actor.hp), hp_max=float(max(1, actor.max_hp)),
+        # HP เดิมยังอยู่เพื่อ compatibility แต่ใจห้ามมองข้ามร่างจริง: ใช้ค่าที่แย่กว่าระหว่าง
+        # HP legacy กับ HealthScore ที่ derive จากเลือด อวัยวะ การเคลื่อนไหว และแผลที่รับรู้
+        _hp_max = float(max(1, actor.max_hp))
+        _body_hp = BODY.health_score(actor, felt) * _hp_max
+        st = AgentState(hp=min(float(actor.hp), _body_hp), hp_max=_hp_max,
                         stamina=float(getattr(actor, "energy", 100.0)), stamina_max=100.0,
                         fatigue=max(0.0, 1.0 - getattr(actor, "energy", 100.0) / 100.0),
-                        level=self._level(actor), power=self_power,
-                        injuries=min(1.0, actor.decay / 2.0),
+                        level=self._level(actor), power=self_power, body=cap,
+                        # "บาดแผล" = แผลที่รู้สึกได้ตอนนี้ หรือความเสื่อมระยะยาว อันไหนหนักกว่า
+                        injuries=max(min(1.0, actor.decay / 2.0), cap.severity, cap.pain),
                         money=sum(actor.money.values()) if actor.money else 0.0,
                         location=actor.place,
                         horizon=max(0.0, (actor.lifespan() - actor.age(sim.day)) * 365.0))
         ctx = DecisionContext(
             agent_id=actor.cid, name=actor.name, now=sim.day, state=st,
-            needs=self._needs(actor, sim, ents, mind, self_power, env.danger),
-            traits=self._traits(actor), mind=mind, env=env, entities=ents,
+            needs=self._needs(actor, sim, ents, mind, self_power, env.danger, cap),
+            traits=traits, mind=mind, env=env, entities=ents,
             legacy={k: v for k, v in weights.items() if v > 0}, profile=self._profile(actor), lod=lod,
-            facts=self._facts(actor, sim, ents, mind, self_power))
+            facts=self._facts(actor, sim, ents, mind, self_power, cap))
         ctx.facts.update(self._satisfied_facts(ctx.needs))
         ctx.extra["recheck_goal"] = goal_recheck_due(cfg, lod, mind.goal_day, sim.day, mind.woken)
         mind.woken = False

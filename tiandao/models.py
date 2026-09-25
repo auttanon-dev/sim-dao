@@ -225,6 +225,9 @@ class Character:
                                                               # เป็นตัวขับให้ออกเดินทาง/ค้าขาย ดู intent.py
     clan: int = -1              # ตระกูลที่สังกัด (ดัชนีใน clans.CLANS)
     parents: List[int] = field(default_factory=list)
+    # เหตุการณ์วัยเด็กแบบย่อ เก็บหนึ่งรายการต่ออายุหนึ่งปี เพื่อให้ตัวละครที่ถูกเลือกเป็น
+    # ผู้มีจิตใจภายหลังยังมีอดีตตั้งแต่เกิด โดยไม่ต้องแบก event log ทั้งโลกไว้ตลอดกาล
+    childhood: List[dict] = field(default_factory=list)
     children: List[int] = field(default_factory=list)
     # เคยถูกประกาศสองที่ในคลาสเดียวกัน (ที่นี่ = 0 และอีกครั้งใต้ enemies_defeated = 1)
     # Python เก็บอันหลัง ค่าที่มีผลจริงจึงเป็น 1 ซึ่งถูกแล้ว (ผู้ก่อตั้งสายเลือดคือ "รุ่นที่ 1")
@@ -288,6 +291,14 @@ class Character:
     # เก็บแค่ตัวเลขเดียว ไม่เก็บโครงกระดูก/กล้ามเนื้อลงเซฟ เพราะคำนวณกลับมาได้ทั้งหมด
     # ตัวละครจากเซฟเก่าได้ 0 ซึ่งยังคงที่และเดินซ้ำได้ เพียงแต่เป็นคนละร่างกับโลก seed อื่น
     body_seed: int = 0
+    # ประวัติการปรับตัวของร่างกาย — ต่างจากกายวิภาคตั้งต้นตรงที่เกิดจากสิ่งที่คนนี้ทำมา
+    body_age: float = 20.0
+    muscle_adaptation: float = 0.0
+    cardio_adaptation: float = 0.0
+    bone_adaptation: float = 0.0
+    muscle_stimulus: float = 0.0
+    cardio_stimulus: float = 0.0
+    bone_stimulus: float = 0.0
     # ธาตุประจำตัวจากห้าธาตุ (ดู tiandao/elements.py) — สืบจากพ่อแม่เป็นหลัก
     # ใช้ตัดสินว่าวิชาไหน "ถูกกับตัวเขา" และการปะทะธาตุไหนได้เปรียบเสียเปรียบ
     element: str = ""
@@ -496,6 +507,10 @@ class Character:
         self.__dict__.setdefault("core_temp", 37.0)
         self.__dict__.setdefault("injuries", {})
         self.__dict__.setdefault("body_seed", 0)
+        self.__dict__.setdefault("body_age", 20.0)
+        for _name in ("muscle_adaptation", "cardio_adaptation", "bone_adaptation",
+                      "muscle_stimulus", "cardio_stimulus", "bone_stimulus"):
+            self.__dict__.setdefault(_name, 0.0)
         self.__dict__.setdefault("element", "")
         self.__dict__.setdefault("mastery", {})
         self.__dict__.setdefault("elo", 1500.0)

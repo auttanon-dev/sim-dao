@@ -3,10 +3,11 @@
 <title>บันทึกผู้มีจิตใจ · SimDao</title>
 <style>
 :root{color-scheme:dark;--bg:#141a1c;--panel:#1b2325;--line:#39413f;--text:#e8e5dd;--muted:#a6b1ad;--gold:#dcbe86;--jade:#8fc2a8;--red:#e39a8b;--blue:#9bb8d6;font-family:Tahoma,"Noto Sans Thai",sans-serif;color:var(--text);background:var(--bg)}
-*{box-sizing:border-box}body{margin:0;background:var(--bg)}button{font:inherit;background:#293436;color:inherit;border:1px solid #50605e;border-radius:6px;padding:8px 14px;cursor:pointer}button:disabled{opacity:.45;cursor:default}a{color:var(--gold)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg)}button,input{font:inherit;background:#293436;color:inherit;border:1px solid #50605e;border-radius:6px;padding:8px 10px}button{padding:8px 14px;cursor:pointer}button:disabled{opacity:.45;cursor:default}input{width:76px}a{color:var(--gold)}
 header{padding:18px 4vw;border-bottom:1px solid var(--line);display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 header strong{font-size:21px;font-weight:400}header small{display:block;color:var(--muted);font-size:13px;margin-top:4px}
 .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}#pill{font-size:13px;padding:4px 10px;border-radius:99px;border:1px solid #50605e;color:var(--muted)}#pill.running{color:var(--jade);border-color:#4f7c67}#pill.error{color:var(--red);border-color:#8a5046}
+.control{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}.primary{border-color:#8b744b;color:var(--gold)}#novelState{color:var(--jade);font-size:13px}
 #activity{font-size:13px;color:#c7b88e;min-height:18px;padding:6px 4vw;border-bottom:1px solid var(--line)}
 .layout{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:1400px;margin:0 auto}
 aside{border-right:1px solid var(--line);height:calc(100vh - 110px);overflow:auto;position:sticky;top:0;padding:10px 0}
@@ -44,9 +45,12 @@ details.story div{font-size:17px;line-height:2.05;white-space:pre-wrap;margin-to
 <header>
   <div><strong>บันทึกผู้มีจิตใจ</strong><small id="sub">ตัวละครคิดเอง ตัดสินใจเอง — วิถีสวรรค์เป็นผู้ตัดสินผล</small></div>
   <div class="actions"><span id="pill">…</span><span class="stats" id="stats"></span>
-    <button id="start">เดินโลกต่อ</button><button id="stop">พักโลก</button></div>
+    <label class="control">รัน <input id="minutes" type="number" min="0.1" max="10080" step="0.5" value="25"> นาที</label>
+    <label class="control">ผู้มีจิตใจ <input id="mindCount" type="number" min="1" max="200" value="9"> คน</label>
+    <label class="control">นิยาย <input id="chapters" type="number" min="1" max="30" value="6"> บท</label>
+    <button class="primary" id="start">เดินโลกตามเวลานี้</button><button id="stop">พักโลก</button></div>
 </header>
-<div id="activity"></div>
+<div id="activity"></div><div id="novelState" style="padding:0 4vw 7px"></div>
 <div class="layout">
   <aside><h2>ผู้มีจิตใจ</h2><div id="alive"></div><h2>ผู้ล่วงลับ</h2><div id="dead"></div></aside>
   <main>
@@ -61,7 +65,7 @@ details.story div{font-size:17px;line-height:2.05;white-space:pre-wrap;margin-to
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let selected=null, filter='all', entries=[], oldest=null, lastTop=null, minds=[];
+let selected=null, filter='all', entries=[], oldest=null, lastTop=null, minds=[], controlsReady=false;
 const BAD=/ตาย|พ่าย|แพ้|ล้มเหลว|บาดเจ็บ|ไม่พบ|ถูกปล้น|พลาด|หักหลัง|เสีย/;
 
 async function api(path,opt){const r=await fetch(path,opt);if(!r.ok)throw new Error(await r.text());return r.json()}
@@ -146,7 +150,9 @@ async function loadProfile(){
     <div class="goal"><span>ตั้งใจช่วงนี้</span>${esc(p.short_goal||'-')} ${p.emotion?`<span class="emo">${esc(p.emotion)}</span>`:''}</div>
     ${p.thought?`<div class="thought">“${esc(p.thought)}”</div>`:''}
     ${p.error?`<div class="side">⚠ ครั้งล่าสุดคิดไม่สำเร็จ: ${esc(p.error)}</div>`:''}
-    <p style="margin:10px 0 0"><a href="/api/mind/${p.cid}/biography.md">ดาวน์โหลดชีวประวัติ (.md)</a></p></div>
+    <p style="margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="primary" data-novel-cid="${p.cid}">แต่งนิยายจากชีวิตคนนี้</button>
+      <a href="/api/mind/${p.cid}/biography.md">ดาวน์โหลดชีวประวัติ (.md)</a></p></div>
     <div class="grid2">
       <div class="card"><h3>ตัวตน</h3><div class="kv">${sheet}</div></div>
       <div class="card"><h3>แผนที่ยังค้าง</h3>${plan?`<ol class="plain">${plan}</ol>`:'<div class="stats">ยังไม่มี</div>'}
@@ -160,7 +166,7 @@ async function select(cid){
 }
 async function tick(){
   try{
-    const s=await api('/api/status');
+    const [s,nv]=await Promise.all([api('/api/status'),api('/api/novel/status')]);
     minds=s.minds||[];drawMinds();
     $('pill').textContent={running:'โลกกำลังเดิน',stopping:'กำลังพัก…',idle:'พักอยู่',error:'ผิดพลาด'}[s.state]||s.state;
     $('pill').className=s.state;
@@ -169,17 +175,31 @@ async function tick(){
     $('stats').textContent=s.year!=null?`ปีที่ ${s.year} · คิด ${st.thinks||0} · ตามแผน ${st.plan_steps||0} · สัญชาตญาณ ${st.instinct||0} · เรื่องเล่า ${st.stories||0}`:'';
     $('sub').textContent=s.backend&&s.backend.model?`โมเดล ${s.backend.model} (${s.backend.provider}) · ตัวละครคิดเอง วิถีสวรรค์ตัดสินผล`:$('sub').textContent;
     $('activity').textContent=s.error?('⚠ '+s.error):(s.activity||s.message||'');
+    if(!controlsReady&&s.limits){$('minutes').value=s.limits.minutes||25;$('mindCount').value=s.limits.mind_count||9;controlsReady=true;}
+    const progress=nv.chapters?` (${nv.chapter}/${nv.chapters} บท)`:'';
+    $('novelState').innerHTML=(nv.message?esc(nv.message)+progress:'')+(nv.error?` · ⚠ ${esc(nv.error)}`:'')+
+      (nv.download?` · <a href="${nv.download}">ดาวน์โหลดนิยาย</a>`:'');
+    document.querySelectorAll('[data-novel-cid]').forEach(b=>b.disabled=s.state==='running'||s.state==='stopping'||nv.state==='running'||nv.state==='stopping');
     await refreshFeedIfNew();
   }catch(err){$('activity').textContent='⚠ '+err.message}
 }
 document.addEventListener('click',ev=>{
+  const n=ev.target.closest('[data-novel-cid]');if(n){ev.preventDefault();writeNovel(Number(n.dataset.novelCid));return;}
   const a=ev.target.closest('[data-cid]');if(a){ev.preventDefault();select(Number(a.dataset.cid));}
 });
 $('allBtn').onclick=()=>{selected=null;drawMinds();$('profile').innerHTML='';loadFeed(true)};
 for(const [id,f] of [['allBtn','all'],['decBtn','decision'],['storyBtn','story']])
   $(id).addEventListener('click',()=>{filter=f;for(const b of ['allBtn','decBtn','storyBtn'])$(b).setAttribute('aria-pressed',b===id);drawFeed()});
 $('more').onclick=()=>loadFeed(false);
-$('start').onclick=async()=>{try{await api('/api/start',{method:'POST'})}catch(e){alert(e.message)}tick()};
+$('start').onclick=async()=>{try{
+  await api('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({minutes:Number($('minutes').value),count:Number($('mindCount').value)})});
+  await api('/api/start',{method:'POST'});
+}catch(e){alert(e.message)}tick()};
 $('stop').onclick=async()=>{await api('/api/stop',{method:'POST'});tick()};
+async function writeNovel(cid){
+  if(!confirm('เริ่มแต่งนิยายจากชีวิตตัวละครที่เลือก? โลกจะพักระหว่างใช้โมเดลเขียนนิยาย'))return;
+  try{await api('/api/novel/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cid,chapters:Number($('chapters').value)})});}
+  catch(e){alert(e.message)}tick();
+}
 tick();loadFeed(true);setInterval(tick,3000);
 </script></body></html>

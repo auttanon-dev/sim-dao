@@ -200,7 +200,8 @@ class NoFieldCollisionTests(unittest.TestCase):
         fields = {f.name: f for f in dataclasses.fields(Character)}
         self.assertEqual(fields["energy"].default, 100.0)
         self.assertEqual(fields["fuel"].default, 1.0)
-        src = io.open("tiandao/models.py", encoding="utf-8").read()
+        with io.open("tiandao/models.py", encoding="utf-8") as stream:
+            src = stream.read()
         self.assertEqual(src.count("\n    energy:"), 1, "ประกาศ energy ซ้ำอีกแล้ว")
         self.assertEqual(src.count("\n    fuel:"), 1)
 
@@ -208,7 +209,8 @@ class NoFieldCollisionTests(unittest.TestCase):
         """กันบั๊กคลาสนี้ทั้งคลาส — เคยเกิดกับ hp/max_hp และเกือบเกิดกับ energy"""
         import collections
         import re
-        src = io.open("tiandao/models.py", encoding="utf-8").read()
+        with io.open("tiandao/models.py", encoding="utf-8") as stream:
+            src = stream.read()
         for block in src.split("@dataclass")[1:]:
             body = block.split("\n\n\n")[0]
             names = re.findall(r"^    ([a-z_][a-z0-9_]*)\s*:", body, re.M)

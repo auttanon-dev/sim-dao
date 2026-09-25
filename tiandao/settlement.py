@@ -2,7 +2,7 @@
 """Watabou-Style Procedural Settlement & Virtual Village/City Generator.
 
 Generates deterministic, beautiful vector layouts (Wards, Road Skeletons, Building Parcels,
-City Walls, Waterways, and Living Character Occupants) for all 182 places in Sim Dao.
+City Walls, Waterways, and Living Character Occupants) for every place in Sim Dao.
 """
 import math
 import random

@@ -5,6 +5,8 @@ param(
     [string]$Model, [string]$StoryModel, [string]$BaseUrl,
     [int]$Count = 40, [int]$Seed = 1,
     [string]$FromSave = '',
+    [string]$OutDir = '',
+    [switch]$NoBrowser,
     [switch]$NoStory
 )
 # เปิด "บันทึกวิถีสวรรค์" — ตัวละครคิดเอง ตัดสินใจเอง อ่านได้ที่ http://127.0.0.1:8002
@@ -25,12 +27,14 @@ if ($Model) { $overrides['TIANDAO_MIND_MODEL'] = $Model }
 if ($StoryModel) { $overrides['TIANDAO_MIND_STORY_MODEL'] = $StoryModel }
 if ($BaseUrl) { $overrides['TIANDAO_MIND_BASE_URL'] = $BaseUrl }
 if ($FromSave) { $overrides['TIANDAO_MIND_SOURCE'] = [IO.Path]::GetFullPath($FromSave) }
+if ($OutDir) { $overrides['TIANDAO_MIND_DIR'] = [IO.Path]::GetFullPath((Join-Path $projectPath $OutDir)) }
 $previous = @{}
 try {
     foreach ($key in $overrides.Keys) {
         $previous[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
         [Environment]::SetEnvironmentVariable($key, $overrides[$key], 'Process')
     }
+    if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$Port" }
     & $bundledPython -m uvicorn mind_app:app --app-dir $projectPath --host 127.0.0.1 --port $Port
 } finally {
     foreach ($key in $previous.Keys) {

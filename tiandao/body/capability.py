@@ -82,6 +82,24 @@ def max_running_speed(body, friction: float = K.DEFAULT_FRICTION, cond=None) -> 
 _FRICTION_HEADROOM = 7.0
 
 
+def forward_acceleration(body, friction: float = K.DEFAULT_FRICTION, cond=None,
+                         resistance: float = 0.0) -> float:
+    """a = Fnet/m โดยแรงขับถูกเพดาน μN; ค่าลบหมายถึงกำลังชะลอ"""
+    if body.mass <= 0.0:
+        return 0.0
+    propulsive = min(body.leg_force(cond), max(0.0, friction) * body.mass * K.GRAVITY)
+    return (propulsive - max(0.0, resistance)) / body.mass
+
+
+def motion_after(body, seconds: float, velocity: float = 0.0,
+                 friction: float = K.DEFAULT_FRICTION, cond=None,
+                 resistance: float = 0.0) -> tuple:
+    """คืน (ตำแหน่งที่เคลื่อน, ความเร็วใหม่) จาก x=v0t+½at² และ v=v0+at"""
+    t = max(0.0, float(seconds))
+    a = forward_acceleration(body, friction, cond, resistance)
+    return velocity * t + 0.5 * a * t * t, velocity + a * t
+
+
 # ---------------------------------------------------------------- ยก/แบก
 def carry_capacity(body, cond=None) -> float:
     """มวลสูงสุดที่ยกและพาไปได้ (kg) — จำกัดด้วยทอร์กของกระดูกสันหลัง ไม่ใช่ด้วยค่า Strength
@@ -123,7 +141,59 @@ def reaction_time(body, cond=None) -> float:
     conduction = (gen.height * K.NERVE_PATH_RATIO) / K.NERVE_CONDUCTION_SPEED
     penalty = INJ.reaction_penalty(cond.injury) if cond.injury else 0.0
     slowed = (central + conduction) * (1.0 + cond.fatigue + penalty)
-    return max(K.REACTION_MIN, slowed / max(K.MIN_OXYGEN_FACTOR, cond.oxygen_factor))
+    return max(K.REACTION_MIN, slowed / max(K.MIN_OXYGEN_FACTOR,
+                                             cond.oxygen_factor * cond.nerve_factor))
+
+
+# ---------------------------------------------------------------- คำถามปิดของระบบตัดสินใจ (§32)
+# ระบบตัดสินใจถามว่า "ยืนไหวไหม" "สู้ได้ไหม" ไม่ใช่ "แรงขากี่นิวตัน" — สามฟังก์ชันนี้คือ
+# สะพานระหว่างปริมาณต่อเนื่องกับคำถามปิด จุดตัดทุกจุดอยู่ใน constants (§32)
+def can_stand(body, cond=None) -> bool:
+    """ยังยืนด้วยลำแข้งตัวเองได้ไหม — เกณฑ์คือแรง ไม่ใช่ HP
+
+    ยืนได้ก็ต่อเมื่อขาดันพื้นได้อย่างน้อยเท่าน้ำหนักตัว (F_ขา ≥ margin·mg) และยังรู้สึกตัว
+    ขาหักทั้งสองข้างจึงยืนไม่ได้เองโดยไม่ต้องเขียนกฎ "ขาหัก = ล้ม" ไว้ที่ไหนเลย
+    """
+    cond = resolve(cond)
+    if not cond.conscious:
+        return False
+    weight = body.mass * K.GRAVITY
+    return weight > 0.0 and body.leg_force(cond) >= K.STAND_FORCE_MARGIN * weight
+
+
+def fight_capacity(body, cond=None) -> float:
+    """หมัดที่ออกได้ตอนนี้ เทียบกับหมัดของ **ร่างเดียวกันตอนสมบูรณ์** (0..1+)
+
+    เทียบกับตัวเองเสมอ ไม่ใช่กับค่ากลางของโลก — ไม่งั้นคนตัวเล็กจะ "สู้ไม่ได้"
+    ตั้งแต่เกิดทั้งที่ไม่ได้เจ็บอะไรเลย
+    """
+    from . import injury as INJ
+    from .condition import HEALTHY
+    full = INJ.strike_energy(body, HEALTHY)
+    if full <= 0.0:
+        return 0.0
+    return INJ.strike_energy(body, resolve(cond)) / full
+
+
+def can_fight(body, cond=None, standing=None) -> bool:
+    """ยังสู้ไหวไหม — รู้สึกตัว · ยืนไหว · ออกหมัดได้ไม่ต่ำกว่าเกณฑ์ของตัวเอง
+
+    `standing` มีไว้ให้ผู้เรียกที่กำลังคิดด้วย "สภาพที่รู้สึก" ส่งข้อเท็จจริงของจริงเข้ามา:
+    การยืนอยู่หรือไม่เป็นสิ่งที่เจ้าตัวรู้แน่ ไม่ใช่สิ่งที่ต้องเดา (§33 — ดู __init__.capabilities)
+    """
+    cond = resolve(cond)
+    stand = can_stand(body, cond) if standing is None else bool(standing)
+    return (cond.conscious and stand
+            and fight_capacity(body, cond) >= K.FIGHT_CAPACITY_MIN)
+
+
+def can_run(body, cond=None, standing=None) -> bool:
+    """วิ่งได้ไหม — ยืนไหว และขาใช้การได้ **ทั้งสองข้าง** (ข้างเดียวได้แค่กระเผลก)"""
+    from . import injury as INJ
+    cond = resolve(cond)
+    stand = can_stand(body, cond) if standing is None else bool(standing)
+    return stand and all(INJ.region_function(cond.injury, side) >= K.LIMB_USABLE_MIN
+                         for side in ("left_leg", "right_leg"))
 
 
 # ---------------------------------------------------------------- ดัชนีรวม
@@ -152,6 +222,10 @@ def summary(body, friction: float = K.DEFAULT_FRICTION, cond=None) -> dict:
         "แบกได้ (kg)": round(carry_capacity(body, cond), 1),
         "เวลาตอบสนอง (s)": round(reaction_time(body, cond), 3),
         "ดัชนีพลังกาย (×)": round(strength_index(body, cond), 3),
+        "ยืนไหว": can_stand(body, cond),
+        "วิ่งไหว": can_run(body, cond),
+        "สู้ไหว": can_fight(body, cond),
+        "หมัดที่ออกได้ (เท่าของตอนสมบูรณ์)": round(fight_capacity(body, cond), 3),
         "สัมประสิทธิ์เสียดทานที่ใช้": friction,
         "สภาพร่างกาย": cond.explain(),
     }

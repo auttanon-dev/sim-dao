@@ -402,9 +402,19 @@ def parse(data, ctx, sim, table):
     """
     if not isinstance(data, dict):
         return None, []
+    placeholder_marks = (
+        "2-4 ประโยค บอกว่าข้ารู้สึกและชั่งใจอะไร",
+        "สิ่งที่ข้าตั้งใจทำให้ได้ในช่วงนี้ 1 ประโยค",
+        "เป้าหมายชีวิตระยะยาวของข้า 1 ประโยค",
+        "เลือกหนึ่งคำ:",
+    )
+
     def s(key, limit=600):
         v = data.get(key, "")
-        return str(v).strip()[:limit] if v is not None else ""
+        text = str(v).strip()[:limit] if v is not None else ""
+        # โมเดลบางตัวลอกคำอธิบายช่องจาก JSON schema กลับมา ค่านั้นไม่ใช่ความคิดหรือ
+        # เป้าหมายจริงและห้ามปล่อยให้กลายเป็นความทรงจำถาวร
+        return "" if any(mark in text for mark in placeholder_marks) else text
     info = {
         "thought": s("thought"),
         "emotion": s("emotion", 20),

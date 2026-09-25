@@ -34,6 +34,8 @@ class Need:
 
 def _need_escape(ch: "Character", sim: "Sim") -> float:
     hp_ratio = _ratio(getattr(ch, "hp", 100), getattr(ch, "max_hp", 100) or 100)
+    from .. import body as BODY
+    hp_ratio = min(hp_ratio, BODY.health_score(ch, BODY.felt(ch, getattr(sim, "day", 0))))
     return (1.0 - hp_ratio) * getattr(ch, "fear", 0.5)
 
 

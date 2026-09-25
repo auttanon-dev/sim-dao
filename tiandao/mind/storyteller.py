@@ -14,6 +14,9 @@ SYSTEM = (
     "กฎเหล็ก: เล่าได้เฉพาะสิ่งที่อยู่ในข้อมูลที่ให้มา ห้ามเพิ่มสิ่งของ สมบัติ ยา อาวุธ คำสัญญา หรือเงื่อนไข "
     "ที่ข้อมูลไม่ได้บอก ถ้าข้อมูลมีน้อย ให้ขยายความรู้สึก ความคิด และบรรยากาศของสถานที่ "
     "ไม่ใช่เพิ่มเหตุการณ์ใหม่ "
+    "ลำดับเวลาเป็นกฎบังคับ: ตอนเปิดฉากทุกคนที่ลงมือยังมีชีวิต เหตุการณ์ใน [ผลที่เกิดขึ้นจริง] "
+    "เพิ่งเกิดในฉากนี้ ห้ามเล่าว่าใครเคยตาย ถูกฆ่า หรือฟื้นคืนชีพมาก่อนฉาก ถ้าผลมีคนตาย "
+    "ให้ความตายนั้นเกิดครั้งเดียวตรงท้ายฉากตามข้อความผลเท่านั้น "
     "ส่งเฉพาะเนื้อเรื่อง ไม่ใส่หัวข้อหรือคำอธิบาย ไม่ครอบเนื้อเรื่องด้วยวงเล็บเหลี่ยม"
 )
 
@@ -58,6 +61,18 @@ def build(sim, entry):
         lines.append(f"[อีกฝ่าย] {entry.get('target_identity') or entry['target']}")
     if entry.get("by"):
         lines.append(f"[ผู้ที่ลงมือกับตัวละคร] {entry['by']}")
+    lines.append("[เส้นเวลาบังคับ]")
+    lines.append(f"- ตอนเปิดฉาก {entry['name']}ยังมีชีวิต เหตุการณ์นี้ยังไม่เกิด")
+    if entry.get("target"):
+        lines.append(f"- ตอนเปิดฉาก {entry['target']}ยังมีชีวิต เหตุการณ์นี้ยังไม่เกิด")
+    if entry.get("by"):
+        lines.append(f"- ตอนเปิดฉาก {entry['by']}ยังมีชีวิต เหตุการณ์นี้ยังไม่เกิด")
+    lines.append(f"- หลังผลลัพธ์ {entry['name']}: "
+                 f"{'ยังมีชีวิต' if entry.get('actor_alive_after', entry.get('alive', True)) else 'เสียชีวิต'}")
+    if entry.get("target") and entry.get("target_alive_after") is not None:
+        lines.append(f"- หลังผลลัพธ์ {entry['target']}: "
+                     f"{'ยังมีชีวิต' if entry['target_alive_after'] else 'เสียชีวิต'}")
+    lines.append("- ห้ามอ้างว่าคนใดเคยตายหรือถูกฆ่าก่อนฉากนี้ และห้ามให้คนตายพูดหรือกระทำหลังผลลัพธ์")
     other_cid = entry.get("target_cid") if entry.get("target") else entry.get("by_cid")
     two_minds = False
     if isinstance(other_cid, int) and 0 <= other_cid < len(sim.cast) and other_cid != me.cid:
@@ -141,3 +156,59 @@ def clean_story(text):
     lines = [re.sub(r"  +", " ", l).strip() for l in text.splitlines()]
     lines = [l for l in lines if l and not any(m in l for m in MC.STORY_INSTRUCTION_MARKS)]
     return "\n".join(lines)
+
+
+def validate_facts(entry, text):
+    """คืนเหตุผลที่เรื่องเล่าขัดหรือข้ามผลชี้ขาดของเอนจิน.
+
+    ไม่พยายามตัดสินร้อยแก้วทั้งหมด ตรวจเฉพาะข้อเท็จจริงที่ห้ามคลุมเครือ: ผู้แพ้ ผู้รอด
+    และผู้ตาย ถ้าพิสูจน์ไม่ได้ให้ขอเขียนใหม่แทนการเก็บเรื่องที่อาจกลับผลโลก
+    """
+    import re
+    errors = []
+    fact = str(entry.get("text") or "")
+    actor = str(entry.get("name") or "")
+    target = str(entry.get("target") or entry.get("by") or "")
+    prose = str(text or "")
+
+    loser = ""
+    for name in (actor, target):
+        if name and (f"{name}เป็นฝ่ายพ่าย" in fact or f"{name}ยอมแพ้" in fact):
+            loser = name
+            break
+    if loser:
+        winner = target if loser == actor else actor
+        loss_words = r"(?:เป็นฝ่ายพ่าย|ยอมรับความพ่ายแพ้|ยอมแพ้อย่าง|พ่ายแพ้)"
+        lost = (re.search(re.escape(loser) + r".{0,100}" + loss_words, prose, re.S)
+                or re.search(loss_words + r".{0,45}" + re.escape(loser), prose, re.S))
+        # จับเฉพาะประโยคที่ผูกชื่อกับการแพ้อย่างใกล้ชิด หรือบอกตรงๆ ว่าผู้แพ้ตามจริง
+        # กลับเอาชนะผู้ชนะ ห้ามใช้ช่วงกว้างเพราะบทพูด "เจ้าโชคดีที่ไม่พ่ายแพ้" เคยโดนจับผิด
+        wrong = None
+        if winner:
+            wrong = (re.search(re.escape(winner) + r".{0,18}" + loss_words, prose, re.S)
+                     or re.search(r"(?:ในที่สุด|สุดท้าย).{0,35}" + re.escape(winner)
+                                  + r".{0,35}" + loss_words, prose, re.S)
+                     or re.search(re.escape(loser) + r".{0,35}(?:เอาชนะ|ชนะเหนือ)"
+                                  + re.escape(winner), prose, re.S))
+        if not lost:
+            errors.append(f"ไม่ยืนยันว่า{loser}เป็นฝ่ายแพ้")
+        if wrong:
+            errors.append(f"กลับผลให้{winner}เป็นฝ่ายแพ้")
+
+    if "รอดด้วยชะตา" in fact:
+        survivor = fact.split("รอดด้วยชะตา", 1)[0].split("—")[-1].strip()
+        if survivor and not re.search(re.escape(survivor) + r".{0,80}รอด", prose, re.S):
+            errors.append(f"ไม่ยืนยันว่า{survivor}รอดด้วยชะตา")
+        other = target if survivor == actor else actor
+        if other and re.search(re.escape(other) + r".{0,80}รอด(?:ตาย)?ด้วยชะตา", prose, re.S):
+            errors.append(f"ยกผลรอดด้วยชะตาให้{other}ผิดคน")
+
+    dead = ""
+    if not entry.get("actor_alive_after", entry.get("alive", True)):
+        dead = actor
+    elif entry.get("target_alive_after") is False:
+        dead = target
+    if dead and not re.search(re.escape(dead) + r".{0,100}(?:ตาย|สิ้นใจ|ดับดิ้น|เสียชีวิต)",
+                              prose, re.S):
+        errors.append(f"ไม่เล่าความตายของ{dead}ตามผลจริง")
+    return errors

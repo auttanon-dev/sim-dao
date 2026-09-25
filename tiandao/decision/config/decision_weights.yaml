@@ -135,6 +135,7 @@ belief:
   default_power_confidence: 0.15  # ไม่เคยรู้อะไรเลยเกี่ยวกับศัตรู
 
 perception:
+  speed_noise: 0.10             # σ ของการกะความเร็วคนอื่นด้วยตา (log-normal, ไม่มีการปกปิด)
   base_noise: 0.12              # log-normal noise ของการกะพลังคนระดับเดียวกัน
   gap_noise: 0.18               # noise เพิ่มต่อระดับที่อีกฝ่ายสูงกว่า
   conceal_per_level: 0.2        # คนที่สูงกว่า "มองไม่ทะลุ" — ดูอ่อนกว่าจริงระดับละ 20%
@@ -198,6 +199,8 @@ risk:
   personality: 0.8              # PersonalityRiskModifier = 1 + k × (caution − bravery)
   personality_min: 0.3
   win_scale: 0.35               # Bradley–Terry: P(win) = logistic(ln(self/enemy) / scale)
+  escape_scale: 0.32            # รูปเดียวกันบนความเร็ว: P(escape) = logistic(ln(v/v_ไล่) / scale)
+                                # (ที่สเกลนี้ 4.1 m/s หนีคนที่วิ่ง 5.3 m/s รอด 0.31 — ตัวอย่างใน §32)
   squash: 1.0                   # Risk(normalized) = 1 − exp(−raw / squash)
 
 # ---- Costs ----
@@ -206,7 +209,8 @@ costs:
   time_scale: 60.0              # TC = 1 − exp(−ρt), ρ = (1/τ)(1 + g(0.5−patience)·2)
   horizon_fraction: 0.2         # τ = f × อายุขัยที่เหลือ (ถ้ารู้) — ดู Yaari discounting ใน scoring.costs
   resource_scale_min: 10.0      # cost ทรัพยากรเทียบกับเงินที่มี (ขั้นต่ำกันหารศูนย์)
-  fatigue_gain: 1.0             # เหนื่อยอยู่แล้ว = รู้สึกว่าแรงแพงขึ้น
+  fatigue_gain: 1.0             # เหนื่อยอยู่แล้ว = รู้สึกว่าแรงแพงขึ้น (ใช้เมื่อไม่มีแบบจำลองร่างกาย)
+  reserve_min: 0.05             # แรงที่เหลือขั้นต่ำ กันหารศูนย์
   patience_gain: 0.8            # ใจร้อน = รู้สึกว่าเวลาแพงขึ้น
 
 # ---- Environment ----

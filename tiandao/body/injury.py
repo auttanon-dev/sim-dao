@@ -105,7 +105,8 @@ def fall_energy(body, height_m: float) -> float:
     return body.mass * K.GRAVITY * max(0.0, height_m)
 
 
-def fall_impact(body, state, height_m: float, region: str, rng=None) -> dict:
+def fall_impact(body, state, height_m: float, region: str, rng=None,
+                bone_factor: float = 1.0) -> dict:
     """ตกจากที่สูงลงส่วนหนึ่งของร่าง — ใช้พื้นที่สัมผัสและระยะหยุดของการตกให้ถูกต้อง
 
     มีไว้เพื่อให้ผู้เรียกไม่ต้องจำว่าการตกต่างจากการถูกชกตรงไหน (พื้นที่กว้างกว่าสิบเท่า
@@ -113,7 +114,7 @@ def fall_impact(body, state, height_m: float, region: str, rng=None) -> dict:
     แล้วกระดูกหัก
     """
     return apply_impact(body, state, fall_energy(body, height_m), region,
-                        K.CONTACT_AREA_FALL, rng, K.FALL_STOP_DISTANCE)
+                        K.CONTACT_AREA_FALL, rng, K.FALL_STOP_DISTANCE, bone_factor)
 
 
 def strike_energy(body, cond=None) -> float:
@@ -169,7 +170,7 @@ def severity(state) -> float:
 
 # ---------------------------------------------------------------- การกระทบจริง
 def apply_impact(body, state, energy: float, region: str, contact_area: float = None,
-                 rng=None, stop_distance: float = None) -> dict:
+                 rng=None, stop_distance: float = None, bone_factor: float = 1.0) -> dict:
     """ส่งพลังงานเข้าไปในส่วนหนึ่งของร่าง — แก้ `state` แล้วคืนบันทึกว่าเกิดอะไรขึ้น
 
     ชั้นนอกดูดซับก่อน เหลือเท่าไรส่งต่อชั้นใน (พรอมต์ §26) พลังงานที่ทะลุถึงกระดูกถูกแปลง
@@ -222,7 +223,9 @@ def apply_impact(body, state, energy: float, region: str, contact_area: float = 
     # ---- พลังงานที่เหลือแปลงเป็นแรง แล้วให้กลไกกระดูกของ Phase 2 ตัดสิน ----
     bone = body.skeleton[REGION_BONE[region]]
     force = left / stop
-    stress = bone.bending_stress(force)
+    # กระดูกวัยเด็ก/วัยชราและกระดูกที่ปรับตัวจากแรงกดมีความทนไม่เท่ากัน การหาร stress
+    # ด้วยตัวคูณเทียบเท่ากับปรับเกณฑ์ความแข็งแรง โดยไม่แก้ Skeleton ตั้งต้นที่สร้างจาก seed
+    stress = bone.bending_stress(force) / max(0.05, bone_factor)
     risk = bone.fracture_risk(stress, "bending")
     log["แรงที่กระดูก (N)"] = round(force)
     log["ความเค้นจากการดัด (MPa)"] = round(stress / 1e6, 1)
@@ -281,7 +284,7 @@ def pick_region(*parts) -> str:
 
 
 # ---------------------------------------------------------------- การหาย (§34)
-def heal(state, days: float) -> None:
+def heal(state, days: float, recovery_factor: float = 1.0) -> None:
     """เดินความเสียหายทุกชิ้นเข้าหาศูนย์ตามเวลาที่ผ่านไป — แก้ `state` ในที่
 
         ระดับ(t) = ระดับ · e^{−λt}
@@ -298,7 +301,7 @@ def heal(state, days: float) -> None:
             rate = K.HEAL_RATE.get(tissue)
             if rate is None:
                 continue
-            level = PHYS.relax(tissues[tissue], 0.0, rate, days)
+            level = PHYS.relax(tissues[tissue], 0.0, rate * max(0.05, recovery_factor), days)
             if level < K.HEAL_CLEAR_BELOW:
                 del tissues[tissue]        # หายแล้ว ไม่ต้องแบกเศษไว้ในเซฟ
             else:
@@ -330,6 +333,23 @@ def capacity(state, group: str) -> float:
     # ขาสองข้าง/แขนสองข้างแบ่งภาระกัน เจ็บข้างเดียวจึงไม่หมดทั้งกลุ่ม
     sides = sum(1 for r in REGIONS if REGION_MUSCLE_GROUP[r] == group)
     return max(K.MIN_FUNCTION, 1.0 - loss / max(1, sides))
+
+
+def region_function(state, region: str) -> float:
+    """หน้าที่ที่เหลือของ **ส่วนเดียว** 0..1 — แขนซ้ายข้างเดียว ไม่ใช่แขนทั้งคู่
+
+    `capacity()` ตอบเรื่องการออกแรงของกลุ่มกล้ามเนื้อ ซึ่งแขนสองข้างหารกัน — ถูกแล้ว
+    สำหรับคำถามว่า "ยกของหนักได้เท่าไร" แต่ผิดสำหรับคำถามว่า "ใช้แขนซ้ายได้ไหม"
+    (§32 CanUseLeftArm) ข้างที่หักยังคงหัก ต่อให้อีกข้างสมบูรณ์
+    """
+    if region not in REGION_BONE:
+        raise ValueError(f"ไม่รู้จักส่วนของร่าง: {region}")
+    tissues = (state or {}).get(region)
+    if not tissues:
+        return 1.0
+    loss = sum(level * K.FUNCTION_LOSS_WEIGHT.get(tissue, 0.0)
+               for tissue, level in tissues.items())
+    return max(K.MIN_FUNCTION, 1.0 - loss)
 
 
 def reaction_penalty(state) -> float:

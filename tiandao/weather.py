@@ -2,7 +2,7 @@
 """Dynamic Weather & Seasonal Atmosphere Engine for Tiandao World Simulator.
 
 Generates real-time weather phenomena, particle overlays, and gameplay modifiers
-for all 10 realms and 182 places based on seasonal cycles and regional climates.
+for every place in the dynamically extended realm map, based on seasonal cycles and climates.
 """
 import math
 import zlib
