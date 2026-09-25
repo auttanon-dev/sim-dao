@@ -71,7 +71,8 @@ class TestThreeBands(unittest.TestCase):
         quiet(sim.run, 30000)
         per = collections.defaultdict(list)
         for e in sim.log:
-            if e.actor >= 0:
+            # วัยเด็กเดินปีละครั้งโดยตั้งใจ — วัดจังหวะเฉพาะการกระทำของผู้ใหญ่
+            if e.actor >= 0 and e.kind != "เติบโต":
                 per[e.actor].append(e.day)
         gaps = [b - a for v in per.values() if len(v) > 3
                 for a, b in zip(sorted(v), sorted(v)[1:])]

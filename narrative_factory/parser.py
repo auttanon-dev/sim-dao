@@ -73,6 +73,11 @@ def classify_scene_type(kind: str, outcome: str, config: Optional[dict] = None) 
     return cfg.get("scene_type_map", {}).get(kind, cfg.get("default_scene_type", "Other"))
 
 
+def _none_as_unknown(v) -> int:
+    """เหตุการณ์บางชนิด (เช่นจาก .events.jsonl) เก็บ None แทน "ไม่รู้" — ParsedEvent ใช้ -1"""
+    return -1 if v is None else v
+
+
 def parse_event(ev: "Event", config: Optional[dict] = None) -> ParsedEvent:
     cfg = config or load_config()
     return ParsedEvent(
@@ -80,8 +85,10 @@ def parse_event(ev: "Event", config: Optional[dict] = None) -> ParsedEvent:
         scene_type=classify_scene_type(ev.kind, ev.outcome, cfg),
         actor=ev.actor, target=ev.target, tags=list(ev.tags),
         outcome=ev.outcome, text=ev.text, deltas=dict(ev.deltas),
-        building=getattr(ev, "building", -1), snap=tuple(getattr(ev, "snap", ()) or ()),
-        place=getattr(ev, "place", -1), realm=getattr(ev, "realm", -1),
+        building=_none_as_unknown(getattr(ev, "building", -1)),
+        snap=tuple(getattr(ev, "snap", ()) or ()),
+        place=_none_as_unknown(getattr(ev, "place", -1)),
+        realm=_none_as_unknown(getattr(ev, "realm", -1)),
     )
 
 

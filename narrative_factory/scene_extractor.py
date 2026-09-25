@@ -171,7 +171,7 @@ def extract_scenes(parsed_events: List[ParsedEvent], sim, config: Optional[dict]
             world_id=sc.world_id,
             day_start=events[0].day,
             day_end=events[-1].day,
-            location=anchor.place if anchor.place >= 0 else None,
+            location=anchor.place if anchor.place is not None and anchor.place >= 0 else None,
             participants=sorted(sc.participants),
             focal_cid=focal,
             events=events,

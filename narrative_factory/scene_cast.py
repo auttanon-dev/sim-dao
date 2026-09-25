@@ -71,7 +71,8 @@ class Presence:
     def __init__(self, log):
         tl: Dict[int, List[Tuple[int, int]]] = collections.defaultdict(list)
         for e in log:
-            if e.actor is not None and e.actor >= 0 and getattr(e, "place", -1) >= 0:
+            place = getattr(e, "place", None)
+            if e.actor is not None and e.actor >= 0 and place is not None and place >= 0:
                 tl[e.actor].append((e.day, e.place))
         self.days: Dict[int, List[int]] = {}
         self.places: Dict[int, List[int]] = {}

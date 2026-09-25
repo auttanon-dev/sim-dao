@@ -12,12 +12,14 @@ from unittest.mock import patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from jianghu_routes import make_router
-from tiandao import persist as PS, worldloop as WL
+from tiandao import persist as PS, sim as S, worldloop as WL
 from tiandao.jianghu_live import viewer_lifespan, live_status
 
 
-def wait_for(predicate):
-    deadline = time.monotonic() + 5
+def wait_for(predicate, timeout=20):
+    # world.save เป็นโลกจริงที่โตขึ้นตามการใช้งาน การเซฟหนึ่งรอบจึงอาจเกินหนึ่งวินาที
+    # timeout เดิม 5 วินาทีสั้นกว่าสาม atomic saves และทำให้เทสต์ล้มทั้งที่ runner ปกติ
+    deadline = time.monotonic() + timeout
     while not predicate():
         if time.monotonic() >= deadline:
             raise AssertionError('Runner did not reach the expected state')
@@ -28,8 +30,12 @@ class LiveObserverTests(unittest.TestCase):
     def test_real_runner_updates_viewer_pause_resume_and_shutdown(self):
         with tempfile.TemporaryDirectory() as folder, contextlib.redirect_stdout(io.StringIO()):
             path = str(Path(folder) / 'world.save')
-            original = Path('tiandao/world.save').read_bytes()
-            Path(path).write_bytes(original)
+            # โลกเล็กที่สร้างเอง — ไม่ผูกกับ tiandao/world.save ของผู้ใช้ที่โตได้หลายร้อย MB
+            # (เซฟแต่ละรอบหลายวินาที ทำให้ runner ไม่ถึง 3 รอบภายใน timeout)
+            seed_world = S.Sim(seed=7)
+            seed_world.run(200)
+            PS.save_sim(seed_world, path)
+            original = Path(path).read_bytes()
             initial = PS.load_sim(path)
             cfg = WL.LoopConfig(save_path=path, chunk_events=1, interval=.02, autotune=False)
             app = FastAPI(lifespan=viewer_lifespan(path))
