@@ -36,7 +36,8 @@ REPLACE_RETRY_SECONDS = 10.0
 # (pickle ของ Sim เปล่าๆ แบบเดิม) คือเซฟก่อนมีระบบนี้ ต้องผ่าน migration ทั้งชุด
 #
 # เพิ่ม migration ใหม่เมื่อไร ให้บวกเลขนี้ขึ้นหนึ่ง แล้วเพิ่มกิ่ง `if version < N:` ใน _migrate()
-SAVE_VERSION = 1
+#   2 — นาฬิกาโลก (Sim.world_tick_day) และนาฬิกาทรัพยากร (Sim.eco_day)
+SAVE_VERSION = 2
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -223,6 +224,12 @@ def _migrate(sim, version):
     """
     if version < 1:
         _backfill_new_attrs(sim)
+    if version < 2:
+        # เซฟก่อนมีนาฬิกาโลก: งานของโลกเคยรอเทิร์นตัวละคร จึงให้รอบแรกของนาฬิกาเริ่มทันที
+        # (งานแต่ละชิ้นมีตัวกันวันของตัวเอง งานที่ยังไม่ถึงรอบจะข้ามไปเอง) และทรัพยากรคิดการฟื้น
+        # ต่อจากวันที่เคยคิดไว้แล้ว (last_day) — ไม่แตะ RNG
+        sim.world_tick_day = sim.day
+        sim.eco_day = sim.last_day
 
 
 def _backfill_new_attrs(sim):

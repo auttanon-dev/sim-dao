@@ -69,6 +69,8 @@ class Sim:
         self.seed = seed
         self.day = 0
         self.last_day = 0
+        self.world_tick_day = 0   # ใบนัดถัดไปของนาฬิกาโลก (ดู _world_tick)
+        self.eco_day = 0          # วันล่าสุดที่คิดการฟื้นของทรัพยากรไปแล้ว (ดู _advance_eco)
         self.seq = 0
         self.cast = []
         self.used_names = set()          # ชื่อที่ถูกใช้แล้วทั้งจักรวาล (unique_name)
@@ -1632,6 +1634,260 @@ class Sim:
             self.eco_recovered.add(idx)
 
     # ------------------------------------------------------------ ลูปหลัก
+    # ------------------------------------------------------------ นาฬิกาโลก
+    # งานของโลก (ทรัพยากรฟื้น ปราณไหลเข้า ประชากร ภัยประจำเดือน วิกฤต) เดิมทำงานเฉพาะตอนมีตัวละคร
+    # ถึงคิว ถ้าทุกคนปิดด่านหรือหลับยาว โลกทั้งใบก็หยุดตาม แล้วค่อยคิดรวบเป็นก้อนเดียวตอนมีคนตื่น
+    # และถ้าคิวตัวละครว่าง ซิมหยุดทั้งที่ธรรมชาติควรเดินต่อ (SIM_DAO_AUTONOMOUS_WORLD_DESIGN_TH.md §5.1)
+    # ตอนนี้โลกมีใบนัดของตัวเองทุก WORLD_TICK_DAYS วัน ถ้าตรงวันกับเทิร์นตัวละคร งานของโลกทำก่อน
+    def _advance_eco(self):
+        """ทรัพยากรฟื้นตามวันที่ผ่านไปจริง — เรียกได้ทั้งจากเทิร์นตัวละครและนาฬิกาโลก ไม่นับวันซ้ำ"""
+        elapsed = self.day - self.eco_day
+        self.eco_day = self.day
+        self.eco_regen(elapsed)
+
+    def _world_tick(self, rng):
+        """งานประจำของโลกหนึ่งรอบ ณ วันที่นาฬิกาโลกนัดไว้ แล้วนัดรอบถัดไป"""
+        self.day = max(self.day, self.world_tick_day)
+        self.world_tick_day = self.day + C.WORLD_TICK_DAYS
+        self._advance_eco()
+        WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
+        # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
+        # โปรไฟล์จริง: 5.0 วินาทีจาก 100 (5%) โดยได้ผลเท่ากันทุกประการถ้าสะสมเป็นก้อน
+        if self.day - getattr(self, "_portal_regen_day", -10**9) >= C.WORLD_TICK_DAYS:
+            PORT.regen(self, self.day - getattr(self, "_portal_regen_day", 0))
+            self._portal_regen_day = self.day
+        PORT.tick(self, rng)    # การสร้างประตูมิติ (ดู tiandao/portals.py)
+        if self.day - getattr(self, "last_disaster_day", 0) >= C.WORLD_TICK_DAYS:
+            self.last_disaster_day = self.day
+            
+            # Sect Resource Distribution & Facilities
+            for org in self.orgs:
+                if org.alive and org.members:
+                    # Assign Facilities
+                    if not hasattr(org, "facilities"): org.facilities = {}
+                    cast_len = len(self.cast)
+                    if "หอโอสถ" not in org.facilities or not (0 <= org.facilities["หอโอสถ"] < cast_len) or not self.cast[org.facilities["หอโอสถ"]].alive:
+                        alchs = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and getattr(self.cast[c], "alch_rank", 0) > 0]
+                        if alchs: org.facilities["หอโอสถ"] = max(alchs, key=lambda c: getattr(self.cast[c], "alch_rank", 0))
+
+                    if "หอศาสตรา" not in org.facilities or not (0 <= org.facilities["หอศาสตรา"] < cast_len) or not self.cast[org.facilities["หอศาสตรา"]].alive:
+                        smiths = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and getattr(self.cast[c], "forge_rank", 0) > 0]
+                        if smiths: org.facilities["หอศาสตรา"] = max(smiths, key=lambda c: getattr(self.cast[c], "forge_rank", 0))
+
+                    if "ลานฝึกยุทธ" not in org.facilities or not (0 <= org.facilities["ลานฝึกยุทธ"] < cast_len) or not self.cast[org.facilities["ลานฝึกยุทธ"]].alive:
+                        fighters = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and self.cast[c].realm >= 4]
+                        if fighters: org.facilities["ลานฝึกยุทธ"] = max(fighters, key=lambda c: self.cast[c].realm)
+                    
+                    # เครื่องพิมพ์เงินที่ซ่อนอยู่: เดิม `monthly_resource = 10000` ถูกเสก
+                    # ขึ้นมาทุกเดือนให้ทุกสำนัก แล้วหารให้ศิษย์ — สำนักที่มีศิษย์เอกคนเดียว
+                    # จะได้คนละ 4,000 ต่อเดือน = 48,000 ต่อปี **จากอากาศ**
+                    # วัดจริงโลก 50 ปี: คนรวยที่สุดถือ 2.28 ล้าน ทั้งที่ลงมือแค่ 27 ครั้ง
+                    # ตลอดชีวิต และมีรายได้ที่บันทึกไว้รวมกันแค่ 113 เหรียญ
+                    # ตอนนี้ทรัพย์ของสำนักมาจาก **ค่าบำรุงที่ศิษย์จ่ายเข้ามา** เท่านั้น
+                    # เป็นการกระจายซ้ำ ไม่ใช่การสร้างเงินใหม่ — และเป็นกลไกที่ถูกต้องของ
+                    # สำนักในแนวนี้อยู่แล้ว (สำนักเก็บส่วย แล้วเลี้ยงศิษย์)
+                    # ---- ผลผลิตจริงของสำนัก: คอบบ์-ดักลาส ศิษย์ × อาณาเขต ----
+                    # ค่าบำรุงจากศิษย์ยังเก็บอยู่ (เป็นการกระจายซ้ำ) แต่ตอนนี้มี
+                    # **ผลผลิตที่ขุดได้จริง** เพิ่มเข้ามา ซึ่งถูกหักออกจากคลังฟ้าจริงๆ
+                    # สำนักจึงรวยได้ก็ต่อเมื่อมีทั้งคนและแผ่นดินที่ปราณหนา — และการ
+                    # ที่สำนักหนึ่งรวยขึ้นแปลว่าโลกจนลงเท่านั้นพอดี ไม่มีใครได้ฟรี
+                    treasury = getattr(org, "treasury", 0.0)
+                    for cid in org.members:
+                        if not (0 <= cid < cast_len) or not self.cast[cid].alive:
+                            continue
+                        mem = self.cast[cid]
+                        wkey = self.world(mem.world_id).tier
+                        due = mem.money.get(wkey, 0.0) * C.SECT_DUES_RATE
+                        if due > 0:
+                            mem.money[wkey] = mem.money.get(wkey, 0.0) - due
+                            treasury += due
+                    payout = treasury * C.SECT_PAYOUT_RATE
+                    org.treasury = treasury - payout
+                    pool_c = payout * 0.4
+                    pool_i = payout * 0.4
+                    pool_o = payout * 0.2
+
+                    cd = getattr(org, "core_disciples", [])
+                    id_ = getattr(org, "inner_disciples", [])
+                    od = getattr(org, "outer_disciples", [])
+
+                    if cd:
+                        share = int(pool_c / len(cd))
+                        for cid in cd:
+                            if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                    if id_:
+                        share = int(pool_i / len(id_))
+                        for cid in id_:
+                            if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                    if od:
+                        share = int(pool_o / len(od))
+                        for cid in od:
+                            if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+
+                    self.sect_mine(org)
+
+            # ------------------------------------------------
+            # Divine Spirits Hunting Demons
+            # ------------------------------------------------
+            living_now = self.living()
+            # บัญชาสวรรค์เป็นหน้าที่รบของผู้ใหญ่ ทั้งผู้ล่าและเป้าหมายต้องพ้นวัยเด็ก
+            # มิฉะนั้นสิ่งมีชีวิตที่เกิดมาพร้อมสายเลือดวิญญาณ/มารจะออกรบตั้งแต่อายุหนึ่งปี
+            spirits = [c for c in living_now
+                       if c.age(self.day) >= 14 and getattr(c, "is_spirit", False)]
+            demons = [c for c in living_now
+                      if c.age(self.day) >= 14 and getattr(c, "is_demon", False)]
+            if spirits and demons:
+                if self.rng.random() < 0.3: # 30% chance for a holy crusade
+                    hunter = self.rng.choice(spirits)
+                    target = self.rng.choice(demons)
+                    safe_print(f"\n⚔️ [บัญชาสวรรค์] เผ่าวิญญาณศักดิ์สิทธิ์ [{hunter.name}] บุกสังหารมารร้าย [{target.name}] เพื่อรักษาสมดุลโลก!")
+                    import tiandao.combat as combat
+                    combat.resolve_combat(hunter, target, self.worlds[0], self)
+                    # เดิมบล็อกนี้ print() อย่างเดียว ไม่ emit — เหตุการณ์ดราม่าที่สุดของโลก
+                    # จึงไม่มีอยู่ในประวัติศาสตร์ ไม่ขึ้นใน log ไม่ถูกนับเป็นจุดเปลี่ยนของใคร
+                    # และโรงงานนิยายมองไม่เห็นเลยสักครั้ง วัดจริง 121 ปี: 0 บรรทัดใน log
+                    self.emit(self.worlds[0], "บัญชาสวรรค์", hunter, target,
+                              ["ต่อสู้", "ความตาย"],
+                              "สังหารมารสำเร็จ" if not target.alive else "มารหนีรอด",
+                              f"{hunter.name}แห่งเผ่าวิญญาณศักดิ์สิทธิ์รับบัญชาสวรรค์ "
+                              f"บุกสังหาร{target.name}ผู้ตกเป็นมาร เพื่อรักษาสมดุลของโลก",
+                              0, {"เหตุแห่งบัญชา": "เผ่าวิญญาณศักดิ์สิทธิ์ล้างมารตามหน้าที่",
+                                  "ชะตาของมาร": "ดับสูญ" if not target.alive else "รอดไปได้"})
+            
+            # Demon Temptation (Possession) — ตัวแปรลูปตั้งชื่อ pc ตั้งใจ ห้ามใช้ ch ซ้ำ: บั๊กจริงที่เจอ
+            # ตอนรัน --llm scale ยาว — "for ch in living_now" เดิมทับตัวแปร ch ของตัวละครที่เพิ่ง pop
+            # จากคิวด้านบน (line ~697) ทำให้โค้ดหลังจากนี้ (ch.hidden ฯลฯ จนถึง actor=ch) กลาย
+            # เป็นอ้างอิงถึงคนละคนไปเลย ทุก ~30 วันที่บล็อกนี้ทำงาน — เจ้าของ turn จริงไม่เคยถูก
+            # schedule ต่อเลย ทำให้หลุดจากคิวถาวรทีละคน สะสมจนคิวว่างหมดทั้งที่ยังมีคนเป็นๆ อยู่
+            for pc in living_now:
+                # จิตมารเป็นวิกฤตของคนที่เติบโตพอจะมีกรรม/ความทะเยอทะยานของตนเอง
+                # เด็กเคยถูกเลือกจากลูปประชากรโลกนี้ แม้เทิร์นของเด็กเองจะถูกกันไว้แล้ว
+                if (pc.age(self.day) >= 14
+                        and not getattr(pc, "is_demon", False)
+                        and not getattr(pc, "is_spirit", False)
+                        and not getattr(pc, "is_beast", False)):
+                    if getattr(pc, "karmic_debt", 0) > 1000 or getattr(pc, "ambition", 0) > 80:
+                        if self.rng.random() < 0.05: # 5% chance every 30 days
+                            pc.is_demon = True
+                            pc.dao = "วิถีมาร"
+                            if pc.org is not None and pc.org < len(self.orgs):
+                                # Leave current sect
+                                org = self.orgs[pc.org]
+                                if pc.cid in org.members: org.members.remove(pc.cid)
+                                if pc.cid in org.core_disciples: org.core_disciples.remove(pc.cid)
+                                if pc.cid in org.inner_disciples: org.inner_disciples.remove(pc.cid)
+                                if pc.cid in org.outer_disciples: org.outer_disciples.remove(pc.cid)
+                            pc.org = None
+                            # เดิม print() เฉยๆ เช่นกัน — การตกเป็นมารคือจุดเปลี่ยนชีวิตที่ใหญ่ที่สุด
+                            # ที่ตัวละครหนึ่งจะมีได้ แต่ไม่เคยถูกบันทึกไว้เลย
+                            self.emit(self.world(pc.world_id), "มารสิงร่าง", pc, None,
+                                      ["ความตาย"], "ตกเป็นมาร",
+                                      f"{pc.name}ถูกจิตมารเข้าครอบงำเพราะกิเลสหนา "
+                                      f"ละทิ้งสำนักเดิม กลายเป็นเผ่ามารอย่างสมบูรณ์",
+                                      0, {"เหตุที่ถูกครอบงำ":
+                                              ("กรรมหนัก" if getattr(pc, "karmic_debt", 0) > 1000
+                                               else "ทะเยอทะยานเกินตัว"),
+                                          "วิถีใหม่": "วิถีมาร"})
+
+            # Beast Horde Siege
+            beast_kings = [c for c in living_now if getattr(c, "is_beast", False) and c.realm >= 4]
+            for king in beast_kings:
+                if not getattr(king, "has_human_form", False):
+                    king.has_human_form = True
+                    # มีแค่ 5 ชื่อ โลกที่เดินนานจึงมีราชันย์อสูรเพลิงหลายตัวพร้อมกัน
+                    king.name = self.unique_name(
+                        "ราชันย์อสูร" + self.rng.choice(["เพลิง", "ทมิฬ", "สายฟ้า", "โลหิต", "น้ำแข็ง"]),
+                        old=king.name, marker="ตัวที่")
+                    safe_print(f"\n🐉 [คลื่นสัตว์อสูร] สัตว์อสูรบำเพ็ญตบะทะลวงขั้นสำเร็จ จำแลงกายเป็นมนุษย์ นามว่า [{king.name}]!")
+                
+                if self.rng.random() < 0.1: # 10% chance to attack a city
+                    if hasattr(C, "CITIES"):
+                        targets = [city for city in C.CITIES if "ชายแดน" in city.get("type_desc", "") or "หน้าด่านสำนัก" in city.get("type_desc", "")]
+                        if targets:
+                            target = self.rng.choice(targets)
+                            safe_print(f"\n🌋 [คลื่นสัตว์อสูรบุกเมือง] [{king.name}] นำกองทัพอสูรบุกโจมตีเมือง <{target['name_th']}>!")
+                            ruler_cid = target.get("ruler_cid", -1)
+                            if 0 <= ruler_cid < len(self.cast) and self.cast[ruler_cid].alive:
+                                ruler = self.cast[ruler_cid]
+                                # Fake combat for siege
+                                if king.realm > ruler.realm:
+                                    safe_print(f" -> 🔴 เมืองแตก! [{ruler.name}] พ่ายแพ้ต่อราชันย์อสูรและสิ้นชีพ! กฎหมายเมืองล่มสลาย!")
+                                    self.kill(ruler, "อสูรบุกเมือง", killer=king)
+                                    target["law_strictness"] = 0
+                                else:
+                                    safe_print(f" -> 🟢 ป้องกันเมืองสำเร็จ! [{ruler.name}] สังหารราชันย์อสูรได้ เมืองสงบสุข!")
+                                    self.kill(king, "ถูกผู้ปกครองเมืองสังหาร", killer=ruler)
+                                    ruler.max_hp = getattr(ruler, "max_hp", 100) + 50
+                                    safe_print(f" -> 🔮 [{ruler.name}] ดูดซับแก่นอสูร พลังชีวิตสูงสุดเพิ่มขึ้น!")
+
+            # Imperial Spy Network
+            if len(self.orgs) > 0:
+                target_sect = self.rng.choice(self.orgs)
+                if target_sect.alive:
+                    stealth_level = self.rng.randint(50, 100)
+                    if stealth_level > getattr(target_sect, "alert_level", 50):
+                        intel_gathered = self.rng.randint(10, 50)
+                        target_sect.threat_level = min(
+                            100, getattr(target_sect, "threat_level", 0) + intel_gathered)
+                        # log silently or print (using print here for engine logs as requested by user)
+                        safe_print(f"\n🕵️‍♂️ [องครักษ์เสื้อแพร] แทรกซึมสำเร็จ! พบว่า {target_sect.name} ซ่องสุมกำลัง (ภัยคุกคาม: {target_sect.threat_level}/100)")
+                    else:
+                        safe_print(f"\n🔴 [องครักษ์เสื้อแพร] ความแตก! สายลับถูกจับกุมและสังหารโดย {target_sect.name}")
+                        
+            for w in self.worlds:
+                w.disaster_timer = getattr(w, "disaster_timer", 0) + 1
+                w.current_disaster = rng.choice(["ปกติ", "กบฏราชสำนัก", "โรคระบาดใหญ่", "สมบัติโบราณปรากฏ"])
+                if w.current_disaster == "กบฏราชสำนัก":
+                    safe_print(f"🚨💥 [ภัยพิบัติแผ่นดิน] {w.name} เกิดกบฏราชสำนัก!")
+                elif w.current_disaster == "โรคระบาดใหญ่":
+                    safe_print(f"🚨🦠 [ภัยพิบัติแผ่นดิน] {w.name} เกิดโรคระบาด!")
+                elif w.current_disaster == "สมบัติโบราณปรากฏ":
+                    safe_print(f"🚨📜 [ภัยพิบัติแผ่นดิน] {w.name} สมบัติปรากฏ!")
+                SEASONS.maybe_trigger_disaster(self, w, rng)
+
+        # นับประชากรใหม่เป็นรอบ ก่อนเอาตัวเลขไปคิดปราณที่ไหลเข้าโลก
+        if self.day - getattr(self, "_recount_day", -10**9) >= C.WORLD_TICK_DAYS:
+            self._recount_day = self.day
+            self.recount_worlds()
+        # บังคับกฎ "สมบัติฟ้าดินไม่มีวันสูญหาย" เป็นรอบ — ตรวจผลลัพธ์ ไม่ใช่ไล่อุดทีละทางที่รั่ว
+        if self.day - getattr(self, "_legend_sweep_day", -10**9) >= C.LEGEND_SWEEP_DAYS:
+            self._legend_sweep_day = self.day
+            self.reseal_lost_legends()
+        for w in self.worlds:
+            # สะสมงานประจำโลกไว้ทำเป็นก้อนทุก WORLD_TICK_DAYS แทนที่จะทำทุกเหตุการณ์ — ผลเท่าเดิม
+            # เพราะทั้งปราณไหลเข้าและการเพิ่มประชากรคิดจาก "จำนวนวันที่ผ่านไป" อยู่แล้ว แต่พอมี 120 แดน
+            # การวนทุกแดนทุกเหตุการณ์กลายเป็นงานที่หนักที่สุดของซิมไปเลย
+            if self.day - w.checked_day < C.WORLD_TICK_DAYS:
+                continue
+            R.heaven_inflow(w, w.n_mortal, self.day - w.checked_day)
+            self.repopulate(w, self.day - w.checked_day)
+            
+            if w.wid == 0:
+                self.check_fate()
+            if getattr(w, "resentment", 0.0) > 0.0:
+                yrs = (self.day - w.checked_day) / 365.0
+                w.resentment = max(0.0, w.resentment - C.RESENT_DECAY_PER_YEAR * yrs)
+            if w.tier == 1:
+                if w.n_alive >= C.HEAVEN_POP_LIMIT:
+                    if not w.is_closed:
+                        # ฟ้าปิดประตูด้วยการ **ตั้งค่ายกลขึ้นใหม่** ไม่ใช่ปิดเฉยๆ ถ้าไม่ตั้งใหม่
+                        # ค่ายกลที่เคยถูกทุบเหลือ 0 จะค้างอยู่อย่างนั้น แล้วทุกครั้งที่โควตา
+                        # ประชากรปิดประตูอีก คนเดียวก็ทุบเปิดได้ในหมัดเดียว (วัดจริงหลังเปิดใช้
+                        # สงครามเบิกฟ้า: "เปิดสวรรค์" 37 ครั้งใน 102 ปี ทั้งที่ควรเป็นเรื่องใหญ่)
+                        w.defense_array = w.defense_max
+                    w.is_closed = True
+                elif w.n_alive < C.HEAVEN_POP_LIMIT * 0.8:
+                    w.is_closed = False
+                    
+            w.checked_day = self.day
+            notes = R.check_world(self, w, rng)
+            if notes is not None:
+                self.emit(w, "ยุคล่ม", None, None, ["ความตาย"], "วัฏจักร",
+                          f"{w.name} สิ้นพลังฟ้า ยุคหนึ่งจบลง ผู้ล่วงลับ {len(notes)} คน",
+                          0, {"โลกตกระดับ": f"เหลือชั้น {w.tier}"})
+
+        CRISES.tick(self)
+
     def _step(self):
         rng = self.rng
         actor = None
@@ -1692,7 +1948,14 @@ class Sim:
                         ruler.dragon_aura = True
                     c["ruler_cid"] = ruler.cid
                     
-        while self.queue:
+        idle_until = self.day + C.WORLD_IDLE_LIMIT_DAYS
+        while True:
+            # นาฬิกาโลกมาก่อนเทิร์นตัวละครที่ตรงวันกัน และเดินต่อแม้คิวตัวละครว่าง
+            if not self.queue or self.queue[0][0] >= self.world_tick_day:
+                if not self.queue and self.world_tick_day > idle_until:
+                    break       # ไม่มีใครเหลือให้ถึงคิว และโลกเดินเปล่ามานานพอแล้ว
+                self._world_tick(rng)
+                continue
             day, cid = heapq.heappop(self.queue)
             ch = self.cast[cid]
             if not ch.alive:
@@ -1815,200 +2078,6 @@ class Sim:
             ch.energy = min(100.0, getattr(ch, "energy", 100.0))
             
 
-            WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
-            # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
-            # โปรไฟล์จริง: 5.0 วินาทีจาก 100 (5%) โดยได้ผลเท่ากันทุกประการถ้าสะสมเป็นก้อน
-            if self.day - getattr(self, "_portal_regen_day", -10**9) >= C.WORLD_TICK_DAYS:
-                PORT.regen(self, self.day - getattr(self, "_portal_regen_day", 0))
-                self._portal_regen_day = self.day
-            PORT.tick(self, rng)    # การสร้างประตูมิติ (ดู tiandao/portals.py)
-            if self.day > getattr(self, "last_disaster_day", 0) + 30:
-                self.last_disaster_day = self.day
-                
-                # Sect Resource Distribution & Facilities
-                for org in self.orgs:
-                    if org.alive and org.members:
-                        # Assign Facilities
-                        if not hasattr(org, "facilities"): org.facilities = {}
-                        cast_len = len(self.cast)
-                        if "หอโอสถ" not in org.facilities or not (0 <= org.facilities["หอโอสถ"] < cast_len) or not self.cast[org.facilities["หอโอสถ"]].alive:
-                            alchs = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and getattr(self.cast[c], "alch_rank", 0) > 0]
-                            if alchs: org.facilities["หอโอสถ"] = max(alchs, key=lambda c: getattr(self.cast[c], "alch_rank", 0))
-
-                        if "หอศาสตรา" not in org.facilities or not (0 <= org.facilities["หอศาสตรา"] < cast_len) or not self.cast[org.facilities["หอศาสตรา"]].alive:
-                            smiths = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and getattr(self.cast[c], "forge_rank", 0) > 0]
-                            if smiths: org.facilities["หอศาสตรา"] = max(smiths, key=lambda c: getattr(self.cast[c], "forge_rank", 0))
-
-                        if "ลานฝึกยุทธ" not in org.facilities or not (0 <= org.facilities["ลานฝึกยุทธ"] < cast_len) or not self.cast[org.facilities["ลานฝึกยุทธ"]].alive:
-                            fighters = [c for c in org.members if 0 <= c < cast_len and self.cast[c].alive and self.cast[c].realm >= 4]
-                            if fighters: org.facilities["ลานฝึกยุทธ"] = max(fighters, key=lambda c: self.cast[c].realm)
-                        
-                        # เครื่องพิมพ์เงินที่ซ่อนอยู่: เดิม `monthly_resource = 10000` ถูกเสก
-                        # ขึ้นมาทุกเดือนให้ทุกสำนัก แล้วหารให้ศิษย์ — สำนักที่มีศิษย์เอกคนเดียว
-                        # จะได้คนละ 4,000 ต่อเดือน = 48,000 ต่อปี **จากอากาศ**
-                        # วัดจริงโลก 50 ปี: คนรวยที่สุดถือ 2.28 ล้าน ทั้งที่ลงมือแค่ 27 ครั้ง
-                        # ตลอดชีวิต และมีรายได้ที่บันทึกไว้รวมกันแค่ 113 เหรียญ
-                        # ตอนนี้ทรัพย์ของสำนักมาจาก **ค่าบำรุงที่ศิษย์จ่ายเข้ามา** เท่านั้น
-                        # เป็นการกระจายซ้ำ ไม่ใช่การสร้างเงินใหม่ — และเป็นกลไกที่ถูกต้องของ
-                        # สำนักในแนวนี้อยู่แล้ว (สำนักเก็บส่วย แล้วเลี้ยงศิษย์)
-                        # ---- ผลผลิตจริงของสำนัก: คอบบ์-ดักลาส ศิษย์ × อาณาเขต ----
-                        # ค่าบำรุงจากศิษย์ยังเก็บอยู่ (เป็นการกระจายซ้ำ) แต่ตอนนี้มี
-                        # **ผลผลิตที่ขุดได้จริง** เพิ่มเข้ามา ซึ่งถูกหักออกจากคลังฟ้าจริงๆ
-                        # สำนักจึงรวยได้ก็ต่อเมื่อมีทั้งคนและแผ่นดินที่ปราณหนา — และการ
-                        # ที่สำนักหนึ่งรวยขึ้นแปลว่าโลกจนลงเท่านั้นพอดี ไม่มีใครได้ฟรี
-                        treasury = getattr(org, "treasury", 0.0)
-                        for cid in org.members:
-                            if not (0 <= cid < cast_len) or not self.cast[cid].alive:
-                                continue
-                            mem = self.cast[cid]
-                            wkey = self.world(mem.world_id).tier
-                            due = mem.money.get(wkey, 0.0) * C.SECT_DUES_RATE
-                            if due > 0:
-                                mem.money[wkey] = mem.money.get(wkey, 0.0) - due
-                                treasury += due
-                        payout = treasury * C.SECT_PAYOUT_RATE
-                        org.treasury = treasury - payout
-                        pool_c = payout * 0.4
-                        pool_i = payout * 0.4
-                        pool_o = payout * 0.2
-
-                        cd = getattr(org, "core_disciples", [])
-                        id_ = getattr(org, "inner_disciples", [])
-                        od = getattr(org, "outer_disciples", [])
-
-                        if cd:
-                            share = int(pool_c / len(cd))
-                            for cid in cd:
-                                if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
-                        if id_:
-                            share = int(pool_i / len(id_))
-                            for cid in id_:
-                                if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
-                        if od:
-                            share = int(pool_o / len(od))
-                            for cid in od:
-                                if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
-
-                        self.sect_mine(org)
-
-                # ------------------------------------------------
-                # Divine Spirits Hunting Demons
-                # ------------------------------------------------
-                living_now = self.living()
-                # บัญชาสวรรค์เป็นหน้าที่รบของผู้ใหญ่ ทั้งผู้ล่าและเป้าหมายต้องพ้นวัยเด็ก
-                # มิฉะนั้นสิ่งมีชีวิตที่เกิดมาพร้อมสายเลือดวิญญาณ/มารจะออกรบตั้งแต่อายุหนึ่งปี
-                spirits = [c for c in living_now
-                           if c.age(self.day) >= 14 and getattr(c, "is_spirit", False)]
-                demons = [c for c in living_now
-                          if c.age(self.day) >= 14 and getattr(c, "is_demon", False)]
-                if spirits and demons:
-                    if self.rng.random() < 0.3: # 30% chance for a holy crusade
-                        hunter = self.rng.choice(spirits)
-                        target = self.rng.choice(demons)
-                        safe_print(f"\n⚔️ [บัญชาสวรรค์] เผ่าวิญญาณศักดิ์สิทธิ์ [{hunter.name}] บุกสังหารมารร้าย [{target.name}] เพื่อรักษาสมดุลโลก!")
-                        import tiandao.combat as combat
-                        combat.resolve_combat(hunter, target, self.worlds[0], self)
-                        # เดิมบล็อกนี้ print() อย่างเดียว ไม่ emit — เหตุการณ์ดราม่าที่สุดของโลก
-                        # จึงไม่มีอยู่ในประวัติศาสตร์ ไม่ขึ้นใน log ไม่ถูกนับเป็นจุดเปลี่ยนของใคร
-                        # และโรงงานนิยายมองไม่เห็นเลยสักครั้ง วัดจริง 121 ปี: 0 บรรทัดใน log
-                        self.emit(self.worlds[0], "บัญชาสวรรค์", hunter, target,
-                                  ["ต่อสู้", "ความตาย"],
-                                  "สังหารมารสำเร็จ" if not target.alive else "มารหนีรอด",
-                                  f"{hunter.name}แห่งเผ่าวิญญาณศักดิ์สิทธิ์รับบัญชาสวรรค์ "
-                                  f"บุกสังหาร{target.name}ผู้ตกเป็นมาร เพื่อรักษาสมดุลของโลก",
-                                  0, {"เหตุแห่งบัญชา": "เผ่าวิญญาณศักดิ์สิทธิ์ล้างมารตามหน้าที่",
-                                      "ชะตาของมาร": "ดับสูญ" if not target.alive else "รอดไปได้"})
-                
-                # Demon Temptation (Possession) — ตัวแปรลูปตั้งชื่อ pc ตั้งใจ ห้ามใช้ ch ซ้ำ: บั๊กจริงที่เจอ
-                # ตอนรัน --llm scale ยาว — "for ch in living_now" เดิมทับตัวแปร ch ของตัวละครที่เพิ่ง pop
-                # จากคิวด้านบน (line ~697) ทำให้โค้ดหลังจากนี้ (ch.hidden ฯลฯ จนถึง actor=ch) กลาย
-                # เป็นอ้างอิงถึงคนละคนไปเลย ทุก ~30 วันที่บล็อกนี้ทำงาน — เจ้าของ turn จริงไม่เคยถูก
-                # schedule ต่อเลย ทำให้หลุดจากคิวถาวรทีละคน สะสมจนคิวว่างหมดทั้งที่ยังมีคนเป็นๆ อยู่
-                for pc in living_now:
-                    # จิตมารเป็นวิกฤตของคนที่เติบโตพอจะมีกรรม/ความทะเยอทะยานของตนเอง
-                    # เด็กเคยถูกเลือกจากลูปประชากรโลกนี้ แม้เทิร์นของเด็กเองจะถูกกันไว้แล้ว
-                    if (pc.age(self.day) >= 14
-                            and not getattr(pc, "is_demon", False)
-                            and not getattr(pc, "is_spirit", False)
-                            and not getattr(pc, "is_beast", False)):
-                        if getattr(pc, "karmic_debt", 0) > 1000 or getattr(pc, "ambition", 0) > 80:
-                            if self.rng.random() < 0.05: # 5% chance every 30 days
-                                pc.is_demon = True
-                                pc.dao = "วิถีมาร"
-                                if pc.org is not None and pc.org < len(self.orgs):
-                                    # Leave current sect
-                                    org = self.orgs[pc.org]
-                                    if pc.cid in org.members: org.members.remove(pc.cid)
-                                    if pc.cid in org.core_disciples: org.core_disciples.remove(pc.cid)
-                                    if pc.cid in org.inner_disciples: org.inner_disciples.remove(pc.cid)
-                                    if pc.cid in org.outer_disciples: org.outer_disciples.remove(pc.cid)
-                                pc.org = None
-                                # เดิม print() เฉยๆ เช่นกัน — การตกเป็นมารคือจุดเปลี่ยนชีวิตที่ใหญ่ที่สุด
-                                # ที่ตัวละครหนึ่งจะมีได้ แต่ไม่เคยถูกบันทึกไว้เลย
-                                self.emit(self.world(pc.world_id), "มารสิงร่าง", pc, None,
-                                          ["ความตาย"], "ตกเป็นมาร",
-                                          f"{pc.name}ถูกจิตมารเข้าครอบงำเพราะกิเลสหนา "
-                                          f"ละทิ้งสำนักเดิม กลายเป็นเผ่ามารอย่างสมบูรณ์",
-                                          0, {"เหตุที่ถูกครอบงำ":
-                                                  ("กรรมหนัก" if getattr(pc, "karmic_debt", 0) > 1000
-                                                   else "ทะเยอทะยานเกินตัว"),
-                                              "วิถีใหม่": "วิถีมาร"})
-
-                # Beast Horde Siege
-                beast_kings = [c for c in living_now if getattr(c, "is_beast", False) and c.realm >= 4]
-                for king in beast_kings:
-                    if not getattr(king, "has_human_form", False):
-                        king.has_human_form = True
-                        # มีแค่ 5 ชื่อ โลกที่เดินนานจึงมีราชันย์อสูรเพลิงหลายตัวพร้อมกัน
-                        king.name = self.unique_name(
-                            "ราชันย์อสูร" + self.rng.choice(["เพลิง", "ทมิฬ", "สายฟ้า", "โลหิต", "น้ำแข็ง"]),
-                            old=king.name, marker="ตัวที่")
-                        safe_print(f"\n🐉 [คลื่นสัตว์อสูร] สัตว์อสูรบำเพ็ญตบะทะลวงขั้นสำเร็จ จำแลงกายเป็นมนุษย์ นามว่า [{king.name}]!")
-                    
-                    if self.rng.random() < 0.1: # 10% chance to attack a city
-                        if hasattr(C, "CITIES"):
-                            targets = [city for city in C.CITIES if "ชายแดน" in city.get("type_desc", "") or "หน้าด่านสำนัก" in city.get("type_desc", "")]
-                            if targets:
-                                target = self.rng.choice(targets)
-                                safe_print(f"\n🌋 [คลื่นสัตว์อสูรบุกเมือง] [{king.name}] นำกองทัพอสูรบุกโจมตีเมือง <{target['name_th']}>!")
-                                ruler_cid = target.get("ruler_cid", -1)
-                                if 0 <= ruler_cid < len(self.cast) and self.cast[ruler_cid].alive:
-                                    ruler = self.cast[ruler_cid]
-                                    # Fake combat for siege
-                                    if king.realm > ruler.realm:
-                                        safe_print(f" -> 🔴 เมืองแตก! [{ruler.name}] พ่ายแพ้ต่อราชันย์อสูรและสิ้นชีพ! กฎหมายเมืองล่มสลาย!")
-                                        self.kill(ruler, "อสูรบุกเมือง", killer=king)
-                                        target["law_strictness"] = 0
-                                    else:
-                                        safe_print(f" -> 🟢 ป้องกันเมืองสำเร็จ! [{ruler.name}] สังหารราชันย์อสูรได้ เมืองสงบสุข!")
-                                        self.kill(king, "ถูกผู้ปกครองเมืองสังหาร", killer=ruler)
-                                        ruler.max_hp = getattr(ruler, "max_hp", 100) + 50
-                                        safe_print(f" -> 🔮 [{ruler.name}] ดูดซับแก่นอสูร พลังชีวิตสูงสุดเพิ่มขึ้น!")
-
-                # Imperial Spy Network
-                if len(self.orgs) > 0:
-                    target_sect = self.rng.choice(self.orgs)
-                    if target_sect.alive:
-                        stealth_level = self.rng.randint(50, 100)
-                        if stealth_level > getattr(target_sect, "alert_level", 50):
-                            intel_gathered = self.rng.randint(10, 50)
-                            target_sect.threat_level = min(
-                                100, getattr(target_sect, "threat_level", 0) + intel_gathered)
-                            # log silently or print (using print here for engine logs as requested by user)
-                            safe_print(f"\n🕵️‍♂️ [องครักษ์เสื้อแพร] แทรกซึมสำเร็จ! พบว่า {target_sect.name} ซ่องสุมกำลัง (ภัยคุกคาม: {target_sect.threat_level}/100)")
-                        else:
-                            safe_print(f"\n🔴 [องครักษ์เสื้อแพร] ความแตก! สายลับถูกจับกุมและสังหารโดย {target_sect.name}")
-                            
-                for w in self.worlds:
-                    w.disaster_timer = getattr(w, "disaster_timer", 0) + 1
-                    w.current_disaster = rng.choice(["ปกติ", "กบฏราชสำนัก", "โรคระบาดใหญ่", "สมบัติโบราณปรากฏ"])
-                    if w.current_disaster == "กบฏราชสำนัก":
-                        safe_print(f"🚨💥 [ภัยพิบัติแผ่นดิน] {w.name} เกิดกบฏราชสำนัก!")
-                    elif w.current_disaster == "โรคระบาดใหญ่":
-                        safe_print(f"🚨🦠 [ภัยพิบัติแผ่นดิน] {w.name} เกิดโรคระบาด!")
-                    elif w.current_disaster == "สมบัติโบราณปรากฏ":
-                        safe_print(f"🚨📜 [ภัยพิบัติแผ่นดิน] {w.name} สมบัติปรากฏ!")
-                    SEASONS.maybe_trigger_disaster(self, w, rng)
 
             if ch.hidden and getattr(ch, "seclude_until", 0):
                 # อยู่ในด่าน — เวลาผ่านไปข้างนอกเต็มที่ ส่วนในด่านมีแต่การบำเพ็ญ
@@ -2194,7 +2263,7 @@ class Sim:
 
         elapsed = self.day - self.last_day
         self.last_day = self.day
-        self.eco_regen(elapsed)
+        self._advance_eco()
         world = self.world(actor.world_id)
 
         # แก่/เสื่อมคิดเฉพาะตอนตัวละครขยับ (เร็วกว่าไล่ทุกคนทุกเหตุการณ์)
@@ -2208,46 +2277,6 @@ class Sim:
             R.age_and_decay(self, actor, world, actor_gap, rng)
         actor.last_day = self.day
 
-        # นับประชากรใหม่เป็นรอบ ก่อนเอาตัวเลขไปคิดปราณที่ไหลเข้าโลก
-        if self.day - getattr(self, "_recount_day", -10**9) >= C.WORLD_TICK_DAYS:
-            self._recount_day = self.day
-            self.recount_worlds()
-        # บังคับกฎ "สมบัติฟ้าดินไม่มีวันสูญหาย" เป็นรอบ — ตรวจผลลัพธ์ ไม่ใช่ไล่อุดทีละทางที่รั่ว
-        if self.day - getattr(self, "_legend_sweep_day", -10**9) >= C.LEGEND_SWEEP_DAYS:
-            self._legend_sweep_day = self.day
-            self.reseal_lost_legends()
-        for w in self.worlds:
-            # สะสมงานประจำโลกไว้ทำเป็นก้อนทุก WORLD_TICK_DAYS แทนที่จะทำทุกเหตุการณ์ — ผลเท่าเดิม
-            # เพราะทั้งปราณไหลเข้าและการเพิ่มประชากรคิดจาก "จำนวนวันที่ผ่านไป" อยู่แล้ว แต่พอมี 120 แดน
-            # การวนทุกแดนทุกเหตุการณ์กลายเป็นงานที่หนักที่สุดของซิมไปเลย
-            if self.day - w.checked_day < C.WORLD_TICK_DAYS:
-                continue
-            R.heaven_inflow(w, w.n_mortal, self.day - w.checked_day)
-            self.repopulate(w, self.day - w.checked_day)
-            
-            if w.wid == 0:
-                self.check_fate()
-            if getattr(w, "resentment", 0.0) > 0.0:
-                yrs = (self.day - w.checked_day) / 365.0
-                w.resentment = max(0.0, w.resentment - C.RESENT_DECAY_PER_YEAR * yrs)
-            if w.tier == 1:
-                if w.n_alive >= C.HEAVEN_POP_LIMIT:
-                    if not w.is_closed:
-                        # ฟ้าปิดประตูด้วยการ **ตั้งค่ายกลขึ้นใหม่** ไม่ใช่ปิดเฉยๆ ถ้าไม่ตั้งใหม่
-                        # ค่ายกลที่เคยถูกทุบเหลือ 0 จะค้างอยู่อย่างนั้น แล้วทุกครั้งที่โควตา
-                        # ประชากรปิดประตูอีก คนเดียวก็ทุบเปิดได้ในหมัดเดียว (วัดจริงหลังเปิดใช้
-                        # สงครามเบิกฟ้า: "เปิดสวรรค์" 37 ครั้งใน 102 ปี ทั้งที่ควรเป็นเรื่องใหญ่)
-                        w.defense_array = w.defense_max
-                    w.is_closed = True
-                elif w.n_alive < C.HEAVEN_POP_LIMIT * 0.8:
-                    w.is_closed = False
-                    
-            w.checked_day = self.day
-            notes = R.check_world(self, w, rng)
-            if notes is not None:
-                self.emit(w, "ยุคล่ม", actor, None, ["ความตาย"], "วัฏจักร",
-                          f"{w.name} สิ้นพลังฟ้า ยุคหนึ่งจบลง ผู้ล่วงลับ {len(notes)} คน",
-                          0, {"โลกตกระดับ": f"เหลือชั้น {w.tier}"})
 
         if not actor.alive:
             return self.emit(world, "สิ้นอายุขัย", actor, None, ["ความตาย"], "ตาย",
@@ -5440,10 +5469,9 @@ class Sim:
         beast and move people) after the normal 30-day recount has run. Keeping
         the counters exact at the event boundary makes autonomous repopulation
         and heaven inflow decisions independent of which event happened last.
+        Crisis waves run on the world clock (see _world_tick), not per event.
         """
         event = self._step()
-        if event is not None:
-            CRISES.tick(self)
         if getattr(self, "_world_counts_dirty", False):
             self.recount_worlds()
             self._world_counts_dirty = False
