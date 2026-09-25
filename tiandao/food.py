@@ -45,6 +45,7 @@ from . import places as PL
 from . import seasons as SEASONS
 from . import travel as TR
 from . import wages as WAGES
+from . import guardians as GUARD
 
 STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
              "starved", "migrated", "seclusion_cut")
@@ -202,8 +203,12 @@ def tick(sim, days) -> None:
 
 
 def _payers(sim, ch):
-    """ใครจ่ายค่าข้าวของคนนี้: ตัวเขาเอง แล้วถ้าเป็นเด็ก พ่อแม่ที่ยังมีชีวิตและอยู่ที่เดียวกัน"""
+    """ใครจ่ายค่าข้าวของคนนี้: ตัวเขาเอง แล้วถ้าเป็นเด็ก ผู้ปกครองที่อยู่ด้วย (เปิดระบบผู้ปกครอง)
+    หรือพ่อแม่ที่ยังมีชีวิตและอยู่ที่เดียวกัน (ปิดระบบผู้ปกครอง)"""
     payers = [ch]
+    if ch.age(sim.day) < 14 and C.GUARDIANS_ENABLED:
+        guardian = GUARD.payer(sim, ch)
+        return payers + ([guardian] if guardian is not None else [])
     if ch.age(sim.day) < 14:
         for cid in getattr(ch, "parents", ()) or ():
             if 0 <= cid < len(sim.cast):

@@ -114,6 +114,22 @@ def has_anti_chaos(ch: Character, items=None) -> bool:
     return False
 
 
+def combat_insight(ch: Character, world: World) -> float:
+    """ความเข้าใจที่แปลงเป็นพลังรบได้ — ส่วนที่เกินกว่าขั้นปัจจุบันรับไหวได้ผลแบบลดทอน
+
+    ความเข้าใจที่เกินเกณฑ์ทะลวงขั้น (`need`) คือความเข้าใจที่ร่างนี้ยังรับไม่ไหว มันช่วยให้ข้ามขั้นได้
+    (accumulation ไม่ถูกตัด) แต่แปลงเป็นกำลังรบได้แค่ need × (1 + ln(ความเข้าใจ / need))
+    ต่ำกว่าหรือเท่าเกณฑ์ไม่เปลี่ยนเลย ผู้ฝึกทั่วไปที่ถือราว 1.7 เท่าของเกณฑ์เสียราว 10%
+
+    ที่มา: ปุถุชนขั้น 0 ในสวรรค์นอกชั้นฟ้าสะสมความเข้าใจได้ 160 (3.1 เท่าของเกณฑ์) โดยไม่ทะลวงขั้นเลย
+    แล้วคิดเป็นพลังเต็มจำนวน จนชนะเจ้าโกลาหลตัวต่อตัว 32 ครั้งในรันเดียว (test_coalition)
+    """
+    req = max(1e-6, need(ch, world))
+    if ch.insight <= req:
+        return ch.insight
+    return req * (1.0 + math.log(ch.insight / req))
+
+
 def power(ch: Character, world: World, items=None, day: int = None) -> float:
     if ch.is_chaos():
         # ตาม SPEC: ความได้เปรียบของโกลาหลต้องมาจาก CHAOS_EDGE (ค่าคงที่) ล้วนๆ ไม่ใช่จากพลังดิบ
@@ -137,7 +153,7 @@ def power(ch: Character, world: World, items=None, day: int = None) -> float:
         # ตัวละครสะสมอะไรมามากกว่ากัน (ความเข้าใจ vs อายุขัยที่เหลือ) ไม่ใช่ได้แต้มฟรีเพราะเลือกสาย
         p = (world.tier * C.TIER_STEP
              + ch.realm * C.REALM_STEP
-             + ch.insight * C.INSIGHT_W * (1.0 + C.PATH_SPIRIT_INSIGHT * spirit)
+             + combat_insight(ch, world) * C.INSIGHT_W * (1.0 + C.PATH_SPIRIT_INSIGHT * spirit)
              + blood_power(ch)
              + skill_power(ch)
              - ch.decay * C.DECAY_W * (1.0 - C.PATH_BODY_TOUGH * body))
@@ -726,16 +742,23 @@ def upkeep(ch: Character, world: World, years: float):
 
     ผู้ฝึกไม่ผ่านทางนี้แล้ว เขาจ่ายเป็นปราณผ่าน sustain() ข้างล่าง เพราะเงินทองซื้อข้าวได้
     แต่ซื้อการคงอยู่ของขั้นไม่ได้ — สองอย่างนี้เป็นคนละสกุลและคนละกลไกโดยตั้งใจ
+
+    เงินคีย์ตามชั้นของแดน (models.Character.money: tier -> จำนวน) เดิมคีย์ด้วย wid ซึ่งต่างจากชั้นใน
+    49 จาก 52 แดน ปุถุชนนอกโลกมนุษย์จึงอ่านเจอกระเป๋าว่างทุกครั้งแล้วรับความเสื่อมแทนการจ่าย
+
+    เปิดค่าแรงอยู่ (tiandao/wages.py) ไม่คิดค่าครองชีพก้อนนี้ เพราะค่าครองชีพจริงคือค่าข้าวและการใช้จ่ายในตลาด
+    ท้องถิ่นที่ระบบค่าแรงหักอยู่แล้ว ถ้าคิดซ้ำคือเก็บค่าครองชีพสองรอบ วัดแล้ว: ปุถุชนยศ 10 และ 20 เสียค่าครองชีพ
+    ปีละ 172 และ 427 ทอง เทียบค่าข้าวปีละ 36.5 ทอง อดตายเพิ่มจาก 486 เป็น 788 คนใน 18 ปี
     """
-    if years <= 0 or not ch.alive or ch.realm > 0:
+    if years <= 0 or not ch.alive or ch.realm > 0 or C.WAGES_ENABLED:
         return 0.0
     cost = C.UPKEEP_BASE * ((1.0 + ch.rank()) ** C.UPKEEP_POW) * years
-    wid = world.wid
-    have = ch.money.get(wid, 0.0)
+    tier = world.tier
+    have = ch.money.get(tier, 0.0)
     if have >= cost:
-        ch.money[wid] = have - cost
+        ch.money[tier] = have - cost
         return cost
-    ch.money[wid] = 0.0
+    ch.money[tier] = 0.0
     short = (cost - have) / max(1e-9, cost)
     ch.decay += C.UPKEEP_SHORT_DECAY * short * years
     return have
@@ -1085,7 +1108,7 @@ def assassin_motive(sim, a, t):
             continue
         c = sim.cast[cid]
         if (c.alive and c.world_id == a.world_id and c.rivals.get(t.cid, 0) > 0
-                and c.money.get(a.world_id, 0) >= fee_max):
+                and c.money.get(sim.world(a.world_id).tier, 0) >= fee_max):
             return f"รับจ้างจาก{c.name}", c
     return None
 

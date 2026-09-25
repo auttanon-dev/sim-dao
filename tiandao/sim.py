@@ -32,6 +32,7 @@ from . import emotions as EM
 from . import body as BODY
 from . import food as FOOD
 from . import wages as WAGES
+from . import guardians as GUARD
 from .ai import BrainManager, EventBus
 from .console import safe_print
 
@@ -79,6 +80,7 @@ class Sim:
         self.market_till = {}     # (wid, place) -> ทองที่คนใช้จ่ายรอจ่ายเป็นค่าแรง (tiandao/wages.py)
         self.farm_till = {}       # (wid, place) -> ค่าข้าวที่รอจ่ายให้คนผลิตของที่นั้น
         self.wage_stats = WAGES.new_stats()
+        self.guardian_stats = GUARD.new_stats()
         self.seq = 0
         self.cast = []
         self.used_names = set()          # ชื่อที่ถูกใช้แล้วทั้งจักรวาล (unique_name)
@@ -893,6 +895,8 @@ class Sim:
             self.lord_pool = getattr(self, "lord_pool", 0.0) + gain
         if C.FOOD_ENABLED:
             FOOD.on_death(self, ch)
+        if C.GUARDIANS_ENABLED:
+            GUARD.on_death(self, ch)
         self.alive_cids.discard(ch.cid)
         self._alive_ver = getattr(self, "_alive_ver", 0) + 1
         self._world_counts_dirty = True
@@ -1337,7 +1341,7 @@ class Sim:
 
         coins = int(rng.randint(*C.RUIN_MONEY) * luck)
         if coins > 0:
-            ch.money[w.wid] = ch.money.get(w.wid, 0) + coins
+            ch.money[w.tier] = ch.money.get(w.tier, 0) + coins
             d["เหรียญทองที่ร่วงอยู่"] = f"{coins:,}"
         # หินวิญญาณที่คนก่อนหน้าทำหล่นไว้ — **ไม่หักจากคลังฟ้า** เพราะปราณก้อนนี้ถูกขุด
         # ออกจากโลกไปแล้วตั้งแต่รุ่นก่อน มันแค่เปลี่ยนมือ ถ้าหักซ้ำคือทำบัญชีพัง
@@ -1660,6 +1664,8 @@ class Sim:
         self.day = max(self.day, self.world_tick_day)
         self.world_tick_day = self.day + C.WORLD_TICK_DAYS
         self._advance_eco()
+        if C.GUARDIANS_ENABLED:
+            GUARD.tick(self)
         if C.FOOD_ENABLED:
             FOOD.tick(self, self.day - self.food_day)
         if C.WAGES_ENABLED:
@@ -1729,15 +1735,15 @@ class Sim:
                     if cd:
                         share = int(pool_c / len(cd))
                         for cid in cd:
-                            if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                            if 0 <= cid < cast_len and self.cast[cid].alive: WAGES.move_gold(self, self.cast[cid], share)
                     if id_:
                         share = int(pool_i / len(id_))
                         for cid in id_:
-                            if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                            if 0 <= cid < cast_len and self.cast[cid].alive: WAGES.move_gold(self, self.cast[cid], share)
                     if od:
                         share = int(pool_o / len(od))
                         for cid in od:
-                            if 0 <= cid < cast_len and self.cast[cid].alive: self.cast[cid].money[0] = self.cast[cid].money.get(0, 0) + share
+                            if 0 <= cid < cast_len and self.cast[cid].alive: WAGES.move_gold(self, self.cast[cid], share)
 
                     self.sect_mine(org)
 
@@ -2235,8 +2241,11 @@ class Sim:
                     continue
                 if self.day >= ch.travel_arrival_day:
                     dest_name = PL.PLACES[ch.travel_dest][0] if 0 <= ch.travel_dest < len(PL.PLACES) else "?"
+                    old_place = ch.place
                     ch.place = ch.travel_dest
                     ch.travel_dest = -1
+                    if C.GUARDIANS_ENABLED:
+                        GUARD.on_arrival(self, ch, old_place)
                     ch.building = -1  # place ใหม่ = ยังไม่ระบุอาคาร ต้อง route ใหม่ถ้าจำเป็น
                     self.emit(world0, "เดินทาง", ch, None, ["เดินทาง"], "มาถึง",
                               f"{ch.name}เดินทางมาถึง{dest_name}แล้ว", 0, {})
@@ -3311,7 +3320,7 @@ class Sim:
         ไม่ใช่เพราะเราเขียนกฎห้ามเขาเข้าร่วม
         """
         qi = EC.purse_qi(ch)
-        gold = ch.money.get(world.wid, 0.0)
+        gold = ch.money.get(world.tier, 0.0)
         if C.STONE_GOLD_PER_QI > 0:
             qi += gold / C.STONE_GOLD_PER_QI
         return qi
@@ -3358,7 +3367,7 @@ class Sim:
         if len(bidders) < 2:
             # ไม่มีคนพอจะสู้ราคา กลายเป็นการเร่ขายธรรมดา
             earn = rng.randint(30, 120)
-            host.money[wid] = host.money.get(wid, 0) + earn
+            host.money[w.tier] = host.money.get(w.tier, 0) + earn
             return "ค้าขาย", f"{host.name}ตั้งแผงขายของ แต่ไม่มีคนมากพอจะเปิดประมูล ได้ {earn} เหรียญ", d
 
         lot_item = None
@@ -3413,9 +3422,9 @@ class Sim:
         paid = EC.transfer_qi(winner, host, float(price), grade)
         left = price - paid
         if left > 0 and C.STONE_GOLD_PER_QI > 0:
-            gold = min(winner.money.get(wid, 0.0), left * C.STONE_GOLD_PER_QI)
-            winner.money[wid] = winner.money.get(wid, 0.0) - gold
-            host.money[wid] = host.money.get(wid, 0.0) + gold
+            gold = min(winner.money.get(w.tier, 0.0), left * C.STONE_GOLD_PER_QI)
+            winner.money[w.tier] = winner.money.get(w.tier, 0.0) - gold
+            host.money[w.tier] = host.money.get(w.tier, 0.0) + gold
         d["จ่ายเป็นหินวิญญาณ"] = f"{paid:,.1f} หน่วยปราณ"
         if lot_item is not None:
             host.items.remove(lot_item)
@@ -3683,7 +3692,7 @@ class Sim:
                                         a.children.append(child.cid)
                                         b.children.append(child.cid)
                                         child.generation = getattr(a, "generation", 1) + 1
-                                        child.money[w.wid] = a.money.get(w.wid, 0) // 2
+                                        child.money[w.tier] = a.money.get(w.tier, 0) // 2
                                         msg += f" 🍼 [สายเลือดสืบทอด] ให้กำเนิดทายาทชื่อ [{child.name}] (รุ่นที่ {child.generation})!"
                                     return "ความสัมพันธ์", pre_msg + msg, d
                                 else:
@@ -3700,7 +3709,7 @@ class Sim:
                         msg = f"🚨 [เผชิญหน้าคู่แค้น] {hunter} ({h_info.get('title', '')}) ปรากฏตัวขวางหน้าหมายเอาชีวิต!"
                         if combat_power >= h_info.get("power", 0):
                             msg += f" 🦅 [ล้างแค้นสำเร็จ] ท่านโค่น {hunter} ลงได้สะใจ! (+150 เงิน, ได้ EXP)"
-                            a.money[w.wid] = a.money.get(w.wid, 0) + 150
+                            a.money[w.tier] = a.money.get(w.tier, 0) + 150
                             a.insight += 1.2
                             a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
                             R.cultivate(a, gap, self.items)
@@ -3709,7 +3718,7 @@ class Sim:
                         else:
                             msg += f" 💥 [พ่ายแพ้คู่แค้น] ท่านพลาดท่าบาดเจ็บสาหัส เสีย -50 HP และถูกชิงทรัพย์ -100 เงิน"
                             a.hp -= 50
-                            a.money[w.wid] = max(0, a.money.get(w.wid, 0) - 100)
+                            a.money[w.tier] = max(0, a.money.get(w.tier, 0) - 100)
                             a.nemeses[hunter]["hatred"] = 60
                             msg = check_hp(msg)
                             return "อันตราย", msg, d
@@ -3719,7 +3728,7 @@ class Sim:
                         enemy_power = rng.randint(40, max(90, int(w.tier*40)))
                         
                         if combat_power >= enemy_power:
-                            a.money[w.wid] = a.money.get(w.wid, 0) + 100
+                            a.money[w.tier] = a.money.get(w.tier, 0) + 100
                             a.insight += 0.5
                             a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
                             R.cultivate(a, gap, self.items)
@@ -3755,7 +3764,7 @@ class Sim:
                                 dmg = dmg // 2
                                 msg_add = " 🛡️ จ้าวเถี่ยซานรับแรงกระแทก!"
                             a.hp -= dmg
-                            a.money[w.wid] = max(0, a.money.get(w.wid, 0) - 40)
+                            a.money[w.tier] = max(0, a.money.get(w.tier, 0) - 40)
                             msg = f"💥 [พ่ายแพ้] เสีย -{dmg} HP และเสีย -40 เงิน{msg_add}"
                             msg = check_hp(msg)
                             return "อันตราย", msg, d
@@ -3784,8 +3793,8 @@ class Sim:
                         elif sub == "drink_tea":
                             comp = rng.choice(list(a.companions.keys()))
                             choice = rng.choice(["share_gold", "talk_martial", "ignore"])
-                            if choice == "share_gold" and a.money.get(w.wid, 0) >= 50:
-                                a.money[w.wid] -= 50
+                            if choice == "share_gold" and a.money.get(w.tier, 0) >= 50:
+                                a.money[w.tier] -= 50
                                 if type(a.companions[comp]) == int: a.companions[comp] = min(100, a.companions[comp] + 25)
                                 msg = f"🍻 [ความสัมพันธ์] ชวน {comp} ดื่มชา 💞 (+25 Affection)"
                             elif choice == "talk_martial":
@@ -3807,8 +3816,8 @@ class Sim:
                             else:
                                 msg = "🎒 คณะเดินทางเต็มแล้ว จึงได้เพียงพูดคุยแลกเปลี่ยนสุรา"
                         elif sub == "buy_weapon":
-                            if a.money.get(w.wid, 0) >= 150 and a.inventory.get("อาวุธ") is None:
-                                a.money[w.wid] -= 150
+                            if a.money.get(w.tier, 0) >= 150 and a.inventory.get("อาวุธ") is None:
+                                a.money[w.tier] -= 150
                                 a.inventory["อาวุธ"] = "กระบี่เหล็กเย็น"
                                 msg = "🛍️ สวมใส่ 'กระบี่เหล็กเย็น' สำเร็จ"
                             else:
@@ -3823,8 +3832,8 @@ class Sim:
                     if rng.randint(1, 100) <= wealth:
                         if a.companions and rng.random() > 0.5:
                             comp = rng.choice(list(a.companions.keys()))
-                            if a.money.get(w.wid, 0) >= 40:
-                                a.money[w.wid] -= 40
+                            if a.money.get(w.tier, 0) >= 40:
+                                a.money[w.tier] -= 40
                                 if type(a.companions[comp]) == int: a.companions[comp] = min(100, a.companions[comp] + 20)
                                 msg = f"🛍️ [ความสัมพันธ์] ซื้อสมุนไพรให้ {comp} 💞 (+20 Affection)"
                             else:
@@ -3836,8 +3845,8 @@ class Sim:
                             potion_cost = 20
                             msg_add = " 📜 ศิษย์พี่ใหญ่เซี่ยต่อราคาเหลือ 20 เงิน!"
                             
-                        if a.money.get(w.wid, 0) >= potion_cost and a.inventory.get("ยาสมานแผล", 0) < 2:
-                            a.money[w.wid] -= potion_cost
+                        if a.money.get(w.tier, 0) >= potion_cost and a.inventory.get("ยาสมานแผล", 0) < 2:
+                            a.money[w.tier] -= potion_cost
                             a.inventory["ยาสมานแผล"] += 1
                             msg = f"🎒 ซื้อยาสมานแผลสำเร็จ (จ่าย {potion_cost} เงิน){msg_add}"
                         else:
@@ -3868,7 +3877,7 @@ class Sim:
             return "บุญบารมี", f"{a.name}ออกโปรดสัตว์ สะสมบุญบารมีเพิ่มขึ้น", d
             
         if k == "ลาดตระเวน":
-            a.money[w.wid] = a.money.get(w.wid, 0) + WAGES.fiat_pay(10)
+            a.money[w.tier] = a.money.get(w.tier, 0) + WAGES.fiat_pay(10)
             return "ลาดตระเวน", f"{a.name}ออกลาดตระเวนรักษาความสงบ ได้รับเบี้ยหวัด", d
             
         if k == "เปิดประมูล":
@@ -3888,10 +3897,10 @@ class Sim:
             if hasattr(a, "update_title"): a.update_title()
             weight = R.crime_weight(t)
             # ค่าหัวมาจากของกลางที่ยึดได้ ไม่ใช่เงินที่เกิดจากอากาศ (เดิม randint(20,100) ลอยๆ)
-            loot = int(t.money.get(w.wid, 0) * 0.5)
+            loot = int(t.money.get(w.tier, 0) * 0.5)
             bounty = max(20, min(loot, 300)) if loot > 0 else rng.randint(20, 60)
-            t.money[w.wid] = max(0, t.money.get(w.wid, 0) - loot)
-            a.money[w.wid] = a.money.get(w.wid, 0) + bounty
+            t.money[w.tier] = max(0, t.money.get(w.tier, 0) - loot)
+            a.money[w.tier] = a.money.get(w.tier, 0) + bounty
             d["ของกลางที่ยึดได้"] = bounty
             if weight >= C.EXECUTE_KILLS:
                 # ฆ่าคนมาแล้วหลายศพ — โทษประหาร ยังเป็นความตายที่มีเหตุให้เล่าได้
@@ -3925,9 +3934,9 @@ class Sim:
                 a.karma += 50.0 # ฆ่าคนกรรมพุ่ง
             fee = 0
             if client is not None:
-                fee = min(client.money.get(w.wid, 0), rng.randint(*C.ASSASSIN_FEE))
-                client.money[w.wid] = client.money.get(w.wid, 0) - fee
-                a.money[w.wid] = a.money.get(w.wid, 0) + fee
+                fee = min(client.money.get(w.tier, 0), rng.randint(*C.ASSASSIN_FEE))
+                client.money[w.tier] = client.money.get(w.tier, 0) - fee
+                a.money[w.tier] = a.money.get(w.tier, 0) + fee
                 client.bonds[a.cid] = client.bonds.get(a.cid, 0) + C.ASSASSIN_CLIENT_BOND
                 a.bonds[client.cid] = a.bonds.get(client.cid, 0) + C.ASSASSIN_CLIENT_BOND
                 client.moral = getattr(client, "moral", 0) - 3
@@ -3950,9 +3959,9 @@ class Sim:
         if k == "ดักปล้น":
             if not t: return "ล้มเหลว", "ไม่มีเป้าหมาย", d
             if R.power(a, w) > R.power(t, w):
-                stolen = t.money.get(w.wid, 0) // 2
-                t.money[w.wid] = t.money.get(w.wid, 0) - stolen
-                a.money[w.wid] = a.money.get(w.wid, 0) + stolen
+                stolen = t.money.get(w.tier, 0) // 2
+                t.money[w.tier] = t.money.get(w.tier, 0) - stolen
+                a.money[w.tier] = a.money.get(w.tier, 0) + stolen
                 a.moral = getattr(a, "moral", 0) - 3
                 if hasattr(a, "update_title"): a.update_title()
                 t.bonds[a.cid] = min(-10, t.bonds.get(a.cid, 0) - 30)
@@ -3966,17 +3975,17 @@ class Sim:
             a.insight += rng.uniform(0.1, 0.5)
             t.insight += rng.uniform(0.1, 0.3)
             fee = rng.randint(5, 20)
-            if t.money.get(w.wid, 0) >= fee:
-                t.money[w.wid] -= fee
-                a.money[w.wid] = a.money.get(w.wid, 0) + fee
+            if t.money.get(w.tier, 0) >= fee:
+                t.money[w.tier] -= fee
+                a.money[w.tier] = a.money.get(w.tier, 0) + fee
             return "ทำนาย", f"{a.name}ตรวจดวงชะตาให้ {t.name} ชี้แนะหนทาง", d
 
         if k == "ขายข่าวลับ":
             if not t: return "ล้มเหลว", "ไม่มีลูกค้า", d
             fee = rng.randint(10, 50)
-            if t.money.get(w.wid, 0) >= fee:
-                t.money[w.wid] -= fee
-                a.money[w.wid] = a.money.get(w.wid, 0) + fee
+            if t.money.get(w.tier, 0) >= fee:
+                t.money[w.tier] -= fee
+                a.money[w.tier] = a.money.get(w.tier, 0) + fee
                 t.bonds[a.cid] = max(0, t.bonds.get(a.cid, 0) + 10)
                 return "ข่าวลับ", f"{a.name}ขายข้อมูลสำคัญให้ {t.name}", d
             return "ล้มเหลว", f"{t.name}ไม่มีเงินจ่ายค่าข่าวให้ {a.name}", d
@@ -5094,10 +5103,10 @@ class Sim:
                 a.items.append(iid)
                 self.items[iid].owner = a.cid
                 gain.append(self.items[iid].name)
-            cash = int(t.money.get(w.wid, 0) * 0.4)
+            cash = int(t.money.get(w.tier, 0) * 0.4)
             if cash > 0:
-                t.money[w.wid] = t.money.get(w.wid, 0) - cash
-                a.money[w.wid] = a.money.get(w.wid, 0) + cash
+                t.money[w.tier] = t.money.get(w.tier, 0) - cash
+                a.money[w.tier] = a.money.get(w.tier, 0) + cash
                 gain.append(f"{cash} เหรียญ")
             if t.skills and (not a.skills or len(a.skills) < len(t.skills)):
                 sk = t.skills[-1]

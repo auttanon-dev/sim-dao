@@ -39,7 +39,9 @@ REPLACE_RETRY_SECONDS = 10.0
 #   2 — นาฬิกาโลก (Sim.world_tick_day) และนาฬิกาทรัพยากร (Sim.eco_day)
 #   3 — ยุ้งฉางหมู่บ้าน (Sim.granary, food_stats, food_day — tiandao/food.py)
 #   4 — ค่าแรงตามเวลา (Sim.market_till, farm_till, wage_stats — tiandao/wages.py) และยุ้งฉางคีย์ (wid, place)
-SAVE_VERSION = 4
+#   5 — เหรียญทองคีย์ตามชั้นของแดนเท่านั้น (เดิมบางจุดคีย์ด้วย wid)
+#   6 — ผู้ปกครองเด็ก (Sim.guardian_stats; Character.guardian/wards ได้ค่าว่างจาก __setstate__)
+SAVE_VERSION = 6
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -252,6 +254,30 @@ def _migrate(sim, version):
         from . import places as PL
         sim.granary = {(key if isinstance(key, tuple) else (owner.get(PL.PLACES[key][1], 0), key)): v
                        for key, v in sim.granary.items()}
+    if version < 5:
+        _money_by_tier(sim)
+    if version < 6:
+        from . import guardians as GUARD
+        sim.guardian_stats = GUARD.new_stats()
+
+
+def _money_by_tier(sim):
+    """ย้ายเหรียญทองที่โค้ดเก่าเก็บไว้ใต้ wid ไปไว้ใต้ชั้นของแดนนั้น — ไม่มีเหรียญเกิดหรือหาย
+
+    `Character.money` คีย์ด้วยชั้นของแดน แต่หลายจุด (ลาดตระเวน ล้างแค้น จับกุม ปล้น ถ่ายทอดวิชา ค่าครองชีพ ฯลฯ)
+    เคยเขียนด้วย wid คีย์ที่ไม่มีชั้นไหนใช้ (มากกว่าชั้นสูงสุด) จึงเป็น wid แน่นอน ส่วนคีย์ที่อยู่ในช่วงชั้น
+    แยกไม่ออกว่าเขียนด้วยอะไร แต่แดนที่ wid เท่ากับคีย์นั้นมีชั้นเท่ากับ wid ของมันเอง (โลกมนุษย์ 0, แดนเซียน 1,
+    สวรรค์นอกชั้นฟ้า 2) จึงความหมายเดียวกันอยู่แล้ว — ถ้าเงื่อนไขนี้ไม่จริงในเซฟไหน คีย์ช่วงนั้นถูกปล่อยไว้ตามเดิม
+    """
+    worlds = getattr(sim, "worlds", ())
+    top = max((w.tier for w in worlds), default=0)
+    for ch in getattr(sim, "cast", ()):
+        money = getattr(ch, "money", None)
+        if not money:
+            continue
+        for key in sorted(k for k in money if k > top and 0 <= k < len(worlds)):
+            tier = worlds[key].tier
+            money[tier] = money.get(tier, 0.0) + money.pop(key)
 
 
 def _backfill_new_attrs(sim):
