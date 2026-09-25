@@ -85,11 +85,14 @@ def main():
 
     sim = load_or_create(cfg)
 
-    it = 0
+    it = save_failures = 0
     try:
         while a.iterations <= 0 or it < a.iterations:
             it += 1
             r = WL.run_round(sim, cfg, state)
+            if not r["saved"]:
+                print(f"[daemon] รอบ {it}: เซฟไม่สำเร็จ ({r['save_error']}) — ไฟล์เซฟเดิมยังอยู่ครบ จะลองใหม่รอบหน้า")
+            save_failures = WL.check_saved(r, save_failures)
 
             log_note = (f" | flush log +{r['log_flushed']} "
                         f"(world.save เหลือ {r['log_kept']} เหตุการณ์)") if not a.no_trim_log else ""

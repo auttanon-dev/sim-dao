@@ -14,10 +14,15 @@ import os
 import pickle
 import heapq
 import random
+import time
 
 from . import config as C
 
 DEFAULT_PATH = "tiandao/world.save"
+
+# ผู้อ่านภายนอกที่ไม่ได้อ่านผ่าน open_for_read (โปรแกรมอื่น, แอนตี้ไวรัส) ยังขวางการแทนไฟล์บน Windows ได้
+# เซฟจึงรอให้เขาปล่อยได้ไม่เกินเท่านี้ แล้วล้มอย่างชัดเจนโดยไฟล์เดิมยังอยู่ครบ — ไม่ค้างลูปหลักไม่จำกัด
+REPLACE_RETRY_SECONDS = 10.0
 
 # รุ่นของ "ไฟล์เซฟ" ไม่ใช่ของโลก — บอกว่าไฟล์นี้ถูกเขียนโดยโค้ดที่รู้จัก schema รุ่นไหน
 #
@@ -43,6 +48,96 @@ RENAMED_MATERIALS = {
 }
 
 
+# ---------------------------------------------------------------- อ่านกับเขียนไฟล์เซฟพร้อมกัน
+# บน Windows os.replace ทับไฟล์ที่ยังมี handle อ่านเปิดอยู่ไม่ได้ (WinError 5) — live viewer poll อ่าน
+# world.save ขณะ runner เซฟ แล้ว runner ล้มเป็นสถานะ error ทั้งที่โลกไม่ได้ผิดอะไร
+# (ยืนยันใน WORLD_CONDITIONS_REFERENCE_TH.md และทำซ้ำได้ใน test_save_concurrency)
+#
+# แก้ทั้งสองฝั่ง เพราะวัดบน Windows 11 แล้วว่าแก้ฝั่งเดียวไม่พอ:
+#   · ผู้อ่านเปิดไฟล์แบบแชร์สิทธิ์ลบ (FILE_SHARE_DELETE) — open() ของ Python ไม่แชร์สิทธิ์นี้
+#   · ผู้เขียนแทนชื่อแบบ POSIX ซึ่งปลดชื่อเดิมออกทันที ผู้อ่านที่อ่านค้างยังอ่านสแนปช็อตเดิมจนจบ
+# ผู้อ่านทุกตัวในโครงการ (viewer, dashboard, โรงเขียนนิยาย) อ่านผ่าน read_save จึงได้ผลทั้งหมด
+# คนละ process ก็ได้ เพราะเป็นกติกาของระบบไฟล์ ไม่ใช่ lock ใน process
+if os.name == "nt":
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    _k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    _k32.CreateFileW.restype = wintypes.HANDLE
+    _k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+                                 wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    _k32.SetFileInformationByHandle.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p,
+                                                wintypes.DWORD]
+    _k32.CloseHandle.argtypes = [wintypes.HANDLE]
+    _INVALID_HANDLE = wintypes.HANDLE(-1).value
+    _SHARE_ALL = 0x1 | 0x2 | 0x4                 # FILE_SHARE_READ | WRITE | DELETE
+    _GENERIC_READ, _DELETE, _OPEN_EXISTING, _NORMAL = 0x80000000, 0x00010000, 3, 0x80
+    _FILE_RENAME_INFO_EX = 22
+    _RENAME_REPLACE_POSIX = 0x1 | 0x2            # REPLACE_IF_EXISTS | POSIX_SEMANTICS
+    # ระบบไฟล์ที่ไม่รองรับการแทนชื่อแบบ POSIX (FAT, network share บางแบบ) ตอบด้วยรหัสเหล่านี้
+    _POSIX_RENAME_UNSUPPORTED = {1, 50, 87}
+
+    def _create(path, access):
+        handle = _k32.CreateFileW(path, access, _SHARE_ALL, None, _OPEN_EXISTING, _NORMAL, None)
+        if handle == _INVALID_HANDLE:
+            err = ctypes.get_last_error()
+            raise OSError(None, ctypes.FormatError(err), path, err)
+        return handle
+
+    def open_for_read(path):
+        """เปิดไฟล์เซฟอ่านแบบไม่ขวางผู้เขียน — ใช้แทน open(path, "rb") ทุกที่ที่อ่านไฟล์เซฟ"""
+        handle = _create(path, _GENERIC_READ)
+        try:
+            fd = msvcrt.open_osfhandle(handle, os.O_RDONLY)
+        except OSError:
+            _k32.CloseHandle(handle)
+            raise
+        return os.fdopen(fd, "rb")
+
+    def _replace_once(src, dst):
+        handle = _create(src, _DELETE)
+        try:
+            dst = os.path.abspath(dst)
+
+            class _RenameInfo(ctypes.Structure):
+                _fields_ = [("Flags", wintypes.DWORD), ("RootDirectory", wintypes.HANDLE),
+                            ("FileNameLength", wintypes.DWORD),
+                            ("FileName", wintypes.WCHAR * (len(dst) + 1))]
+
+            info = _RenameInfo(_RENAME_REPLACE_POSIX, None, len(dst) * 2, dst)
+            if _k32.SetFileInformationByHandle(handle, _FILE_RENAME_INFO_EX, ctypes.byref(info),
+                                               ctypes.sizeof(info)):
+                return
+            err = ctypes.get_last_error()
+        finally:
+            _k32.CloseHandle(handle)
+        if err not in _POSIX_RENAME_UNSUPPORTED:
+            raise OSError(None, ctypes.FormatError(err), src, err, dst)
+        os.replace(src, dst)
+else:
+    def open_for_read(path):
+        """เปิดไฟล์เซฟอ่าน — บนระบบ POSIX ไฟล์ที่เปิดอ่านอยู่ไม่ขวางการแทนชื่ออยู่แล้ว"""
+        return open(path, "rb")
+
+    _replace_once = os.replace
+
+
+def _replace(src, dst):
+    """แทนไฟล์เซฟแบบอะตอมมิก โดยรอผู้อ่านภายนอกที่ถือไฟล์ไว้ได้ไม่เกิน REPLACE_RETRY_SECONDS"""
+    deadline = time.monotonic() + REPLACE_RETRY_SECONDS
+    delay = 0.02
+    while True:
+        try:
+            _replace_once(src, dst)
+            return
+        except PermissionError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(delay)
+            delay = min(delay * 2, 0.5)
+
+
 def save_sim(sim, path=DEFAULT_PATH):
     """เซฟแบบอะตอมมิก — เขียนลงไฟล์ชั่วคราวก่อนแล้วค่อยสลับชื่อทับ
 
@@ -59,7 +154,15 @@ def save_sim(sim, path=DEFAULT_PATH):
                     protocol=pickle.HIGHEST_PROTOCOL)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tmp, path)
+    try:
+        _replace(tmp, path)
+    except OSError:
+        # ไฟล์เซฟเดิมยังอยู่ครบ (last known good) — ทิ้งแค่ไฟล์ชั่วคราว แล้วรายงานความล้มเหลวให้ผู้เรียก
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def read_save(path=DEFAULT_PATH):
@@ -67,7 +170,7 @@ def read_save(path=DEFAULT_PATH):
 
     เซฟก่อนมีระบบรุ่นคือ pickle ของ Sim เปล่าๆ จึงไม่มีซองให้อ่าน — นับเป็นรุ่น 0
     """
-    with open(path, "rb") as f:
+    with open_for_read(path) as f:
         blob = pickle.load(f)
     if isinstance(blob, dict) and "sim" in blob:
         return blob["sim"], int(blob.get("save_version", 0))

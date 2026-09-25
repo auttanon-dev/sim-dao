@@ -32,11 +32,11 @@ def start_live(save_path, runner=WL.RUNNER):
 def live_status(save_path, runner=WL.RUNNER):
     status = runner.status()
     matches = bool(status['save_path']) and os.path.normcase(os.path.abspath(status['save_path'])) == os.path.normcase(os.path.abspath(save_path))
-    last = status['last'] if matches else None
     return {'state': status['state'] if matches else 'idle',
             'error': status['error'] if matches else '',
             'revision': status['iterations'] if matches else 0,
-            'saved_day': last['day_to'] if last else None,
+            # Report the last save that actually reached disk, not the last round simulated.
+            'saved_day': status['last_saved_day'] if matches else None,
             'poll_ms': 2000}
 
 

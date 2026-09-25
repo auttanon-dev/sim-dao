@@ -27,6 +27,26 @@ from .sim import Sim
 
 STEP_BATCH = 2000   # เดินทีละก้อนย่อยเพื่อให้ "กดหยุด" ตอบสนองภายในไม่กี่วินาที ไม่ต้องรอจบรอบใหญ่
 
+# เซฟล้มหนึ่งรอบ (ไฟล์ถูกโปรแกรมอื่นถือไว้นานเกิน persist.REPLACE_RETRY_SECONDS) ยังเดินต่อได้ เพราะไฟล์เดิม
+# อยู่ครบและรอบหน้าจะเซฟทั้งก้อนใหม่ แต่ถ้าล้มติดกันเท่านี้ งานที่ยังไม่ถูกบันทึกจะกองเกินที่ยอมเสียได้
+# จึงหยุดพร้อมเหตุผล — ไม่เดินต่อทั้งที่รายงานว่าเซฟสำเร็จไม่ได้
+MAX_SAVE_FAILURES = 3
+
+
+class SaveFailures(RuntimeError):
+    """เซฟไม่สำเร็จติดกันเกิน MAX_SAVE_FAILURES รอบ — โลกหยุดที่ขอบรอบ ไฟล์เซฟล่าสุดยังใช้ได้"""
+
+
+def check_saved(summary: dict, failures: int) -> int:
+    """นับเซฟที่ล้มติดกันจากสรุปรอบ แล้วหยุดเมื่อเกินขอบเขต — ใช้ร่วมกันทั้ง daemon และหน้าเว็บ"""
+    if summary["saved"]:
+        return 0
+    failures += 1
+    if failures >= MAX_SAVE_FAILURES:
+        raise SaveFailures(f"เซฟไม่สำเร็จติดกัน {failures} รอบ ({summary['save_error']}) — "
+                           f"หยุดโลกไว้ก่อน ไฟล์เซฟล่าสุดยังใช้ได้")
+    return failures
+
 
 @dataclass
 class LoopConfig:
@@ -91,7 +111,7 @@ def run_round(sim, cfg: LoopConfig, state: dict,
     if cfg.trim_log:
         flushed = EL.flush_and_trim(sim, cfg.log_path(), cfg.keep_recent_events)
 
-    PS.save_sim(sim, cfg.save_path)
+    save_error = _save(sim, cfg.save_path)
 
     drained = backlog = 0
     if cfg.llm:
@@ -99,7 +119,7 @@ def run_round(sim, cfg: LoopConfig, state: dict,
         backlog = len(sim.brain_manager.llm_queue)
 
         # Persist drained results and the remaining queue, including on the last round.
-        PS.save_sim(sim, cfg.save_path)
+        save_error = _save(sim, cfg.save_path)
 
     if cfg.autotune and ran:
         state["overrides"] = TN.propose_update(state.get("overrides", {}), metrics,
@@ -115,9 +135,19 @@ def run_round(sim, cfg: LoopConfig, state: dict,
         "org_rate": round(metrics.get("org_rate", 0.0), 3),
         "log_flushed": flushed, "log_kept": len(sim.log),
         "llm_drained": drained, "llm_backlog": backlog,
+        "saved": not save_error, "save_error": save_error,
         "seconds": round(time.time() - t0, 1),
         "at": time.time(),
     }
+
+
+def _save(sim, path) -> str:
+    """เซฟหนึ่งครั้ง — คืนข้อความผิดพลาด หรือสตริงว่างเมื่อสำเร็จ (persist ลองซ้ำให้แล้วภายในขอบเขต)"""
+    try:
+        PS.save_sim(sim, path)
+    except OSError as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return ""
 
 
 # ---------------------------------------------------------------- ตัวเดินเบื้องหลังสำหรับหน้าเว็บ
@@ -137,6 +167,9 @@ class WorldRunner:
         self.started_at: float = 0.0
         self.iterations: int = 0
         self.created_world: bool = False
+        self.save_failures: int = 0
+        self.last_saved_day: Optional[int] = None   # วันของโลกในเซฟล่าสุดที่สำเร็จจริง
+        self.last_saved_at: float = 0.0
 
     # -- ถาม -------------------------------------------------------------
     def status(self) -> dict:
@@ -148,6 +181,9 @@ class WorldRunner:
             "started_at": self.started_at,
             "elapsed": round(time.time() - self.started_at, 1) if self.started_at else 0,
             "created_world": self.created_world,
+            "save_failures": self.save_failures,
+            "last_saved_day": self.last_saved_day,
+            "last_saved_at": self.last_saved_at,
             "save_path": self.cfg.save_path if self.cfg else "",
             "chunk_events": self.cfg.chunk_events if self.cfg else 0,
             "interval": self.cfg.interval if self.cfg else 0,
@@ -163,6 +199,7 @@ class WorldRunner:
             self._stop.clear()
             self.cfg, self.rounds, self.error = cfg, [], ""
             self.iterations, self.started_at = 0, time.time()
+            self.save_failures, self.last_saved_day, self.last_saved_at = 0, None, 0.0
             self.state = "running"
             self._thread = threading.Thread(target=self._loop, daemon=True)
             self._thread.start()
@@ -194,6 +231,9 @@ class WorldRunner:
                 self.iterations += 1
                 self.rounds.append(summary)
                 del self.rounds[:-self.HISTORY]
+                if summary["saved"]:
+                    self.last_saved_day, self.last_saved_at = summary["day_to"], summary["at"]
+                self.save_failures = check_saved(summary, self.save_failures)
                 if summary["exhausted"]:
                     raise RuntimeError("Simulation scheduler exhausted; saved the last state")
                 if self._stop.is_set():
