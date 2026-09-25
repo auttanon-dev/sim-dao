@@ -38,7 +38,8 @@ REPLACE_RETRY_SECONDS = 10.0
 # เพิ่ม migration ใหม่เมื่อไร ให้บวกเลขนี้ขึ้นหนึ่ง แล้วเพิ่มกิ่ง `if version < N:` ใน _migrate()
 #   2 — นาฬิกาโลก (Sim.world_tick_day) และนาฬิกาทรัพยากร (Sim.eco_day)
 #   3 — ยุ้งฉางหมู่บ้าน (Sim.granary, food_stats, food_day — tiandao/food.py)
-SAVE_VERSION = 3
+#   4 — ค่าแรงตามเวลา (Sim.market_till, farm_till, wage_stats — tiandao/wages.py) และยุ้งฉางคีย์ (wid, place)
+SAVE_VERSION = 4
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -238,6 +239,19 @@ def _migrate(sim, version):
         sim.granary = {}
         sim.food_stats = FOOD.new_stats()
         sim.food_day = sim.day
+    if version < 4:
+        # เซฟก่อนมีค่าแรง: ลิ้นชักว่าง บัญชีเงินเริ่มจากศูนย์ ยุ้งฉางรุ่น 3 คีย์ด้วยสถานที่อย่างเดียว ซึ่งให้แดนที่
+        # ใช้ผังเดียวกันกินยุ้งฉางร่วมกัน — ของที่ค้างอยู่ให้แดนแรกที่ใช้ผังนั้น ไม่มีข้าวหายหรือเกิดใหม่
+        from . import wages as WAGES
+        sim.market_till = {}
+        sim.farm_till = {}
+        sim.wage_stats = WAGES.new_stats()
+        owner = {}
+        for w in sim.worlds:
+            owner.setdefault(w.place_key, w.wid)
+        from . import places as PL
+        sim.granary = {(key if isinstance(key, tuple) else (owner.get(PL.PLACES[key][1], 0), key)): v
+                       for key, v in sim.granary.items()}
 
 
 def _backfill_new_attrs(sim):

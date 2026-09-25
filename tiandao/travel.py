@@ -154,6 +154,25 @@ def shortest_path_days(from_place: int, to_place: int, realm: int, config=None,
     return max(cfg.TRAVEL_MIN_DAYS, round(days))
 
 
+_NEAR = {}
+
+
+def places_within(sim, place: int, max_hops: int) -> List[Tuple[int, int]]:
+    """สถานที่อื่นบนผังเดียวกันที่ห่างไม่เกิน max_hops ก้าว — [(สถานที่, ก้าว)] เรียงใกล้ไปไกล
+
+    ใช้ร่วมกันโดยยุ้งฉาง (ข้าวส่งถึงได้แค่ไหน) และตลาดท้องถิ่น (ค่าแรงจากที่ใกล้ๆ) กราฟคงที่จึงแคชได้
+    """
+    from . import places as PL
+    got = _NEAR.get((place, max_hops))
+    if got is None:
+        key = PL.PLACES[place][1]
+        ranked = sorted((sim.hops_between(place, other), other)
+                        for other in PL.places_in(key) if other != place)
+        got = [(other, hops) for hops, other in ranked if hops <= max_hops]
+        _NEAR[(place, max_hops)] = got
+    return got
+
+
 def roll_enroute_event(rng, config=None) -> Optional[Tuple[str, Dict[str, int]]]:
     """ทอยว่าจะเจอเหตุการณ์ระหว่างทางไหม (เรียกจาก sim.py ทุกครั้งที่ตัวละครที่กำลังเดินทางตื่นมาเช็ค
     ระหว่างทาง — ดู config.TRAVEL_ENROUTE_CHECK_DAYS) — ใช้ rng ที่รับมา (ไม่ใช่ random กลาง เพื่อ

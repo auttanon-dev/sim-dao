@@ -22,6 +22,14 @@
 - เสบียงติดตัว: เติมได้จากส่วนเกินของยุ้งฉางเท่านั้น ใช้กินตอนเดินทางหรือปิดด่าน
 - ขาดอาหาร: นับวันหิวติดกัน คนที่ไม่มีข้าวเหลือในระยะส่งถึงเลย จะเดินทางไปที่ใกล้ที่สุดในแดนเดียวกันที่ยังมีอาหาร
   ผู้ปิดด่านที่เสบียงหมดออกจากด่านก่อนกำหนด ถ้าหิวครบ FOOD_STARVE_DAYS จะอดตาย
+- ราคา: เมื่อเปิดค่าแรง (WAGES_ENABLED, tiandao/wages.py) ข้าวจากยุ้งฉางราคา FOOD_PRICE ทองต่อสำรับ เงินเข้า
+  ลิ้นชักของไร่ต้นทาง แล้วจ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้ เด็กที่ไม่มีเงินให้พ่อแม่ที่อยู่ที่เดียวกันจ่ายแทน
+  ส่วนที่ยังขาด หมู่บ้านเลี้ยงเด็กฟรีจากยุ้งฉาง (นับใน stats["charity"]) — ยังไม่มีระบบผู้ปกครอง และวัดแล้ว
+  ถ้าไม่เลี้ยง เด็กกำพร้า (คนที่ repopulate สร้างขึ้นโดยไม่มีพ่อแม่) อดตาย 1,516 จาก 2,238 รายใน 12 ปี ทั้งที่
+  ยุ้งฉางมีข้าวค้างสองล้านสำรับ ผู้ใหญ่ที่ซื้อไม่ไหวไม่ได้ข้าว ข้าวนั้นอยู่ในยุ้งฉางต่อ
+  ปิดค่าแรงอยู่ = ข้าวในยุ้งฉางแจกฟรีแบบเดิม
+- ที่อยู่ของยุ้งฉางคือ (แดน, สถานที่) เพราะหลายแดนใช้ผังสถานที่ชุดเดียวกัน (place_key) ยุ้งฉางของแดนหนึ่ง
+  ต้องไม่เลี้ยงคนอีกแดน
 
 ทุกอย่างคิดเป็นช่วงบนนาฬิกาโลก (Sim._world_tick) ไม่ใช่ตามเทิร์นตัวละคร คนที่ห่างเทิร์นเป็นปีก็ยังกินทุกเดือน
 และเส้นตายอดตายไม่ถูกข้ามเกินหนึ่งรอบนาฬิกา
@@ -36,10 +44,11 @@ from . import config as C
 from . import places as PL
 from . import seasons as SEASONS
 from . import travel as TR
+from . import wages as WAGES
 
-STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost",
+STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
              "starved", "migrated", "seclusion_cut")
-_AMOUNTS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost")
+_AMOUNTS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity")
 _EPS = 1e-9
 
 
@@ -127,57 +136,64 @@ def _account(sim, ch, need, eaten, days):
     ch.food_missed += missed_days
 
 
+def _spot(ch):
+    """ยุ้งฉางที่คนนี้กินอยู่ — (แดน, สถานที่)"""
+    return (ch.world_id, ch.place)
+
+
 def tick(sim, days) -> None:
-    """หนึ่งรอบของยุ้งฉางทุกแห่ง: เน่า → ผลิต → กิน → เติมเสบียง → ตอบสนองความหิว"""
+    """หนึ่งรอบของยุ้งฉางทุกแห่ง: เน่า → ผลิต → กิน (และจ่ายค่าข้าว) → เติมเสบียง → จ่ายคนผลิต → ตอบสนองความหิว"""
     if days <= 0:
         return
     day = sim.day
     stats = sim.food_stats
 
     keep = math.exp(-C.FOOD_SPOIL_PER_YEAR * days / 365.0)
-    for place in sorted(sim.granary):
-        lost = sim.granary[place] * (1.0 - keep)
-        sim.granary[place] -= lost
+    for spot in sorted(sim.granary):
+        lost = sim.granary[spot] * (1.0 - keep)
+        sim.granary[spot] -= lost
         stats["spoiled"] += lost
 
     eaters_at = collections.defaultdict(list)
     away = []
-    workers_at = collections.Counter()
+    workers_at = collections.defaultdict(list)
     for cid in sorted(sim.alive_cids):
         ch = sim.cast[cid]
         if _working(ch, day):
-            workers_at[ch.place] += 1
+            workers_at[_spot(ch)].append(ch)
         if not eats(ch):
             continue
         if ch.food is None:
             _endow(sim, ch)
-        (away.append(ch) if _away(ch, day) else eaters_at[ch.place].append(ch))
+        (away.append(ch) if _away(ch, day) else eaters_at[_spot(ch)].append(ch))
 
     season = season_mean(day - days, days)
-    for place in sorted(workers_at):
-        made = land_output_per_day(workers_at[place]) * days * season
-        sim.granary[place] = sim.granary.get(place, 0.0) + made
+    for spot in sorted(workers_at):
+        made = land_output_per_day(len(workers_at[spot])) * days * season
+        sim.granary[spot] = sim.granary.get(spot, 0.0) + made
         stats["produced"] += made
 
-    supplied, short = {}, {}
-    for place in sorted(eaters_at):
-        total = sum(days * ration(ch, day) for ch in eaters_at[place])
-        take = min(sim.granary.get(place, 0.0), total)
-        sim.granary[place] = sim.granary.get(place, 0.0) - take
-        supplied[place] = take
+    sources, short = {}, {}
+    for spot in sorted(eaters_at):
+        total = sum(days * ration(ch, day) for ch in eaters_at[spot])
+        take = min(sim.granary.get(spot, 0.0), total)
+        sim.granary[spot] = sim.granary.get(spot, 0.0) - take
+        sources[spot] = {spot: take}
         if total - take > _EPS:
-            short[place] = total - take
-    for place, amount in _carry_in(sim, short).items():
-        supplied[place] += amount
-    for place in sorted(eaters_at):
-        _feed_place(sim, place, eaters_at[place], days, supplied[place])
+            short[spot] = total - take
+    for dest, came in _carry_in(sim, short).items():
+        for src, amount in came.items():
+            sources[dest][src] = sources[dest].get(src, 0.0) + amount
+    for spot in sorted(eaters_at):
+        _feed_place(sim, spot, eaters_at[spot], days, sources[spot])
     for ch in away:
         need = days * ration(ch, day)
         eaten = min(ch.food, need)
         ch.food -= eaten
         _account(sim, ch, need, eaten, days)
+    _pay_farmers(sim, workers_at)
 
-    hungry = [ch for place in sorted(eaters_at) for ch in eaters_at[place]] + away
+    hungry = [ch for spot in sorted(eaters_at) for ch in eaters_at[spot]] + away
     for ch in sorted(hungry, key=lambda c: c.cid):
         if ch.hunger_days >= C.FOOD_STARVE_DAYS:
             _starve(sim, ch)
@@ -185,24 +201,72 @@ def tick(sim, days) -> None:
             _respond(sim, ch)
 
 
-def _feed_place(sim, place, group, days, supplied):
-    """แบ่งข้าวที่ได้มาให้คนในที่นี้ตามความต้องการเท่ากันทุกคน ส่วนที่ขาดกินจากเสบียงติดตัว"""
+def _payers(sim, ch):
+    """ใครจ่ายค่าข้าวของคนนี้: ตัวเขาเอง แล้วถ้าเป็นเด็ก พ่อแม่ที่ยังมีชีวิตและอยู่ที่เดียวกัน"""
+    payers = [ch]
+    if ch.age(sim.day) < 14:
+        for cid in getattr(ch, "parents", ()) or ():
+            if 0 <= cid < len(sim.cast):
+                parent = sim.cast[cid]
+                if parent.alive and _spot(parent) == _spot(ch) and not _away(parent, sim.day):
+                    payers.append(parent)
+    return payers
+
+
+def _buy(sim, ch, amount):
+    """ซื้อข้าวจากยุ้งฉางได้เท่าไรจาก `amount` ที่แบ่งให้ — คืน (สำรับที่ได้, ทองที่จ่าย)
+
+    ปิดค่าแรงอยู่ = ยุ้งฉางแจกฟรี เปิดค่าแรง = ได้เท่าที่ตัวเองหรือพ่อแม่ (ถ้าเป็นเด็ก) จ่ายไหว
+    เด็กได้ส่วนที่ยังขาดฟรีจากหมู่บ้าน ผู้ใหญ่ไม่ได้
+    """
+    if amount <= _EPS or not C.WAGES_ENABLED:
+        return amount, 0.0
+    cost = amount * C.FOOD_PRICE
+    paid = 0.0
+    for payer in _payers(sim, ch):
+        part = min(max(0.0, WAGES.gold(sim, payer)), cost - paid)
+        if part > 0:
+            WAGES.move_gold(sim, payer, -part)
+            paid += part
+        if cost - paid <= _EPS:
+            break
+    got = paid / C.FOOD_PRICE
+    if ch.age(sim.day) < 14 and amount - got > _EPS:
+        sim.food_stats["charity"] += amount - got
+        got = amount
+    return got, paid
+
+
+def _feed_place(sim, spot, group, days, sources):
+    """แบ่งข้าวที่ได้มาให้คนในที่นี้ตามความต้องการเท่ากันทุกคน ส่วนที่ขาดหรือซื้อไม่ไหวกินจากเสบียงติดตัว
+
+    `sources` คือข้าวที่ได้มารอบนี้แยกตามยุ้งฉางต้นทาง — ค่าข้าวที่จ่ายแบ่งให้ไร่ต้นทางตามสัดส่วนนี้
+    """
     day = sim.day
+    supplied = sum(sources.values())
     need = [days * ration(ch, day) for ch in group]
     total = sum(need)
     share = min(1.0, supplied / total) if total > 0 else 1.0
-    extra = supplied - total * share           # ข้าวที่ส่งมาเกิน (ปัดเศษ) กลับเข้ายุ้งฉางที่นี่
-    if extra > _EPS:
-        sim.granary[place] = sim.granary.get(place, 0.0) + extra
+    bought = paid = 0.0
     for ch, n in zip(group, need):
-        got = n * share
+        got, cost = _buy(sim, ch, n * share)
+        bought += got
+        paid += cost
         from_pack = min(ch.food, n - got)
         ch.food -= from_pack
         _account(sim, ch, n, got + from_pack, days)
+    unsold = supplied - bought                   # ส่งมาเกินหรือไม่มีใครซื้อไหว อยู่ในยุ้งฉางที่นี่ต่อ
+    if unsold > _EPS:
+        sim.granary[spot] = sim.granary.get(spot, 0.0) + unsold
+    if paid > 0:
+        for src, amount in sorted(sources.items()):
+            if amount > 0:
+                sim.farm_till[src] = sim.farm_till.get(src, 0.0) + paid * amount / supplied
+        sim.wage_stats["food_bought"] += paid
 
     # เติมเสบียงติดตัวได้จากส่วนที่เกินกว่ายุ้งฉางต้องเก็บไว้เลี้ยงคนในที่นี้เท่านั้น
     keep_level = C.FOOD_GRANARY_KEEP_DAYS * sum(ration(ch, day) for ch in group)
-    spare = sim.granary[place] - keep_level
+    spare = sim.granary.get(spot, 0.0) - keep_level
     if spare <= 0:
         return
     want = [max(0.0, C.FOOD_PACK_DAYS * ration(ch, day) - ch.food) for ch in group]
@@ -211,36 +275,44 @@ def _feed_place(sim, place, group, days, supplied):
         return
     give = min(spare, total_want)
     for ch, w in zip(group, want):
-        ch.food += w * give / total_want
-    sim.granary[place] -= give
+        got, cost = _buy(sim, ch, w * give / total_want)
+        ch.food += got
+        sim.granary[spot] -= got
+        if cost > 0:
+            sim.farm_till[spot] = sim.farm_till.get(spot, 0.0) + cost
+            sim.wage_stats["food_bought"] += cost
 
 
-_REACH = {}
+def _pay_farmers(sim, workers_at):
+    """ลิ้นชักของไร่จ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้เท่ากันทุกคน — ไม่มีใครทำงานก็ค้างไว้รอรอบหน้า"""
+    for spot in sorted(sim.farm_till):
+        till = sim.farm_till[spot]
+        farmers = workers_at.get(spot)
+        if till <= _EPS or not farmers:
+            continue
+        for ch in farmers:
+            WAGES.move_gold(sim, ch, till / len(farmers))
+        sim.farm_till[spot] = 0.0
+        sim.wage_stats["farm_paid"] += till
 
 
 def _reach(sim, place):
-    """ยุ้งฉางอื่นในแดนเดียวกันที่ส่งข้าวมาถึงที่นี้ได้ — [(สถานที่, ก้าว)] เรียงใกล้ไปไกล (กราฟคงที่ แคชได้)"""
-    got = _REACH.get((place, C.FOOD_REACH_HOPS))
-    if got is None:
-        key = PL.PLACES[place][1]
-        got = sorted((sim.hops_between(place, other), other) for other in PL.places_in(key)
-                     if other != place)
-        got = [(other, hops) for hops, other in got if hops <= C.FOOD_REACH_HOPS]
-        _REACH[(place, C.FOOD_REACH_HOPS)] = got
-    return got
+    """ยุ้งฉางอื่นบนผังเดียวกันที่ส่งข้าวมาถึงที่นี้ได้ — [(สถานที่, ก้าว)]"""
+    return TR.places_within(sim, place, C.FOOD_REACH_HOPS)
 
 
 def _carry_in(sim, short):
-    """ส่งข้าวจากยุ้งฉางใกล้เคียงไปที่ที่ยังขาด — คืน {สถานที่: สำรับที่มาถึง}
+    """ส่งข้าวจากยุ้งฉางใกล้เคียงในแดนเดียวกันไปที่ที่ยังขาด — คืน {ปลายทาง: {ต้นทาง: สำรับที่มาถึง}}
 
     ที่ที่ขาดขอจากทุกยุ้งฉางในระยะ ถ่วงน้ำหนักตามปริมาณที่มีและความใกล้ ยุ้งฉางที่ถูกขอเกินกว่าที่มี
     แบ่งให้ผู้ขอตามสัดส่วนคำขอ ลำดับของสถานที่จึงไม่มีผลว่าใครได้ก่อน ข้าวสูญระหว่างทางตามจำนวนก้าว
     """
-    arrived = collections.defaultdict(float)
+    arrived = collections.defaultdict(dict)
     asks = collections.defaultdict(dict)                 # ต้นทาง -> {ปลายทาง: (ขอเท่าไร, ก้าว)}
     for dest in sorted(short):
-        sources = [(src, hops) for src, hops in _reach(sim, dest)
-                   if sim.granary.get(src, 0.0) > _EPS]
+        wid, place = dest
+        sources = [((wid, src), hops) for src, hops in _reach(sim, place)
+                   if sim.granary.get((wid, src), 0.0) > _EPS]
         weight = {src: sim.granary[src] / (1.0 + hops) for src, hops in sources}
         total_w = sum(weight.values())
         for src, hops in sources:
@@ -255,7 +327,7 @@ def _carry_in(sim, short):
             came = sent * (1.0 - C.FOOD_CARRY_LOSS_PER_HOP) ** hops
             sim.granary[src] -= sent
             sim.food_stats["carried_lost"] += sent - came
-            arrived[dest] += came
+            arrived[dest][src] = came
     return arrived
 
 
@@ -270,7 +342,7 @@ def _starve(sim, ch):
 
 
 def _respond(sim, ch):
-    """คนที่เริ่มหิว: ผู้ปิดด่านออกจากด่าน คนที่อยู่ในที่ที่ยุ้งฉางว่างเดินทางไปหาอาหาร"""
+    """คนที่เริ่มหิว: ผู้ปิดด่านออกจากด่าน คนที่ไม่มีข้าวในระยะส่งถึงเลยเดินทางไปหาอาหาร"""
     day = sim.day
     if _secluded(ch, day):
         if ch.food <= _EPS:
@@ -281,9 +353,10 @@ def _respond(sim, ch):
         return
     if ch.travel_dest >= 0 or ch.age(day) < 14 or ch.place is None or ch.place < 0:
         return
-    if sim.granary.get(ch.place, 0.0) > _EPS or any(
-            sim.granary.get(src, 0.0) > _EPS for src, _hops in _reach(sim, ch.place)):
-        return                      # ยังมีข้าวในระยะส่งถึง แค่ไม่พอ ย้ายไปก็ไปแย่งที่เดียวกัน
+    wid = ch.world_id
+    if sim.granary.get(_spot(ch), 0.0) > _EPS or any(
+            sim.granary.get((wid, src), 0.0) > _EPS for src, _hops in _reach(sim, ch.place)):
+        return                      # ยังมีข้าวในระยะส่งถึง แค่ไม่พอหรือซื้อไม่ไหว ย้ายไปก็ไม่ช่วย
     dest = _nearest_food(sim, ch)
     if dest is None:
         return
@@ -292,7 +365,7 @@ def _respond(sim, ch):
     ch.travel_arrival_day = day + travel_days
     sim.food_stats["migrated"] += 1
     sim.requeue(ch, ch.travel_arrival_day)
-    sim.emit(sim.world(ch.world_id), "ย้ายหาอาหาร", ch, None, ["เดินทาง"], "ออกเดินทาง",
+    sim.emit(sim.world(wid), "ย้ายหาอาหาร", ch, None, ["เดินทาง"], "ออกเดินทาง",
              f"{ch.name}ทิ้ง{sim.place_name(ch)}ที่ยุ้งฉางว่างเปล่า ออกเดินทางไป{PL.PLACES[place][0]}"
              f"ที่ยังมีข้าว", 0, {"ระยะทาง": f"{travel_days} วัน"})
 
@@ -302,12 +375,13 @@ def _nearest_food(sim, ch):
     world = sim.world(ch.world_id)
     best = None
     for place in PL.places_in(world.place_key):
-        if place == ch.place or sim.granary.get(place, 0.0) <= _EPS:
+        stock = sim.granary.get((world.wid, place), 0.0)
+        if place == ch.place or stock <= _EPS:
             continue
         days = TR.shortest_path_days(ch.place, place, ch.realm, character=ch)
         if days is None:
             continue
-        key = (days, -sim.granary[place], place)
+        key = (days, -stock, place)
         if best is None or key < best[0]:
             best = (key, place, days)
     return None if best is None else (best[1], best[2])
@@ -320,7 +394,7 @@ def on_death(sim, ch):
     if ch.travel_dest >= 0 or ch.place is None or ch.place < 0:
         sim.food_stats["lost"] += ch.food
     else:
-        sim.granary[ch.place] = sim.granary.get(ch.place, 0.0) + ch.food
+        sim.granary[_spot(ch)] = sim.granary.get(_spot(ch), 0.0) + ch.food
     ch.food = 0.0
 
 

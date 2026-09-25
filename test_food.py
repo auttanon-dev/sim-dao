@@ -104,7 +104,7 @@ class FoodRulesTests(unittest.TestCase):
     def test_scarce_food_is_shared_by_need_not_by_cid(self):
         low, high = (setup_person(self.sim, ch, self.a) for ch in self.people[:2])
         child = setup_person(self.sim, self.people[2], self.a, age=5)
-        self.sim.granary[self.a] = 25.0            # ต้องการ 30+30+15 = 75 มีแค่ 25 = หนึ่งในสาม
+        self.sim.granary[(0, self.a)] = 25.0            # ต้องการ 30+30+15 = 75 มีแค่ 25 = หนึ่งในสาม
         with food_on(), no_spoil(), only(self.sim, low, high, child):
             FOOD.tick(self.sim, 30)
         self.assertAlmostEqual(low.food_fed, high.food_fed)
@@ -114,17 +114,17 @@ class FoodRulesTests(unittest.TestCase):
 
     def test_nearby_granaries_feed_a_place_that_has_none_and_the_road_costs_food(self):
         eater = setup_person(self.sim, self.people[0], self.a)
-        self.sim.granary[self.near] = 1000.0
+        self.sim.granary[(0, self.near)] = 1000.0
         with food_on(), no_spoil(), only(self.sim, eater):
             FOOD.tick(self.sim, 30)
         self.assertEqual(eater.hunger_days, 0.0)
-        sent = 1000.0 - self.sim.granary[self.near]
+        sent = 1000.0 - self.sim.granary[(0, self.near)]
         self.assertAlmostEqual(sent * (1 - C.FOOD_CARRY_LOSS_PER_HOP), 30.0, places=6)
         self.assertAlmostEqual(self.sim.food_stats["carried_lost"], sent - 30.0, places=6)
 
     def test_food_beyond_reach_sends_the_hungry_on_the_road(self):
         eater = setup_person(self.sim, self.people[0], self.a)
-        self.sim.granary[self.far] = 1000.0
+        self.sim.granary[(0, self.far)] = 1000.0
         before = {cid for _d, cid in self.sim.queue}
         with food_on(), only(self.sim, eater), quiet_emit(self.sim):
             FOOD.tick(self.sim, 30)
@@ -148,7 +148,7 @@ class FoodRulesTests(unittest.TestCase):
         with food_on():
             quiet(self.sim.kill, eater, "ทดสอบ", natural=True)
         self.assertEqual(eater.food, 0.0)
-        self.assertAlmostEqual(self.sim.granary[self.a], 40.0)
+        self.assertAlmostEqual(self.sim.granary[(0, self.a)], 40.0)
 
     def test_hunger_stops_the_body_from_refuelling(self):
         fed, hungry = (setup_person(self.sim, ch, self.a) for ch in self.people[:2])

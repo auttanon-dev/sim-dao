@@ -268,6 +268,7 @@ class Character:
     hunger_days: float = 0.0            # วันที่ไม่ได้กินติดกันตอนนี้
     food_fed: float = 0.0               # วันที่กินอิ่ม สะสมไว้ให้ร่างกายใช้ตอนเทิร์นถัดไป
     food_missed: float = 0.0            # วันที่ไม่ได้กิน สะสมไว้ให้ร่างกายใช้ตอนเทิร์นถัดไป
+    gold_endowed: bool = False          # ได้ทุนตั้งต้นจากระบบค่าแรงแล้วหรือยัง (tiandao/wages.py)
     # วันที่หายเข้าไปในแดนลับของตัวเอง (จาก "ซ่อนตัว") — ใช้บอกตอนออกมาว่าหายไปกี่ปี
     # และใช้เทียบว่าขั้นพลังไม่ขยับเลยระหว่างนั้น (ดู R.in_secret_realm)
     hide_day: int = 0
@@ -513,6 +514,7 @@ class Character:
         self.__dict__.setdefault("hunger_days", 0.0)
         self.__dict__.setdefault("food_fed", 0.0)
         self.__dict__.setdefault("food_missed", 0.0)
+        self.__dict__.setdefault("gold_endowed", False)
         self.__dict__.setdefault("core_temp", 37.0)
         self.__dict__.setdefault("injuries", {})
         self.__dict__.setdefault("body_seed", 0)

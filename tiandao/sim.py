@@ -31,6 +31,7 @@ from . import seasons as SEASONS
 from . import emotions as EM
 from . import body as BODY
 from . import food as FOOD
+from . import wages as WAGES
 from .ai import BrainManager, EventBus
 from .console import safe_print
 
@@ -75,6 +76,9 @@ class Sim:
         self.food_day = 0         # วันล่าสุดที่ยุ้งฉางคิดไปแล้ว (ดู tiandao/food.py)
         self.granary = {}         # place_idx -> สำรับในยุ้งฉางของที่นั้น
         self.food_stats = FOOD.new_stats()
+        self.market_till = {}     # (wid, place) -> ทองที่คนใช้จ่ายรอจ่ายเป็นค่าแรง (tiandao/wages.py)
+        self.farm_till = {}       # (wid, place) -> ค่าข้าวที่รอจ่ายให้คนผลิตของที่นั้น
+        self.wage_stats = WAGES.new_stats()
         self.seq = 0
         self.cast = []
         self.used_names = set()          # ชื่อที่ถูกใช้แล้วทั้งจักรวาล (unique_name)
@@ -1658,6 +1662,8 @@ class Sim:
         self._advance_eco()
         if C.FOOD_ENABLED:
             FOOD.tick(self, self.day - self.food_day)
+        if C.WAGES_ENABLED:
+            WAGES.tick(self, self.day - self.food_day)
         self.food_day = self.day
         WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
         # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
@@ -2065,7 +2071,7 @@ class Sim:
                     if ch.current_state == "Working":
                         ch.energy -= 20
                         # Earn money based on realm
-                        earned = rng.randint(10, 50) * max(1, ch.realm)
+                        earned = WAGES.fiat_pay(rng.randint(10, 50) * max(1, ch.realm))
                         ch.money[self.world(ch.world_id).tier] = ch.money.get(self.world(ch.world_id).tier, 0.0) + earned
                         # Send cut to master
                         if ch.master_cid != -1 and 0 <= ch.master_cid < len(self.cast):
@@ -3862,7 +3868,7 @@ class Sim:
             return "บุญบารมี", f"{a.name}ออกโปรดสัตว์ สะสมบุญบารมีเพิ่มขึ้น", d
             
         if k == "ลาดตระเวน":
-            a.money[w.wid] = a.money.get(w.wid, 0) + 10
+            a.money[w.wid] = a.money.get(w.wid, 0) + WAGES.fiat_pay(10)
             return "ลาดตระเวน", f"{a.name}ออกลาดตระเวนรักษาความสงบ ได้รับเบี้ยหวัด", d
             
         if k == "เปิดประมูล":
@@ -4183,31 +4189,31 @@ class Sim:
                 d["แก้ทางโกลาหล"] = "วิชานี้แก้ทางเผ่าโกลาหลได้"
             return "สำเร็จ", f"{a.name}ฝึก{sk[0]}สำเร็จ", d
         if k == "ทำนา":
-            earn = rng.randint(5, 15)
+            earn = WAGES.fiat_pay(rng.randint(5, 15))
             a.money[w.tier] = a.money.get(w.tier, 0) + earn
             return "สำเร็จ", f"{a.name}ทำนาได้ผลผลิต", {"เงินที่ได้": earn}
         if k == "ค้าขายทั่วไป":
-            earn = rng.randint(20, 50)
+            earn = WAGES.fiat_pay(rng.randint(20, 50))
             a.money[w.tier] = a.money.get(w.tier, 0) + earn
             return "สำเร็จ", f"{a.name}ค้าขายทั่วไปได้กำไร", {"เงินที่ได้": earn}
         if k == "ตีเหล็กชาวบ้าน":
-            earn = rng.randint(10, 30)
+            earn = WAGES.fiat_pay(rng.randint(10, 30))
             a.money[w.tier] = a.money.get(w.tier, 0) + earn
             a.mats += 1
             return "สำเร็จ", f"{a.name}ตีเหล็กชาวบ้านขาย", {"เงินที่ได้": earn}
         if k == "รักษาชาวบ้าน":
-            earn = rng.randint(10, 40)
+            earn = WAGES.fiat_pay(rng.randint(10, 40))
             a.money[w.tier] = a.money.get(w.tier, 0) + earn
             a.decay = max(0.0, a.decay - 0.1)
             return "สำเร็จ", f"{a.name}รักษาชาวบ้าน", {"เงินที่ได้": earn}
         if k == "ปกป้องชาวบ้าน":
-            earn = rng.randint(30, 80)
+            earn = WAGES.fiat_pay(rng.randint(30, 80))
             a.money[w.tier] = a.money.get(w.tier, 0) + earn
             if rng.random() < 0.2:
                 a.mat_stock["ศิลาปราณห้าธาตุ"] = a.mat_stock.get("ศิลาปราณห้าธาตุ", 0) + 1
             return "สำเร็จ", f"{a.name}ปกป้องชาวบ้านจากภัยร้าย", {"เงินที่ได้": earn, "ผลลัพธ์": "ชาวบ้านซาบซึ้ง"}
         if k == "ขูดรีดชาวบ้าน":
-            earn = rng.randint(50, 150)
+            earn = WAGES.fiat_pay(rng.randint(50, 150))
             a.money[w.tier] = a.money.get(w.tier, 0) + earn
             a.decay += 0.2
             if "มารในใจ" not in a.traits:
@@ -4951,6 +4957,8 @@ class Sim:
             child = self.spawn(w, age_years=0)
             if C.FOOD_ENABLED:
                 child.food = 0.0       # ทารกไม่ได้พกเสบียงมา กินจากยุ้งฉางของที่ที่เกิด
+            if C.WAGES_ENABLED:
+                child.gold_endowed = True   # ทารกไม่ได้ทุนตั้งต้น พ่อแม่จ่ายค่าข้าวให้
             blood = {}
             for kk in C.BLOODS:
                 v = (a.blood.get(kk, 0.0) + t.blood.get(kk, 0.0)) * CL.INHERIT_MIX
