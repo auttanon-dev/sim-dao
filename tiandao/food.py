@@ -29,7 +29,8 @@
   ลิ้นชักของไร่ต้นทาง แล้วจ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้ เด็กที่ไม่มีเงินให้พ่อแม่ที่อยู่ที่เดียวกันจ่ายแทน
   ส่วนที่ยังขาด หมู่บ้านเลี้ยงเด็กฟรีจากยุ้งฉาง (นับใน stats["charity"]) — ยังไม่มีระบบผู้ปกครอง และวัดแล้ว
   ถ้าไม่เลี้ยง เด็กกำพร้า (คนที่ repopulate สร้างขึ้นโดยไม่มีพ่อแม่) อดตาย 1,516 จาก 2,238 รายใน 12 ปี ทั้งที่
-  ยุ้งฉางมีข้าวค้างสองล้านสำรับ ผู้ใหญ่ที่ซื้อไม่ไหวไม่ได้ข้าว ข้าวนั้นอยู่ในยุ้งฉางต่อ
+  ยุ้งฉางมีข้าวค้างสองล้านสำรับ ผู้ใหญ่ที่ซื้อไม่ไหวทำงานให้หมู่บ้านแลกข้าวถ้าทำงานได้ นักโทษได้ข้าวจากคุก (`_relief`)
+  นอกนั้นไม่ได้ข้าว ข้าวนั้นอยู่ในยุ้งฉางต่อ
   ปิดค่าแรงอยู่ = ข้าวในยุ้งฉางแจกฟรีแบบเดิม
 - ที่อยู่ของยุ้งฉางคือ (แดน, สถานที่) เพราะหลายแดนใช้ผังสถานที่ชุดเดียวกัน (place_key) ยุ้งฉางของแดนหนึ่ง
   ต้องไม่เลี้ยงคนอีกแดน
@@ -51,8 +52,10 @@ from . import wages as WAGES
 from . import guardians as GUARD
 
 STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
-             "starved", "migrated", "seclusion_cut", "took_up_farming", "left_farming")
-_AMOUNTS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity")
+             "starved", "migrated", "seclusion_cut", "took_up_farming", "left_farming",
+             "worked_for_food", "prison_rations")
+_AMOUNTS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
+            "worked_for_food", "prison_rations")
 _EPS = 1e-9
 
 
@@ -277,6 +280,28 @@ def _buy(sim, ch, amount):
     return got, paid
 
 
+def _relief(sim, ch, amount):
+    """ผู้ใหญ่ที่ซื้อข้าวส่วนของตัวเองไม่ไหว — คืนสำรับที่ได้โดยไม่ต้องจ่ายทอง (`amount` คือส่วนที่ยุ้งฉางมีให้แต่เขาซื้อไม่ไหว)
+
+    - ทำงานได้ (อยู่กับที่ ไม่ได้ซ่อนตัว ปิดด่าน หรือติดคุก): ทำงานให้หมู่บ้านแลกข้าวส่วนนั้น (stats['worked_for_food'])
+    - ติดคุก: คุกเลี้ยงนักโทษจากยุ้งฉางของที่นั้น (stats['prison_rations']) แบบ §9.4 "คุกต้องมีทรัพยากรเลี้ยงผู้ต้องขัง"
+    - นอกนั้น (ซ่อนตัวในแดนลับ) ไม่ได้ ผู้ปิดด่านออกมาหาเลี้ยงชีพก่อนเงินหมดอยู่แล้ว (`_leave_before_broke`)
+    วัดกับสำเนาเซฟจริงหลังแก้เทิร์นหลังเข้าด่าน (3 เส้นทาง 100 ปี): ผู้ใหญ่ที่อดตายขณะอยู่กับที่ 1,210 จาก 1,341 คนอยู่ข้างยุ้งฉาง
+    ที่มีข้าวพอเขาอย่างน้อย 30 วัน ทุกคนทำงานได้ ตลาดตรงนั้นแทบไม่มีเงินหมุน (มีแค่ 28 ราย) จึงไม่มีค่าแรงให้ซื้อข้าว คนผลิตอาหาร 444 คน
+    อดตายข้างข้าวที่ตัวเองปลูก ญาติ ตระกูล หรือสำนักที่มีเงินพอช่วยอยู่ด้วยมีไม่ถึงหนึ่งในสิบ และนักโทษอดตายอีก 288 คน
+    ข้าวส่วนนี้นับเป็นข้าวที่กินตามปกติ บัญชีข้าวจึงยังปิด ไร่ไม่ได้เงินจากข้าวส่วนนี้ เหมือนข้าวที่หมู่บ้านเลี้ยงเด็ก
+    """
+    if amount <= _EPS or ch.age(sim.day) < 14:
+        return 0.0
+    if getattr(ch, "jail_until", 0) > sim.day:
+        sim.food_stats["prison_rations"] += amount
+        return amount
+    if _able_to_farm(ch, sim.day):
+        sim.food_stats["worked_for_food"] += amount
+        return amount
+    return 0.0
+
+
 def _feed_place(sim, spot, group, days, sources):
     """แบ่งข้าวที่ได้มาให้คนในที่นี้ตามความต้องการเท่ากันทุกคน ส่วนที่ขาดหรือซื้อไม่ไหวกินจากเสบียงติดตัว
 
@@ -288,18 +313,19 @@ def _feed_place(sim, spot, group, days, sources):
     need = [days * ration(ch, day) for ch in group]
     total = sum(need)
     share = min(1.0, supplied / total) if total > 0 else 1.0
-    bought = paid = 0.0
+    taken = paid = 0.0
     short = set()
     for ch, n in zip(group, need):
         got, cost = _buy(sim, ch, n * share)
-        bought += got
+        got += _relief(sim, ch, n * share - got)
+        taken += got
         paid += cost
         if n - got > _EPS:
             short.add(ch.cid)
         from_pack = min(ch.food, n - got)
         ch.food -= from_pack
         _account(sim, ch, n, got + from_pack, days)
-    unsold = supplied - bought                   # ส่งมาเกินหรือไม่มีใครซื้อไหว อยู่ในยุ้งฉางที่นี่ต่อ
+    unsold = supplied - taken                    # ส่งมาเกินหรือไม่มีใครรับไป อยู่ในยุ้งฉางที่นี่ต่อ
     if unsold > _EPS:
         sim.granary[spot] = sim.granary.get(spot, 0.0) + unsold
     if paid > 0:

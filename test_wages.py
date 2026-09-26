@@ -7,7 +7,7 @@
   · เงินไม่เกิดและไม่หายในรอบค่าแรงและค่าข้าว นอกจากทุนตั้งต้นที่ประกาศไว้ (wage_stats["issued"])
   · ค่าแรงมาจากเงินที่คนใช้จ่าย จ่ายให้คนที่ทำงานอยู่จริง ใกล้ได้มากกว่าไกล ไกลเกินระยะไม่ได้
   · งานสามัญไม่เสกเงินต่อเทิร์นเมื่อเปิดค่าแรง
-  · ค่าข้าวไปถึงคนผลิตที่ไร่ต้นทาง คนที่จ่ายไม่ไหวไม่ได้ข้าว เด็กให้พ่อแม่จ่ายหรือหมู่บ้านเลี้ยง
+  · ค่าข้าวไปถึงคนผลิตที่ไร่ต้นทาง ผู้ใหญ่ที่จ่ายไม่ไหวทำงานแลกข้าว นักโทษกินข้าวคุก เด็กให้พ่อแม่จ่ายหรือหมู่บ้านเลี้ยง
 """
 import contextlib
 import io
@@ -141,14 +141,53 @@ class FoodMoneyTests(unittest.TestCase):
         self.assertAlmostEqual(WAGES.gold(self.sim, farmer), paid, places=6)
         self.assertEqual(buyer.hunger_days, 0.0)
 
-    def test_an_adult_who_cannot_pay_goes_hungry_and_the_food_stays(self):
-        pauper = setup_person(self.sim, self.people[0], self.a)
-        self.sim.granary[(0, self.a)] = 100.0
+    def _feed_one(self, person, granary):
+        self.sim.granary[(0, self.a)] = granary
+        before = money_everywhere(self.sim)
+        gap = FOOD.total_held(self.sim) - FOOD.ledger_balance(self.sim.food_stats)   # ข้าวที่เทสต์ใส่เองไม่มีในบัญชี
         with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), \
-                only(self.sim, pauper):
+                only(self.sim, person):
             FOOD.tick(self.sim, 30)
-        self.assertEqual(pauper.hunger_days, 30.0)
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6, msg="ทำงานแลกข้าวไม่เสกทอง")
+        self.assertAlmostEqual(FOOD.total_held(self.sim) - FOOD.ledger_balance(self.sim.food_stats), gap,
+                               places=6, msg="ข้าวแลกแรงงานนับเป็นข้าวที่กินตามปกติ บัญชีข้าวยังปิด")
+
+    def test_an_adult_who_cannot_pay_works_for_the_food_and_no_gold_moves(self):
+        pauper = setup_person(self.sim, self.people[0], self.a)
+        self._feed_one(pauper, 100.0)
+        self.assertEqual(pauper.hunger_days, 0.0)
+        self.assertAlmostEqual(self.sim.food_stats["worked_for_food"], 30.0)
+        self.assertAlmostEqual(self.sim.granary[(0, self.a)], 70.0)
+        self.assertAlmostEqual(sum(self.sim.farm_till.values()), 0.0, msg="ไร่ไม่ได้เงินจากข้าวที่แลกด้วยแรงงาน")
+
+    def test_he_pays_what_he_can_and_works_for_the_rest(self):
+        worker = setup_person(self.sim, self.people[0], self.a)
+        WAGES.move_gold(self.sim, worker, 10 * C.FOOD_PRICE)         # ซื้อได้สิบวัน
+        self._feed_one(worker, 100.0)
+        self.assertEqual(worker.hunger_days, 0.0)
+        self.assertAlmostEqual(WAGES.gold(self.sim, worker), 0.0)
+        self.assertAlmostEqual(self.sim.food_stats["worked_for_food"], 20.0)
+
+    def test_a_prisoner_is_fed_by_the_jail(self):
+        prisoner = setup_person(self.sim, self.people[0], self.a)
+        prisoner.hidden, prisoner.jail_until = True, self.sim.day + 3 * 365
+        self._feed_one(prisoner, 100.0)
+        self.assertEqual(prisoner.hunger_days, 0.0)
+        self.assertAlmostEqual(self.sim.food_stats["prison_rations"], 30.0)
+
+    def test_someone_hidden_away_who_cannot_pay_goes_hungry_and_the_food_stays(self):
+        hermit = setup_person(self.sim, self.people[0], self.a)
+        hermit.hidden = True                                         # ในแดนลับ ไม่ได้ปิดด่าน ไม่ได้ติดคุก
+        self._feed_one(hermit, 100.0)
+        self.assertEqual(hermit.hunger_days, 30.0)
         self.assertAlmostEqual(self.sim.granary[(0, self.a)], 100.0)
+
+    def test_work_for_food_never_hands_out_more_than_the_granary_has(self):
+        pauper = setup_person(self.sim, self.people[0], self.a)
+        self._feed_one(pauper, 12.0)
+        self.assertAlmostEqual(self.sim.food_stats["worked_for_food"], 12.0)
+        self.assertAlmostEqual(self.sim.granary.get((0, self.a), 0.0), 0.0)
+        self.assertAlmostEqual(pauper.hunger_days, 18.0)
 
     def test_a_child_is_fed_by_a_parent_here_or_else_by_the_village(self):
         parent = setup_person(self.sim, self.people[0], self.a)
