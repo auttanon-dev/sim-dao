@@ -53,9 +53,9 @@ from . import guardians as GUARD
 
 STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
              "starved", "migrated", "seclusion_cut", "took_up_farming", "left_farming",
-             "worked_for_food", "prison_rations")
+             "worked_for_food", "prison_rations", "trip_rations", "trips_put_off")
 _AMOUNTS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
-            "worked_for_food", "prison_rations")
+            "worked_for_food", "prison_rations", "trip_rations")
 _EPS = 1e-9
 
 
@@ -345,13 +345,19 @@ def _feed_place(sim, spot, group, days, sources):
         return short
     give = min(spare, total_want)
     for ch, w in zip(group, want):
-        got, cost = _buy(sim, ch, w * give / total_want)
-        ch.food += got
-        sim.granary[spot] -= got
-        if cost > 0:
-            sim.farm_till[spot] = sim.farm_till.get(spot, 0.0) + cost
-            sim.wage_stats["food_bought"] += cost
+        _sell_to_pack(sim, ch, spot, w * give / total_want)
     return short
+
+
+def _sell_to_pack(sim, ch, spot, amount):
+    """ขายข้าวจากยุ้งฉาง `spot` ใส่เสบียงติดตัวเท่าที่จ่ายไหว — ทองเข้าลิ้นชักของไร่ที่นั้น คืนสำรับที่ได้"""
+    got, cost = _buy(sim, ch, amount)
+    ch.food += got
+    sim.granary[spot] -= got
+    if cost > 0:
+        sim.farm_till[spot] = sim.farm_till.get(spot, 0.0) + cost
+        sim.wage_stats["food_bought"] += cost
+    return got
 
 
 def _pay_farmers(sim, workers_at):
@@ -504,19 +510,23 @@ def _seek_food(sim, ch):
     เรียกทั้งตอนเริ่มหิว และตอนที่ยุ้งฉางเริ่มให้ไม่ครบแม้ยังไม่หิว (ต้องควักเสบียงติดตัว) เพราะวัดกับเซฟจริง
     ปีที่ 1,228: คนที่รอจนหิวแล้วค่อยออกเดินทาง ออกไปพร้อมเสบียงศูนย์วัน บนทางที่ใช้มัธยฐาน 61 วัน แต่อดได้แค่
     40 วัน อดตายกลางทาง 173 คนในปีแรก 162 คนในนั้นเป็นการเดินทางที่ไปไม่ถึงตั้งแต่ก่อนออก
-    ไปได้ = วันเดินทาง ≤ วันที่เสบียงพอกิน + วันที่ยังอดได้ − FOOD_TRIP_MARGIN_DAYS ไปไม่ถึงก็อยู่ที่เดิม
+    ไปได้ = วันเดินทาง ≤ trip_endurance ไปไม่ถึงก็อยู่ที่เดิม
+
+    คนที่ซ่อนตัวอยู่ไม่ออกเดินทาง: คนติดคุกเดินออกจากคุกไม่ได้ และคนที่เพิ่งถูกตัดด่านยังซ่อนอยู่จนเทิร์นออกจากด่าน
+    ถ้าออกเดินทางตอนนี้ เทิร์นที่ควรถึงจุดหมายจะถูกใช้ไปกับการออกจากด่าน (บล็อกซ่อนตัวใน Sim._step มาก่อนบล็อกเดินทาง)
+    เขาจึงค้างกลางทางกินแต่เสบียงติดตัว ส่วนคนติดคุกค้างกลางทางไปจนพ้นโทษ คุกเลี้ยงก็ไม่ได้ วัดกับสำเนาเซฟจริง
+    3 เส้นทาง 100 ปี: คนที่ย้ายหาข้าวแล้วอดตายกลางทาง 38 คน ทุกคนค้างเลยวันที่ควรถึงแล้ว
     """
     day = sim.day
-    if ch.travel_dest >= 0 or ch.age(day) < 14 or ch.place is None or ch.place < 0:
+    if (ch.travel_dest >= 0 or ch.hidden or ch.age(day) < 14
+            or ch.place is None or ch.place < 0):
         return
     wid = ch.world_id
     dest = _nearest_food(sim, ch)
     if dest is None:
         return
     place, travel_days = dest
-    rate = ration(ch, day)
-    endurance = ch.food / rate + (C.FOOD_STARVE_DAYS - ch.hunger_days) - C.FOOD_TRIP_MARGIN_DAYS
-    if travel_days > endurance:
+    if travel_days > trip_endurance(ch, day, ch.food):
         return                      # ไปไม่ถึงก่อนอดตาย อยู่รอข้าวที่ส่งมาถึงที่นี่ดีกว่า
     ch.travel_dest = place
     ch.travel_arrival_day = day + travel_days
@@ -525,6 +535,47 @@ def _seek_food(sim, ch):
     sim.emit(sim.world(wid), "ย้ายหาอาหาร", ch, None, ["เดินทาง"], "ออกเดินทาง",
              f"{ch.name}ทิ้ง{sim.place_name(ch)}ที่ยุ้งฉางว่างเปล่า ออกเดินทางไป{PL.PLACES[place][0]}"
              f"ที่ยังมีข้าว", 0, {"ระยะทาง": f"{travel_days} วัน"})
+
+
+def trip_endurance(ch, day, pack) -> float:
+    """วันเดินทางที่ไปได้ก่อนอดตาย ถ้าออกเดินทางพร้อมเสบียงติดตัว `pack` สำรับ —
+    วันที่เสบียงพอกิน + วันที่ยังอดได้ − FOOD_TRIP_MARGIN_DAYS"""
+    return pack / ration(ch, day) + (C.FOOD_STARVE_DAYS - ch.hunger_days) - C.FOOD_TRIP_MARGIN_DAYS
+
+
+def provision(sim, ch, travel_days) -> bool:
+    """เตรียมเสบียงก่อนออกเดินทาง — คืน False ถ้าเสบียงไม่พอไปถึง (ไม่ควรออกเดินทาง)
+
+    ซื้อข้าวจากยุ้งฉางของที่นี่ใส่เสบียงติดตัวให้พอกินตลอดทางและเผื่อ FOOD_TRIP_MARGIN_DAYS วัน ทางไกลจึงแบกได้เกิน
+    FOOD_PACK_DAYS ขายให้ได้เฉพาะส่วนที่เกินกว่ายุ้งฉางต้องเก็บไว้เลี้ยงคนที่อยู่ต่อ เหมือนการเติมเสบียงรายเดือน
+    รวมที่ซื้อได้แล้วยังไปไม่ถึงก่อนอดตาย (trip_endurance กฎเดียวกับการย้ายหาข้าว) ก็ไม่ซื้อและไม่ออกเดินทาง
+
+    วันของรอบนี้ที่ผ่านไปแล้ว (นับจาก sim.food_day) นับรวมกับวันเดินทาง เพราะรอบถัดไปคิดมื้อของทั้งรอบกับคนที่อยู่
+    กลางทางตอนนั้นจากเสบียงติดตัว ไม่ใช่เฉพาะวันที่เดินทางจริง การย้ายหาข้าวไม่ต้องบวก เพราะออกเดินทางในรอบที่เพิ่ง
+    กินจากยุ้งฉางไปแล้ว วัดกับสำเนาเซฟจริง 3 เส้นทาง 100 ปี ก่อนมีการเตรียมเสบียง: อดตายกลางทาง 458 จาก 665
+    คนที่อดตาย 254 คนออกเดินทางที่ไปไม่ถึงตั้งแต่ก่อนออก และอีก 165 คนดูไปถึงได้ถ้าไม่นับวันของรอบที่ผ่านไปแล้ว
+    (เสบียงมัธยฐาน 15 วัน ทาง 40 วัน ตายวันที่ 35)
+    """
+    if not eats(ch) or ch.food is None:
+        return True     # ระบบยังไม่เคยเห็นคนนี้ — เจอครั้งแรกกลางทางได้เสบียงตั้งต้นติดตัวทั้งหมด (_endow)
+    day = sim.day
+    travel_days += max(0, day - sim.food_day)
+    can = 0.0
+    want = (travel_days + C.FOOD_TRIP_MARGIN_DAYS) * ration(ch, day) - ch.food
+    if want > _EPS and not _away(ch, day):
+        staying = [c for c in sim.living_in(ch.world_id)
+                   if c.place == ch.place and c is not ch and eats(c) and not _away(c, day)]
+        spare = (sim.granary.get(_spot(ch), 0.0)
+                 - C.FOOD_GRANARY_KEEP_DAYS * sum(ration(c, day) for c in staying))
+        can = min(want, max(0.0, spare))
+        if C.WAGES_ENABLED:
+            can = min(can, max(0.0, WAGES.gold(sim, ch)) / C.FOOD_PRICE)
+    if travel_days > trip_endurance(ch, day, ch.food + can):
+        sim.food_stats["trips_put_off"] += 1
+        return False
+    if can > _EPS:
+        sim.food_stats["trip_rations"] += _sell_to_pack(sim, ch, _spot(ch), can)
+    return True
 
 
 def _nearest_food(sim, ch):

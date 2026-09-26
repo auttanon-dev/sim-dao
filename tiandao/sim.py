@@ -4854,9 +4854,13 @@ class Sim:
                     # ไม่ควรเกิดจริง (pl มาจาก world_key เดียวกันซึ่งเชื่อมกันหมดในตัว geo.py เสมอ)
                     # กันไว้เผื่อข้อมูลกราฟผิดพลาดในอนาคต — ไม่เดินทาง แทนที่จะพัง
                     return "ผ่านไป", f"{a.name}ยังหาทางไปไม่เจอ", d
+                dest_name = PL.PLACES[dest][0]
+                if C.FOOD_ENABLED and not FOOD.provision(self, a, days):
+                    # ซื้อเสบียงได้ไม่พอกินจนถึงจุดหมาย — ไม่ออกไปอดตายกลางทาง (tiandao/food.py)
+                    d["เสบียง"] = f"ไม่พอกินตลอดทาง {days} วัน"
+                    return "ผ่านไป", f"{a.name}อยากไป{dest_name} แต่เสบียงไม่พอเดินทาง {days} วัน", d
                 a.travel_dest = dest
                 a.travel_arrival_day = self.day + days
-                dest_name = PL.PLACES[dest][0]
                 tail = ""
                 if tail_want:
                     lack = ", ".join(list(a.wants)[:2])

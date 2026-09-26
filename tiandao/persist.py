@@ -46,7 +46,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #   8 — คนในด่านที่เทิร์นถัดไปถูกนัดไว้หลังวันครบด่าน ตื่นวันครบด่าน (ครบไปแล้ว = ตื่นวันที่โหลด)
 #   9 — ตัวนับใหม่ของ food_stats (ทำงานแลกข้าว ข้าวในคุก)
 #  10 — ตัวนับใหม่ของ guardian_stats (เด็กที่ย้ายแดนไปหาข้าว)
-SAVE_VERSION = 10
+#  11 — ตัวนับใหม่ของ food_stats (เสบียงที่ซื้อก่อนออกเดินทาง การเดินทางที่เลื่อนไปเพราะเสบียงไม่พอ)
+SAVE_VERSION = 11
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -266,8 +267,8 @@ def _migrate(sim, version):
         sim.guardian_stats = GUARD.new_stats()
     if version < 8:
         _wake_at_seclusion_end(sim)
-    if version < 10:
-        _add_new_counters(sim)          # รุ่น 7, 9, 10 เพิ่มตัวนับใน food_stats/guardian_stats
+    if version < 11:
+        _add_new_counters(sim)          # รุ่น 7, 9, 10, 11 เพิ่มตัวนับใน food_stats/guardian_stats
 
 
 def _add_new_counters(sim):

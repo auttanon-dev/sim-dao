@@ -9,6 +9,8 @@
   · ข้าวไม่พอ ทุกคนได้ส่วนเท่ากันตามความต้องการ ไม่ใช่ cid ต่ำได้ก่อน
   · เส้นตายอดตายไม่ถูกข้าม แม้เทิร์นของคนนั้นจะอยู่อีกหลายปี
   · ข้าวขาด ผู้ใหญ่ที่ไม่ได้ผลิตอาหารลงไร่จนพอหรือที่ดินเต็ม แล้วกลับไปทำงานเดิมเมื่อข้าวเหลือเฟือ
+  · ก่อนออกเดินทาง ซื้อเสบียงให้พอกินถึงจุดหมาย ซื้อไม่พอจนไปไม่ถึงก่อนอดตายก็ไม่ออก
+  · คนติดคุกไม่เดินออกจากคุกไปหาข้าว
   · ปิดระบบอยู่ = โลกเดินเหมือนเดิมทุกประการ
 """
 import contextlib
@@ -16,6 +18,7 @@ import heapq
 import io
 import os
 import pickle
+import random
 import tempfile
 import unittest
 from unittest import mock
@@ -182,6 +185,15 @@ class FoodRulesTests(unittest.TestCase):
         self.assertEqual(eater.travel_dest, -1, "ไปไม่ถึงก่อนอดตาย จึงอยู่ที่เดิม")
         self.assertEqual(self.sim.food_stats["migrated"], 0)
 
+    def test_a_hungry_prisoner_does_not_walk_out_of_jail_to_find_food(self):
+        prisoner = setup_person(self.sim, self.people[0], self.a, food=100.0)
+        prisoner.hidden, prisoner.jail_until = True, self.sim.day + 5 * 365
+        self.sim.granary[(0, self.far)] = 1000.0
+        with food_on(), no_spoil(), only(self.sim, prisoner), quiet_emit(self.sim):
+            FOOD.tick(self.sim, 30)                                 # คุกไม่มีข้าว เสบียงยังพอเดินทาง
+        self.assertEqual(prisoner.travel_dest, -1, "เดินทางกลางโทษจะค้างกลางทางจนพ้นโทษ คุกเลี้ยงก็ไม่ได้")
+        self.assertEqual(self.sim.food_stats["migrated"], 0)
+
     def test_a_cultivator_past_bigu_does_not_eat(self):
         sage = setup_person(self.sim, self.people[0], self.a, realm=C.FOOD_BIGU_REALM)
         with food_on(), only(self.sim, sage):
@@ -246,6 +258,78 @@ class SeclusionMealsTests(unittest.TestCase):
 def quiet_emit(sim):
     with contextlib.redirect_stdout(io.StringIO()):
         yield
+
+
+class TripProvisionTests(unittest.TestCase):
+    """ก่อนออกเดินทาง ซื้อเสบียงให้พอกินตลอดทาง ไม่พอก็ไม่ออกไปอดตายกลางทาง"""
+
+    def setUp(self):
+        self.sim = quiet(S.Sim, seed=5)
+        self.sim.granary, self.sim.market_till, self.sim.farm_till = {}, {}, {}
+        self.sim.food_day = self.sim.day                    # เพิ่งจบรอบ ไม่มีวันของรอบนี้ค้างอยู่
+        self.a, self.near, self.far = places_by_hops(self.sim)
+        self.walker = setup_person(self.sim, self.sim.cast[0], self.a)
+        self.walker.money = {}
+
+    def test_a_long_trip_is_packed_for_before_setting_out(self):
+        self.sim.granary[(0, self.a)] = 1000.0
+        WAGES.move_gold(self.sim, self.walker, 50.0)
+        trip = 75                                           # เกินห่อเต็ม 30 วันรวมกับที่อดได้ 40 วัน
+        held = FOOD.total_held(self.sim)
+        with food_on(), mock.patch.object(C, "WAGES_ENABLED", True), only(self.sim, self.walker):
+            self.assertTrue(FOOD.provision(self.sim, self.walker, trip))
+        bought = (trip + C.FOOD_TRIP_MARGIN_DAYS) * C.FOOD_RATION_ADULT
+        self.assertAlmostEqual(self.walker.food, bought)
+        self.assertAlmostEqual(self.sim.granary[(0, self.a)], 1000.0 - bought)
+        self.assertAlmostEqual(WAGES.gold(self.sim, self.walker), 50.0 - bought * C.FOOD_PRICE)
+        self.assertAlmostEqual(self.sim.farm_till[(0, self.a)], bought * C.FOOD_PRICE, msg="ทองไปที่ไร่ที่ขายข้าว")
+        self.assertAlmostEqual(FOOD.total_held(self.sim), held, msg="ข้าวแค่ย้ายจากยุ้งฉางเข้าห่อ")
+        self.assertAlmostEqual(self.sim.food_stats["trip_rations"], bought)
+
+    def test_the_days_of_this_round_already_spent_at_home_are_packed_too(self):
+        # รอบถัดไปคิดมื้อของทั้งรอบกับคนที่อยู่กลางทางจากห่อ รวม 20 วันที่อยู่บ้านก่อนออก
+        self.sim.granary[(0, self.a)] = 1000.0
+        self.sim.food_day = self.sim.day - 20
+        with food_on(), only(self.sim, self.walker):
+            self.assertTrue(FOOD.provision(self.sim, self.walker, 25))
+        self.assertAlmostEqual(self.walker.food, (20 + 25 + C.FOOD_TRIP_MARGIN_DAYS) * C.FOOD_RATION_ADULT)
+
+    def test_they_stay_when_they_cannot_get_enough_for_the_road(self):
+        trip = 45                               # ห่อว่าง อดได้ 40 วัน เผื่อ 10 วัน = ไปได้ไม่เกิน 30 วัน
+        with food_on(), only(self.sim, self.walker):
+            self.assertFalse(FOOD.provision(self.sim, self.walker, trip), "ยุ้งฉางว่าง")
+        self.sim.granary[(0, self.a)] = 1000.0
+        WAGES.move_gold(self.sim, self.walker, 1.0)         # ซื้อได้แค่ 10 วัน
+        with food_on(), mock.patch.object(C, "WAGES_ENABLED", True), only(self.sim, self.walker):
+            self.assertFalse(FOOD.provision(self.sim, self.walker, trip), "เงินไม่พอ")
+        self.assertEqual(self.walker.food, 0.0, "ไม่ไปก็ไม่ซื้อ")
+        self.assertEqual(WAGES.gold(self.sim, self.walker), 1.0)
+        self.assertEqual(self.sim.food_stats["trips_put_off"], 2)
+
+    def test_the_granary_keeps_what_the_people_staying_need(self):
+        stay = [setup_person(self.sim, ch, self.a) for ch in self.sim.cast[1:3]]
+        keep = C.FOOD_GRANARY_KEEP_DAYS * C.FOOD_RATION_ADULT * len(stay)
+        self.sim.granary[(0, self.a)] = keep + 10.0
+        with food_on(), only(self.sim, self.walker, *stay):
+            self.assertTrue(FOOD.provision(self.sim, self.walker, 25), "ห่อ 10 วันกับที่อดได้พอไปถึง")
+        self.assertAlmostEqual(self.walker.food, 10.0, msg="ขายได้แค่ส่วนที่เกินกว่าคนที่อยู่ต่อต้องใช้")
+        self.assertAlmostEqual(self.sim.granary[(0, self.a)], keep)
+
+    def test_the_journey_action_waits_until_it_can_pack_for_the_road(self):
+        world = self.sim.worlds[0]
+
+        def journey():
+            with food_on(), only(self.sim, self.walker), quiet_emit(self.sim),                     mock.patch.object(TR, "shortest_path_days", return_value=45):
+                return self.sim.resolve({"kind": "เดินทาง"}, self.walker, None, world, 30, random.Random(1))
+
+        outcome, _text, d = journey()
+        self.assertEqual(self.walker.travel_dest, -1, "ห่อว่าง ยุ้งฉางว่าง ทาง 45 วัน")
+        self.assertIn("เสบียง", d)
+        self.sim.granary[(0, self.a)] = 1000.0
+        outcome, _text, _d = journey()
+        self.assertEqual(outcome, "ออกเดินทาง")
+        self.assertGreaterEqual(self.walker.travel_dest, 0)
+        self.assertAlmostEqual(self.walker.food, (45 + C.FOOD_TRIP_MARGIN_DAYS) * C.FOOD_RATION_ADULT)
 
 
 class FoodInTheRunningWorldTests(unittest.TestCase):
