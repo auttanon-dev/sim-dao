@@ -27,6 +27,12 @@ def quiet(fn, *a, **kw):
         return fn(*a, **kw)
 
 
+# เทสต์นาฬิกาโลกสร้างโลกที่ไม่มีใครได้เทิร์นเป็นปีๆ ระบบอาหารจะปลุกคนที่หิวกลับเข้าคิวอย่างถูกต้อง (ตัดด่าน ย้ายหาข้าว
+# — test_food วัดเรื่องนั้น) ซึ่งไม่ใช่สิ่งที่เทสต์นี้วัด จึงปิดระบบชีวิตไว้
+def life_systems_off():
+    return mock.patch.multiple(C, FOOD_ENABLED=False, WAGES_ENABLED=False, GUARDIANS_ENABLED=False)
+
+
 def world_after(steps, seed=3):
     sim = quiet(S.Sim, seed=seed)
     quiet(sim.run, steps)
@@ -45,6 +51,7 @@ def record_ticks(sim):
 
 
 class WorldClockTests(unittest.TestCase):
+    @life_systems_off()
     def test_world_work_keeps_a_monthly_rhythm_while_everyone_is_secluded(self):
         sim = world_after(300)
         start = sim.day
@@ -79,6 +86,7 @@ class WorldClockTests(unittest.TestCase):
         self.assertLessEqual(ticks[0] - died, C.WORLD_TICK_DAYS)
         self.assertGreater(event.day, died)
 
+    @life_systems_off()
     def test_a_world_where_nobody_ever_comes_reports_an_empty_queue(self):
         sim = world_after(200)
         sim.queue = []

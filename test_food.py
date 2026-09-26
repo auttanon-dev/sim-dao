@@ -39,7 +39,8 @@ def quiet(fn, *a, **kw):
 
 
 def food_on():
-    return mock.patch.object(C, "FOOD_ENABLED", True)
+    """เปิดเฉพาะระบบอาหาร — ค่าแรงและผู้ปกครองเปิดเป็นค่าเริ่มต้นแล้ว เทสต์ที่ต้องการก็เปิดเพิ่มเอง"""
+    return mock.patch.multiple(C, FOOD_ENABLED=True, WAGES_ENABLED=False, GUARDIANS_ENABLED=False)
 
 
 def no_spoil():
@@ -386,6 +387,7 @@ class FoodInTheRunningWorldTests(unittest.TestCase):
         gained = monk.insight - insight
         self.assertLess(gained, C.SECLUDE_INSIGHT_PER_YEAR, "ได้ผลเท่าเวลาที่อยู่จริง ไม่ปัดเป็นหนึ่งปี")
 
+    @mock.patch.multiple(C, FOOD_ENABLED=False, WAGES_ENABLED=False, GUARDIANS_ENABLED=False)
     def test_switched_off_the_world_never_touches_food(self):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 3000)

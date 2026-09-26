@@ -32,10 +32,11 @@ def quiet(fn, *a, **kw):
         return fn(*a, **kw)
 
 
-def switches(food=False, wages=True):
+def switches(food=False, wages=True, guardians=False):
     stack = contextlib.ExitStack()
     stack.enter_context(mock.patch.object(C, "FOOD_ENABLED", food))
     stack.enter_context(mock.patch.object(C, "WAGES_ENABLED", wages))
+    stack.enter_context(mock.patch.object(C, "GUARDIANS_ENABLED", guardians))
     return stack
 
 
@@ -219,8 +220,9 @@ class WagesInTheRunningWorldTests(unittest.TestCase):
                                delta=1e-6 * max(1.0, sim.food_stats["produced"]))
 
     def test_switched_off_the_world_never_touches_wages(self):
-        sim = quiet(S.Sim, seed=11)
-        quiet(sim.run, 3000)
+        with switches(food=False, wages=False):
+            sim = quiet(S.Sim, seed=11)
+            quiet(sim.run, 3000)
         self.assertEqual((sim.market_till, sim.farm_till), ({}, {}))
         self.assertTrue(all(v == 0 for v in sim.wage_stats.values()))
         self.assertFalse(any(ch.gold_endowed for ch in sim.cast))

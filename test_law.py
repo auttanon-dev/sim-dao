@@ -9,6 +9,7 @@
 รวม 13% ของความตายทั้งจักรวาลเป็นความตายที่เล่าเป็นเรื่องไม่ได้ (รอบล่าสุดกินตัวเอกไปสองคน)
 """
 import contextlib
+import heapq
 import io
 import unittest
 
@@ -177,6 +178,18 @@ class TestJailTime(unittest.TestCase):
             self.assertEqual(crook.jail_until, 0)
             kinds = [e.kind for e in sim.log if e.actor == crook.cid]
             self.assertIn("พ้นโทษ", kinds, "การพ้นโทษต้องเป็นเหตุการณ์ที่บันทึกไว้เล่าได้")
+
+    def test_a_prisoner_arrested_while_in_hiding_still_walks_out_on_time(self):
+        # ซ่อนตัวนัดเทิร์นถัดไปไว้ไกลหลายปี ถ้าการจับกุมไม่เลื่อนใบนั้น เขาจะค้างในคุกเลยวันพ้นโทษจนถึงเทิร์นนั้น
+        sim, w, cop, crook = world_with_two(7)
+        crook.profession = "โจรป่า"
+        crook.hidden = True
+        far = sim.day + 12000
+        sim.queue = [(day, cid) for day, cid in sim.queue if cid != crook.cid] + [(far, crook.cid)]
+        heapq.heapify(sim.queue)
+        sim.resolve(ARREST, cop, crook, w, 30, StubRng())
+        tickets = [day for day, cid in sim.queue if cid == crook.cid]
+        self.assertEqual(tickets, [crook.jail_until], "เทิร์นเดียว ไม่เกินวันพ้นโทษ")
 
     def test_a_far_stronger_prisoner_can_break_out(self):
         sim, cop, crook = self._jail()

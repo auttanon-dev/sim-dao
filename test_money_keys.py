@@ -50,6 +50,7 @@ class MoneyKeyTests(unittest.TestCase):
                             hits.append(f"{os.path.relpath(path, root)}:{no}")
         self.assertEqual(hits, [])
 
+    @mock.patch.object(C, "WAGES_ENABLED", False)     # ค่าครองชีพแบบเดิมเก็บเฉพาะตอนปิดค่าแรง (ดูเทสต์ถัดไป)
     def test_a_mortal_outside_the_human_world_pays_the_cost_of_living(self):
         sim = quiet(S.Sim, seed=5)
         world = next(w for w in sim.worlds if w.wid != w.tier)

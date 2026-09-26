@@ -34,8 +34,9 @@ def quiet(fn, *a, **kw):
 
 
 def on(**flags):
+    """เปิดระบบผู้ปกครอง ส่วนอาหารและค่าแรง (เปิดเป็นค่าเริ่มต้นแล้ว) ปิดไว้ เว้นแต่เทสต์ขอเปิด"""
     stack = contextlib.ExitStack()
-    stack.enter_context(mock.patch.object(C, "GUARDIANS_ENABLED", True))
+    flags = {"GUARDIANS_ENABLED": True, "FOOD_ENABLED": False, "WAGES_ENABLED": False, **flags}
     for name, value in flags.items():
         stack.enter_context(mock.patch.object(C, name, value))
     return stack
@@ -293,8 +294,9 @@ class GuardiansInTheRunningWorldTests(unittest.TestCase):
                              C.GUARDIAN_MAX_WARDS + max(len(c.children) for c in sim.living()))
 
     def test_switched_off_nobody_is_assigned(self):
-        sim = quiet(S.Sim, seed=11)
-        quiet(sim.run, 3000)
+        with on(GUARDIANS_ENABLED=False):
+            sim = quiet(S.Sim, seed=11)
+            quiet(sim.run, 3000)
         self.assertTrue(all(ch.guardian == -1 and not ch.wards for ch in sim.cast))
         self.assertEqual(sim.guardian_stats, GUARD.new_stats())
 
