@@ -19,9 +19,10 @@
 - ยุ้งฉาง: ผลผลิตเข้ายุ้งฉางของสถานที่ คนที่อยู่ที่นั่นกินจากยุ้งฉางก่อน ที่ยังขาดรับข้าวจากยุ้งฉางอื่นในแดนเดียวกัน
   ที่ห่างไม่เกิน FOOD_REACH_HOPS ก้าว (ข้าวสูญระหว่างทาง FOOD_CARRY_LOSS_PER_HOP ต่อก้าว) ถ้ายังไม่พอ ทุกคนได้ส่วน
   เท่ากันตามความต้องการ (ไม่ให้ cid ต่ำหรือสถานที่ลำดับต้นได้ก่อน) ที่ขาดกินจากเสบียงติดตัว ของในยุ้งฉางเน่าตามเวลา
-- เสบียงติดตัว: เติมได้จากส่วนเกินของยุ้งฉางเท่านั้น ใช้กินตอนเดินทางหรือปิดด่าน
+- เสบียงติดตัว: เติมได้จากส่วนเกินของยุ้งฉางเท่านั้น ใช้กินตอนเดินทาง ผู้ปิดด่านได้ข้าวส่งถึงถ้ำจากยุ้งฉางของ
+  ที่นั้นเหมือนคนในที่นั้น (`_away`) เสบียงติดตัวเป็นแค่สำรอง
 - ขาดอาหาร: นับวันหิวติดกัน คนที่ไม่มีข้าวเหลือในระยะส่งถึงเลย จะเดินทางไปที่ใกล้ที่สุดในแดนเดียวกันที่ยังมีอาหาร
-  ผู้ปิดด่านที่เสบียงหมดออกจากด่านก่อนกำหนด ถ้าหิวครบ FOOD_STARVE_DAYS จะอดตาย
+  ผู้ปิดด่านที่ไม่มีข้าวส่งถึงและเสบียงหมดออกจากด่านก่อนกำหนด ถ้าหิวครบ FOOD_STARVE_DAYS จะอดตาย
 - ราคา: เมื่อเปิดค่าแรง (WAGES_ENABLED, tiandao/wages.py) ข้าวจากยุ้งฉางราคา FOOD_PRICE ทองต่อสำรับ เงินเข้า
   ลิ้นชักของไร่ต้นทาง แล้วจ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้ เด็กที่ไม่มีเงินให้พ่อแม่ที่อยู่ที่เดียวกันจ่ายแทน
   ส่วนที่ยังขาด หมู่บ้านเลี้ยงเด็กฟรีจากยุ้งฉาง (นับใน stats["charity"]) — ยังไม่มีระบบผู้ปกครอง และวัดแล้ว
@@ -93,8 +94,17 @@ def _secluded(ch, day) -> bool:
 
 
 def _away(ch, day) -> bool:
-    """ไม่ได้อยู่ในที่ที่มียุ้งฉาง — ต้องกินจากเสบียงติดตัว"""
-    return ch.travel_dest >= 0 or _secluded(ch, day) or ch.place is None or ch.place < 0
+    """ไม่ได้อยู่ในที่ที่มียุ้งฉาง — ต้องกินจากเสบียงติดตัว
+
+    ผู้ปิดด่านไม่นับว่าไม่อยู่: สำนักหรือครอบครัวส่งข้าวถึงถ้ำทุกวัน เขาจึงกินจากยุ้งฉางของที่ที่ปิดด่านอยู่
+    (และจ่ายค่าข้าวเมื่อเปิดค่าแรง) เหมือนคนในที่นั้น เสบียงติดตัวเป็นแค่สำรอง ก่อนหน้านี้ผู้ปิดด่านกินจาก
+    เสบียงติดตัวอย่างเดียวซึ่งเติมได้ไม่เกิน FOOD_PACK_DAYS เกือบทุกคนจึงออกจากด่านในเดือนแรก ลองให้ตุนเสบียง
+    ทั้งช่วงไว้ก่อนเข้าด่านแล้ว ข้าวที่ถูกกักไว้ในถ้ำ 273,000 สำรับทำให้คนข้างนอกอดตายเพิ่มจาก 470 เป็น 607
+    การส่งข้าวถึงถ้ำไม่เพิ่มความต้องการรวมเลย เพราะเขาต้องกินอยู่แล้วไม่ว่าจะปิดด่านหรือไม่
+    เปิดค่าแรงอยู่ ผู้ปิดด่านจ่ายค่าข้าวแต่ไม่มีรายได้ จึงออกมาหาเลี้ยงชีพก่อนเงินเหลือต่ำกว่าค่าข้าว
+    FOOD_SECLUDE_KEEP_DAYS วัน (`_leave_before_broke`) วัดแล้ว ถ้ารอจนเงินหมด ออกมาแล้วอดตายราวสองร้อยคนต่อ seed
+    """
+    return ch.travel_dest >= 0 or ch.place is None or ch.place < 0
 
 
 def _working(ch, day) -> bool:
@@ -193,6 +203,9 @@ def tick(sim, days) -> None:
         ch.food -= eaten
         _account(sim, ch, need, eaten, days)
     _pay_farmers(sim, workers_at)
+
+    if C.WAGES_ENABLED:
+        _leave_before_broke(sim, [ch for spot in sorted(eaters_at) for ch in eaters_at[spot]])
 
     hungry = [ch for spot in sorted(eaters_at) for ch in eaters_at[spot]] + away
     for ch in sorted(hungry, key=lambda c: c.cid):
@@ -336,6 +349,25 @@ def _carry_in(sim, short):
     return arrived
 
 
+def _leave_before_broke(sim, people):
+    """ผู้ปิดด่านที่เงินเหลือไม่พอค่าข้าว FOOD_SECLUDE_KEEP_DAYS วัน ออกจากด่านมาหาเลี้ยงชีพ"""
+    day = sim.day
+    for ch in sorted(people, key=lambda c: c.cid):
+        if not _secluded(ch, day):
+            continue
+        keep = C.FOOD_SECLUDE_KEEP_DAYS * ration(ch, day) * C.FOOD_PRICE
+        if WAGES.gold(sim, ch) < keep:
+            _end_seclusion(sim, ch, "เงินค่าข้าวใกล้หมด ออกมาหาเลี้ยงชีพ")
+
+
+def _end_seclusion(sim, ch, reason):
+    """ให้ผู้ปิดด่านออกจากด่านวันนี้ — ผลของการปิดด่านคิดตามเวลาที่อยู่จริงตอนเทิร์นออกจากด่าน"""
+    ch.seclude_until = sim.day
+    ch.seclude_cut = reason
+    sim.food_stats["seclusion_cut"] += 1
+    sim.requeue(ch, sim.day)
+
+
 def _starve(sim, ch):
     world = sim.world(ch.world_id)
     where = sim.place_name(ch)
@@ -351,10 +383,7 @@ def _respond(sim, ch):
     day = sim.day
     if _secluded(ch, day):
         if ch.food <= _EPS:
-            ch.seclude_until = day
-            ch.seclude_cut = True
-            sim.food_stats["seclusion_cut"] += 1
-            sim.requeue(ch, day)
+            _end_seclusion(sim, ch, "เสบียงหมดก่อนครบกำหนด")
         return
     if ch.travel_dest >= 0 or ch.age(day) < 14 or ch.place is None or ch.place < 0:
         return

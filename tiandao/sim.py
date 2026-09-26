@@ -2136,7 +2136,8 @@ class Sim:
                     ch.emotions[key] += (base - ch.emotions[key]) * C.SECLUDE_FOCUS
                 d_out = self.seclusion_diff(ch, wv, yrs)
                 if cut_short:
-                    d_out["เหตุที่ออก"] = "เสบียงหมดก่อนครบกำหนด"
+                    d_out["เหตุที่ออก"] = (cut_short if isinstance(cut_short, str)
+                                          else "เสบียงหมดก่อนครบกำหนด")
                 spent = f"{yrs:.1f}" if cut_short else f"{yrs}"
                 self.emit(wv, "ออกจากด่าน", ch, None, ["อดทน", "รู้แจ้ง"], "ออกจากด่าน",
                           f"{ch.name}ออกจากด่านหลังปิดตัวไป {spent} ปี — "

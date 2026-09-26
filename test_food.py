@@ -25,6 +25,7 @@ from tiandao import food as FOOD
 from tiandao import persist as PS
 from tiandao import places as PL
 from tiandao import sim as S
+from tiandao import wages as WAGES
 
 
 def quiet(fn, *a, **kw):
@@ -156,6 +157,42 @@ class FoodRulesTests(unittest.TestCase):
         BODY.tick(fed, 10, day=self.sim.day, fed=1.0)
         BODY.tick(hungry, 10, day=self.sim.day, fed=0.0)
         self.assertGreater(fed.fuel, hungry.fuel)
+
+
+class SeclusionMealsTests(unittest.TestCase):
+    """ผู้ปิดด่านได้ข้าวส่งถึงถ้ำจากยุ้งฉางของที่นั้น ไม่ต้องออกมาเพราะเสบียงติดตัว 30 วันหมด"""
+
+    def setUp(self):
+        self.sim = quiet(S.Sim, seed=5)
+        self.sim.granary, self.sim.market_till, self.sim.farm_till = {}, {}, {}
+        self.a, self.near, self.far = places_by_hops(self.sim)
+        # เสบียงติดตัวเต็มแล้ว จะได้วัดแค่ข้าวส่งถึงถ้ำ ไม่ปนกับการซื้อเสบียงเติม
+        self.monk = setup_person(self.sim, self.sim.cast[0], self.a,
+                                 food=C.FOOD_PACK_DAYS * C.FOOD_RATION_ADULT)
+        self.monk.hidden, self.monk.seclude_until = True, self.sim.day + 5 * 365
+        self.monk.money = {}
+
+    def test_a_secluded_cultivator_eats_from_the_local_granary_and_stays_in(self):
+        self.sim.granary[(0, self.a)] = 1000.0
+        with food_on(), no_spoil(), only(self.sim, self.monk):
+            for _ in range(12):
+                FOOD.tick(self.sim, 30)
+        self.assertEqual(self.monk.hunger_days, 0.0)
+        self.assertGreater(self.monk.seclude_until, self.sim.day, "ยังอยู่ในด่านครบปี")
+        self.assertAlmostEqual(self.sim.granary[(0, self.a)], 1000.0 - 360.0)
+
+    def test_with_wages_on_they_come_out_to_earn_before_going_broke(self):
+        self.sim.granary[(0, self.a)] = 1000.0
+        keep = C.FOOD_SECLUDE_KEEP_DAYS * C.FOOD_RATION_ADULT * C.FOOD_PRICE
+        WAGES.move_gold(self.sim, self.monk, keep + 30 * C.FOOD_PRICE + 1.0)
+        with food_on(), no_spoil(), mock.patch.object(C, "WAGES_ENABLED", True), \
+                only(self.sim, self.monk):
+            FOOD.tick(self.sim, 30)
+            self.assertGreater(self.monk.seclude_until, self.sim.day, "ยังพอจ่าย อยู่ต่อ")
+            FOOD.tick(self.sim, 30)
+        self.assertEqual(self.monk.seclude_until, self.sim.day, "เงินเหลือต่ำกว่าเงินสำรอง ออกมาหาเลี้ยงชีพ")
+        self.assertIn("เงิน", self.monk.seclude_cut)
+        self.assertGreater(WAGES.gold(self.sim, self.monk), 0, "ออกมาตอนยังมีเงินเหลือ ไม่ใช่ตอนหมดตัว")
 
 
 @contextlib.contextmanager

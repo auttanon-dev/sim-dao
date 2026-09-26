@@ -16,11 +16,15 @@
 - คนที่ไม่ใช่พ่อแม่รับเลี้ยงได้ไม่เกิน GUARDIAN_MAX_WARDS คน ผู้ปกครองต้องเป็นผู้ใหญ่ มีจิต และไม่ได้ปิดด่านหรือติดคุก
 - ผู้ปกครองอยู่คนละที่ในแดนเดียวกัน เด็กย้ายไปอยู่กับผู้ปกครอง ผู้ปกครองเดินทางไปถึงที่ใหม่ เด็กที่อยู่ด้วยย้ายตาม
   (ย้ายทันทีตอนรับเลี้ยงหรือตอนผู้ปกครองมาถึง — ยังไม่ได้จำลองการเดินทางของเด็กเป็นวัน)
+- เปิดระบบอาหารอยู่ เด็กย้ายไปหาผู้ปกครองเฉพาะเมื่อที่นั้นมีข้าวในระยะส่ง (`food_near`) หรือที่เดิมก็ไม่มีเหมือนกัน
+  เด็กที่แยกกับผู้ปกครองกลับไปอยู่ด้วยเมื่อที่ของผู้ปกครองมีข้าวแล้ว และในลำดับเดียวกันเลือกคนที่อยู่ใกล้ข้าวก่อน
+  วัดแล้ว ถ้าย้ายตามผู้ปกครองโดยไม่ดู เด็กอดตายต่อ seed ผันผวนระหว่าง 35 ถึง 131 คน
 - ผู้ปกครองตาย เด็กได้ผู้ปกครองใหม่ทันทีในธุรกรรมความตายเดียวกัน ไม่มีใครรับได้ เด็กเป็นเด็กไร้ผู้ดูแล
 - ครบ 14 ปี หมดความเป็นผู้ปกครอง
 - ค่าข้าวของเด็ก (tiandao/food.py) ผู้ปกครองที่อยู่ที่เดียวกันจ่าย หมู่บ้านเลี้ยงเฉพาะเด็กที่ไม่มีใครอยู่ด้วย
 """
 from . import config as C
+from . import travel as TR
 from . import wages as WAGES
 
 STAT_KEYS = ("assigned", "reassigned", "unplaced", "moved", "released")
@@ -40,6 +44,35 @@ def _can_care(ch, day) -> bool:
     return (ch.alive and ch.age(day) >= ADULT_AGE and getattr(ch, "sentient", True)
             and not getattr(ch, "is_beast", False) and not getattr(ch, "is_lord", False)
             and getattr(ch, "seclude_until", 0) <= day and getattr(ch, "jail_until", 0) <= day)
+
+
+def food_near(sim, wid, place) -> bool:
+    """ที่นี้มีข้าวพอเลี้ยงเด็กหนึ่งคนหนึ่งเดือนในยุ้งฉางของตัวเองหรือยุ้งฉางในระยะส่งไหม — ปิดระบบอาหาร = มีเสมอ"""
+    if not C.FOOD_ENABLED:
+        return True
+    if place is None or place < 0:
+        return False
+    enough = C.FOOD_PACK_DAYS * C.FOOD_RATION_CHILD
+    granary = getattr(sim, "granary", {})
+    if granary.get((wid, place), 0.0) >= enough:
+        return True
+    return any(granary.get((wid, other), 0.0) >= enough
+               for other, _hops in TR.places_within(sim, place, C.FOOD_REACH_HOPS))
+
+
+def _safe_to_move(sim, child, place) -> bool:
+    """ย้ายเด็กไปที่ `place` ได้ไหม: ที่นั้นมีข้าวใกล้ๆ หรือที่เดิมก็ไม่มีข้าวอยู่แล้ว (ย้ายไม่ทำให้แย่ลง)"""
+    return food_near(sim, child.world_id, place) or not food_near(sim, child.world_id, child.place)
+
+
+def _move_child(sim, child, place) -> bool:
+    if place is None or place < 0 or place == child.place or not _safe_to_move(sim, child, place):
+        return False
+    child.place = place
+    child.building = -1
+    child.travel_dest = -1
+    sim.guardian_stats["moved"] += 1
+    return True
 
 
 def _people(sim, cids):
@@ -64,8 +97,9 @@ def _family(sim, child):
 
 
 def _rank(sim, child, people):
-    """เรียงคนที่อยู่ที่เดียวกับเด็กก่อน แล้วคนที่มีเงินมากกว่า — ไม่ใช่ cid ต่ำก่อน"""
-    return sorted(people, key=lambda c: (c.place != child.place, -WAGES.gold(sim, c), c.cid))
+    """เรียงคนที่อยู่ใกล้ข้าวก่อน แล้วคนที่อยู่ที่เดียวกับเด็ก แล้วคนที่มีเงินมากกว่า — ไม่ใช่ cid ต่ำก่อน"""
+    return sorted(people, key=lambda c: (not food_near(sim, c.world_id, c.place), c.place != child.place,
+                                         -WAGES.gold(sim, c), c.cid))
 
 
 def choose(sim, child, locals_by_spot=None):
@@ -108,11 +142,7 @@ def assign(sim, child, guardian, reason):
     guardian.wards.append(child.cid)
     is_parent = guardian.cid in (child.parents or ())
     sim.guardian_stats["reassigned" if reason == "สืบต่อ" else "assigned"] += 1
-    if guardian.place != child.place and guardian.place is not None and guardian.place >= 0:
-        child.place = guardian.place
-        child.building = -1
-        child.travel_dest = -1
-        sim.guardian_stats["moved"] += 1
+    _move_child(sim, child, guardian.place)
     if not is_parent:
         sim.emit(sim.world(child.world_id), "รับเลี้ยง", guardian, child, ["ครอบครัว"], reason,
                  f"{guardian.name}รับ{child.name}มาเลี้ยงดูที่{sim.place_name(guardian)}", 0,
@@ -137,6 +167,8 @@ def tick(sim) -> None:
     for child in children:
         current = sim.cast[child.guardian] if 0 <= child.guardian < len(sim.cast) else None
         if current is not None and current.alive and current.world_id == child.world_id:
+            if current.place != child.place and current.travel_dest < 0:
+                _move_child(sim, child, current.place)     # กลับไปอยู่กับผู้ปกครองเมื่อที่นั้นปลอดภัยแล้ว
             continue
         guardian = choose(sim, child, locals_by_spot)
         if guardian is None:
@@ -167,9 +199,7 @@ def on_arrival(sim, guardian, old_place) -> None:
     for cid in guardian.wards:
         child = sim.cast[cid]
         if child.alive and child.world_id == guardian.world_id and child.place == old_place:
-            child.place = guardian.place
-            child.building = -1
-            sim.guardian_stats["moved"] += 1
+            _move_child(sim, child, guardian.place)
 
 
 def payer(sim, child):

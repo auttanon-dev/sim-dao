@@ -124,6 +124,59 @@ class GuardianRulesTests(unittest.TestCase):
         self.assertAlmostEqual(spent, 30 * (C.FOOD_RATION_ADULT + C.FOOD_RATION_CHILD) * C.FOOD_PRICE)
 
 
+class ChildRelocationSafetyTests(unittest.TestCase):
+    """เปิดระบบอาหาร เด็กต้องไม่ถูกย้ายไปอยู่กับผู้ปกครองในที่ที่ไม่มีข้าวในระยะส่ง"""
+
+    def setUp(self):
+        self.sim = quiet(S.Sim, seed=5)
+        self.sim.granary = {}
+        self.a, self.near, self.far = places_by_hops(self.sim)
+        self.guardian = setup_person(self.sim, self.sim.cast[0], self.a)
+        self.child = setup_person(self.sim, self.sim.cast[1], self.a, age=6)
+        for ch in (self.guardian, self.child):
+            ch.parents, ch.children, ch.spouse, ch.clan, ch.guardian, ch.wards = [], [], None, -1, -1, []
+        self.child.parents = [self.guardian.cid]
+        self.guardian.children = [self.child.cid]
+        self.sim.granary[(0, self.a)] = 500.0          # ที่เดิมของเด็กมีข้าว ที่ไกลไม่มี
+
+    def test_a_ward_does_not_follow_into_a_place_with_no_food_in_reach(self):
+        with on(FOOD_ENABLED=True), only(self.sim, self.guardian, self.child):
+            GUARD.tick(self.sim)
+            self.guardian.place = self.far
+            GUARD.on_arrival(self.sim, self.guardian, self.a)
+        self.assertEqual(self.child.place, self.a)
+        self.assertEqual(self.child.guardian, self.guardian.cid, "ยังเป็นผู้ปกครองอยู่ แค่เด็กไม่ย้าย")
+
+    def test_the_ward_rejoins_once_the_guardians_place_has_food(self):
+        with on(FOOD_ENABLED=True), only(self.sim, self.guardian, self.child):
+            GUARD.tick(self.sim)
+            self.guardian.place = self.far
+            GUARD.tick(self.sim)
+            self.assertEqual(self.child.place, self.a)
+            self.sim.granary[(0, self.far)] = 500.0
+            GUARD.tick(self.sim)
+        self.assertEqual(self.child.place, self.far)
+
+    def test_moving_is_allowed_when_the_childs_own_place_has_no_food_either(self):
+        self.sim.granary = {}
+        with on(FOOD_ENABLED=True), only(self.sim, self.guardian, self.child):
+            GUARD.tick(self.sim)
+            self.guardian.place = self.far
+            GUARD.on_arrival(self.sim, self.guardian, self.a)
+        self.assertEqual(self.child.place, self.far, "ย้ายไม่ทำให้แย่ลง จึงอยู่กับผู้ปกครอง")
+
+    def test_among_equal_relatives_the_one_near_food_is_chosen(self):
+        orphan = setup_person(self.sim, self.sim.cast[2], self.far, age=6)
+        near_food = setup_person(self.sim, self.sim.cast[3], self.a)
+        no_food = setup_person(self.sim, self.sim.cast[4], self.far)
+        for ch in (orphan, near_food, no_food):
+            ch.parents, ch.children, ch.spouse, ch.guardian, ch.wards, ch.money = [], [], None, -1, [], {}
+        orphan.clan = near_food.clan = no_food.clan = 3
+        with on(FOOD_ENABLED=True), only(self.sim, orphan, near_food, no_food):
+            GUARD.tick(self.sim)
+        self.assertEqual(orphan.guardian, near_food.cid)
+
+
 class GuardiansInTheRunningWorldTests(unittest.TestCase):
     def test_most_children_have_a_guardian_living_with_them(self):
         with on():
