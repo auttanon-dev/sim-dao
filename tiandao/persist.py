@@ -43,7 +43,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #   6 — ผู้ปกครองเด็ก (Sim.guardian_stats; Character.guardian/wards ได้ค่าว่างจาก __setstate__)
 #   7 — ตัวนับใหม่ของ food_stats (ลงไร่ช่วงข้าวขาด) และ guardian_stats (ย้ายไปอยู่กับคนใกล้ข้าว)
 #       Character.fieldwork ได้ค่า False จาก __setstate__
-SAVE_VERSION = 7
+#   8 — คนในด่านที่เทิร์นถัดไปถูกนัดไว้หลังวันครบด่าน ตื่นวันครบด่าน (ครบไปแล้ว = ตื่นวันที่โหลด)
+SAVE_VERSION = 8
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -268,6 +269,28 @@ def _migrate(sim, version):
         for stats, fresh in ((sim.food_stats, FOOD.new_stats()), (sim.guardian_stats, GUARD.new_stats())):
             for key, zero in fresh.items():
                 stats.setdefault(key, zero)
+    if version < 8:
+        _wake_at_seclusion_end(sim)
+
+
+def _wake_at_seclusion_end(sim):
+    """เทิร์นที่นัดไว้หลังวันครบด่าน เลื่อนมาเป็นวันครบด่าน ครบไปแล้วก็ตื่นวันนี้ — ไม่แตะ RNG ไม่เพิ่มใบคิว
+
+    โค้ดก่อนรุ่น 8 นัดเทิร์นถัดไปของคนที่เพิ่งเข้าด่านแบบเดียวกับคนเข้าแดนลับ คือ 2,000–12,000 วัน ทั้งที่ด่านยาว
+    แค่ 3–8 ปี (ดู Sim._next_turn) เซฟจริงปีที่ 1,228 มีผู้ใหญ่ 439 คนที่ครบด่านแล้วแต่ยังซ่อนอยู่ รอเทิร์นอีกมัธยฐาน 8 ปี
+    """
+    moved = False
+    queue = []
+    for day, cid in sim.queue:
+        ch = sim.cast[cid]
+        until = getattr(ch, "seclude_until", 0)
+        if ch.alive and ch.hidden and 0 < until < day:
+            day = max(until, sim.day)
+            moved = True
+        queue.append((day, cid))
+    if moved:
+        sim.queue = queue
+        heapq.heapify(sim.queue)
 
 
 def _money_by_tier(sim):

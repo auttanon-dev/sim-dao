@@ -11,13 +11,18 @@
 """
 import collections
 import contextlib
+import heapq
 import io
+import os
+import pickle
 import statistics as st
+import tempfile
 import unittest
 
 from tiandao import config as C
 from tiandao import events as E
 from tiandao import intent as IN
+from tiandao import persist as PS
 from tiandao import sim as S
 
 
@@ -104,6 +109,46 @@ class TestSeclusion(unittest.TestCase):
         self.assertGreater(ch.seclude_until, sim.day)
         self.assertIn("กำหนดออกจากด่าน", d)
         self.assertIn("ties", ch.seclude_snap, "ต้องถ่ายภาพโลกไว้ก่อนปิดประตู")
+
+    def test_he_wakes_on_the_day_his_seclusion_ends(self):
+        # รอบ 2,000–12,000 วันของคนซ่อนตัวเป็นของแดนลับ ไม่ใช่ของด่านที่ยาวแค่ SECLUDE_YEARS
+        sim, w, ch = self._ready()
+        sim.resolve(SECLUDE, ch, None, w, 30, StubRng())
+        sim.queue = [(d, c) for d, c in sim.queue if c != ch.cid]
+        sim._next_turn(ch, 30, StubRng())
+        self.assertEqual([d for d, c in sim.queue if c == ch.cid], [ch.seclude_until])
+
+    def test_nobody_stays_hidden_after_the_seclusion_ends(self):
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 20000)
+        entered = [e for e in sim.log if e.outcome == "เข้าด่าน"]
+        stuck = [c.name for c in sim.cast if c.alive and c.hidden and 0 < c.seclude_until < sim.day]
+        self.assertGreater(len(entered), 10)
+        self.assertEqual(stuck, [], "ครบด่านแล้วต้องได้เทิร์นออกมาวันนั้น ไม่ใช่ซ่อนต่ออีกหลายปี")
+
+    def test_an_older_save_wakes_the_people_whose_seclusion_already_ended(self):
+        sim = quiet(S.Sim, seed=7, tiers=3)
+        quiet(sim.run, 3000)
+        ch, waiting = [c for c in sim.living_in(0) if not c.hidden and c.age(sim.day) >= 16][:2]
+        ch.hidden, ch.seclude_until = True, sim.day + 1000               # ยังอยู่ในด่าน
+        waiting.hidden, waiting.seclude_until = True, sim.day // 2       # ครบด่านไปแล้ว
+        self.assertGreater(sim.day // 2, 0)
+        far = sim.day + 5000
+        sim.queue = [(d, c) for d, c in sim.queue if c not in (ch.cid, waiting.cid)]
+        sim.queue += [(far, ch.cid), (far, waiting.cid)]
+        heapq.heapify(sim.queue)
+        rng_state = sim.rng.getstate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "world.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 7, "sim": sim}, f)
+            loaded = PS.load_sim(path)
+        turns = collections.defaultdict(list)
+        for d, c in loaded.queue:
+            turns[c].append(d)
+        self.assertEqual(turns[ch.cid], [ch.seclude_until], "ยังอยู่ในด่าน ตื่นวันครบด่าน")
+        self.assertEqual(turns[waiting.cid], [loaded.day], "ครบด่านไปแล้ว ตื่นวันที่โหลด")
+        self.assertEqual(loaded.rng.getstate(), rng_state)
 
     def test_he_does_nothing_while_inside(self):
         sim, w, ch = self._ready()

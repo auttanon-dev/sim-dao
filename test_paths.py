@@ -18,14 +18,16 @@ from tiandao import rules as R
 from tiandao import sim as S
 from tiandao import treasures as T
 
-STEPS = 60000
+# วัดที่อายุโลกคงที่ ไม่ใช่จำนวนเหตุการณ์คงที่ — ความเอนตามแดนสะสมตามปีที่คนฝึกวิชาในแดนนั้น ส่วนจำนวนเหตุการณ์ต่อปี
+# เปลี่ยนทุกครั้งที่โลกคึกขึ้นหรือเงียบลง (แก้บั๊กเทิร์นหลังเข้าด่านแล้ว 60,000 เหตุการณ์ถึงแค่ปีที่ 37 จากเดิมปีที่ 45)
+YEARS = 45
 SEED = 3131
 
 
 def run():
     sim = S.Sim(seed=SEED, tiers=3)
     with contextlib.redirect_stdout(io.StringIO()):
-        for _ in range(STEPS):
+        while sim.day < YEARS * 365:
             if sim.step() is None:
                 break
     return sim
@@ -224,7 +226,7 @@ def test_treasures(sim):
 
 
 def main():
-    print(f"รันซิม {STEPS:,} เหตุการณ์...")
+    print(f"รันซิม {YEARS} ปี...")
     test_lines_mapped()
     sim = run()
     print(f"  ถึงปีที่ {sim.day//365:,} | {len(sim.log):,} เหตุการณ์ | มีชีวิต {len(sim.alive_cids):,}")

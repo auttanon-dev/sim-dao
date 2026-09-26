@@ -2679,20 +2679,30 @@ class Sim:
         if mind is not None:
             mind.after_action(actor, self, ev["kind"], target, e)
         if actor.alive:
-            if actor.travel_dest >= 0:
-                # เพิ่งเริ่มเดินทางจริง (resolve() ตั้ง travel_dest/travel_arrival_day ไว้แล้ว) — ต้อง
-                # นัดตื่นครั้งแรกภายใน TRAVEL_ENROUTE_CHECK_DAYS ไม่ใช่กระโดดตรงไปวันถึงเลย ไม่งั้นจะไม่มี
-                # โอกาสได้เช็คเหตุการณ์ระหว่างทางสักครั้งเดียวสำหรับทริปสั้น (บล็อก ch.travel_dest ด้านบน
-                # ใน step() เป็นตัวจัดการรอบเช็คถัดๆ ไปเองหลังจากนี้)
-                first_wake = min(C.TRAVEL_ENROUTE_CHECK_DAYS, actor.travel_arrival_day - self.day)
-                self.schedule(actor, max(1, first_wake))
-            elif actor.building_dest >= 0:
-                # เพิ่งเริ่มเดินในเมืองไปอาคารเป้าหมาย (resolve() เรียก route_to_building ตั้ง
-                # building_dest ไว้แล้ว) — นัดตื่นตรงวันถึงเลย เดินในเมืองสั้นมากไม่ต้องเช็คระหว่างทาง
-                self.schedule(actor, max(1, actor.building_arrival_day - self.day))
-            else:
-                self.schedule(actor, gap if not actor.hidden else rng.randint(2000, 12000))
+            self._next_turn(actor, gap, rng)
         return e
+
+    def _next_turn(self, actor, gap, rng):
+        """นัดเทิร์นถัดไปของผู้ที่เพิ่งลงมือ ตามสภาพที่การกระทำนั้นทิ้งไว้"""
+        if actor.travel_dest >= 0:
+            # เพิ่งเริ่มเดินทางจริง (resolve() ตั้ง travel_dest/travel_arrival_day ไว้แล้ว) — ต้อง
+            # นัดตื่นครั้งแรกภายใน TRAVEL_ENROUTE_CHECK_DAYS ไม่ใช่กระโดดตรงไปวันถึงเลย ไม่งั้นจะไม่มี
+            # โอกาสได้เช็คเหตุการณ์ระหว่างทางสักครั้งเดียวสำหรับทริปสั้น (บล็อก ch.travel_dest ด้านบน
+            # ใน step() เป็นตัวจัดการรอบเช็คถัดๆ ไปเองหลังจากนี้)
+            first_wake = min(C.TRAVEL_ENROUTE_CHECK_DAYS, actor.travel_arrival_day - self.day)
+            self.schedule(actor, max(1, first_wake))
+        elif actor.building_dest >= 0:
+            # เพิ่งเริ่มเดินในเมืองไปอาคารเป้าหมาย (resolve() เรียก route_to_building ตั้ง
+            # building_dest ไว้แล้ว) — นัดตื่นตรงวันถึงเลย เดินในเมืองสั้นมากไม่ต้องเช็คระหว่างทาง
+            self.schedule(actor, max(1, actor.building_arrival_day - self.day))
+        elif actor.hidden and actor.seclude_until > self.day:
+            # เพิ่งเข้าด่าน — ตื่นวันครบด่าน รอบ 2,000–12,000 วันข้างล่างเป็นของแดนลับซึ่งไม่มีวันออก แต่ด่านยาวแค่
+            # SECLUDE_YEARS ก่อนแก้ คนที่ครบด่านแล้วยังซ่อนอยู่จนถึงเทิร์นที่นัดไว้ วัดกับเซฟจริงปีที่ 1,228: ผู้ใหญ่ 439 คน
+            # อยู่ในสภาพนี้ เทิร์นถัดไปมัธยฐานอีก 8 ปี เปิดระบบอาหารแล้วเขาอดตายเพราะต้องซื้อข้าวโดยไม่มีรายได้
+            # (41% ของคนที่อดตาย) ปิดระบบอยู่เขาหายจากเวทีราวหนึ่งในห้าของผู้ใหญ่ทั้งโลก
+            self.schedule(actor, actor.seclude_until - self.day)
+        else:
+            self.schedule(actor, gap if not actor.hidden else rng.randint(2000, 12000))
 
     def chaos_invade(self, world, elapsed, rng):
         """เผ่าโกลาหลมาถึงโลกมนุษย์แล้วทำอะไร:
