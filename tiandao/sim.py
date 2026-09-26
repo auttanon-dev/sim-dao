@@ -926,10 +926,7 @@ class Sim:
             if ch.sentient and not ch.is_lord:
                 self.raise_corpse(killer, ch, self.rng)
             self.org_avenge(ch, killer)
-            if ch.clan >= 0 and killer.clan != ch.clan:
-                for m in self.living():
-                    if m.clan == ch.clan:
-                        m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + 2
+            self.kin_avenge(ch, killer)
         elif ch.realm >= C.CACHE_MIN_REALM or any(
                 self.items[i].legend for i in ch.items):
             # สมบัติฟ้าดินที่มีชื่อไม่มีวันสูญหาย เจ้าของตายก็ถูกผนึกรอผู้มีวาสนาคนต่อไป
@@ -1084,10 +1081,49 @@ class Sim:
             return
         if killer.org is not None:
             org.grudges[killer.org] = org.grudges.get(killer.org, 0) + C.GRUDGE_PER_KILL
-        for cid in org.members:
-            m = self.cast[cid]
-            if m.alive and self.rng.random() < C.ORG_AVENGE_P:
-                m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + 3
+
+    def kin_avenge(self, victim, killer):
+        """ใครแค้นผู้ฆ่า — ครอบครัวสายตรง (พ่อแม่ ลูก คู่ครอง) แค้นเต็มที่ไม่ว่าอยู่ที่ไหน คนตระกูลหรือสำนักเดียวกัน
+        ที่อยู่ที่เดียวกันและไม่ได้ซ่อนตัวแค้นพอประมาณ ที่อยู่ไกลยังไม่แค้นเพราะข่าวยังไปไม่ถึง คนหนึ่งได้ระดับที่ใกล้ที่สุด
+
+        เดิมคนทั้งตระกูลทั่วจักรวาลแค้น +2 และสมาชิกสำนักทุกแห่งสุ่มแค้น +3 ความแค้นทำให้อยากล้างแค้น แต่คู่แค้นที่อยู่ไกล
+        ไม่อยู่ในคนที่พบได้ การล้างแค้นจึงไปตกกับคนแปลกหน้าข้างตัวเกือบครึ่งหนึ่ง แล้วตระกูลของคนนั้นก็แค้นต่อ
+        (โลกใหม่ 100 ปี: คนเป็น 63% ถือความแค้น ความตายจากการต่อสู้สูงกว่าตอนปิดระบบชีวิต 44%)
+        """
+        family = set(victim.parents or ()) | set(victim.children or ())
+        if victim.spouse is not None:
+            family.add(victim.spouse)
+        family.discard(killer.cid)
+        for cid in sorted(family):
+            if 0 <= cid < len(self.cast) and self.cast[cid].alive:
+                m = self.cast[cid]
+                m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + C.GRUDGE_KIN
+        clan = victim.clan if victim.clan >= 0 and killer.clan != victim.clan else None
+        org = victim.org if (victim.org is not None and killer.org != victim.org
+                             and self.orgs[victim.org].alive) else None
+        if (clan is None and org is None) or victim.place is None or victim.place < 0:
+            return
+        for m in self.living_in(victim.world_id):
+            if (m.place != victim.place or m.hidden or m.cid in family or m is killer
+                    or not (m.clan == clan or (org is not None and m.org == org))):
+                continue
+            m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + C.GRUDGE_NEAR
+
+    def fade_grudges(self, days):
+        """ความแค้นจางลง GRUDGE_FADE_PER_YEAR ต่อปี จางหมดแล้วลบทิ้ง แค้นคนที่ตายไปแล้วลบทิ้งเลย
+
+        ใครอยู่ใน `rivals` คือคู่แค้น (ใช้เลือกเป้าทั่วเอนจิน) และถือแค้นอยู่เรื่องเดียวก็ดันให้อยากล้างแค้นแล้ว
+        แค้นที่ไม่เคยหายจึงเป็นวงจรไม่รู้จบ แค้นคนตายชำระไม่ได้ ผลเดียวของมันคือการล้างแค้นที่ไปตกกับคนข้างตัว
+        (เซฟจริงปีที่ 1,228: 54% ของความแค้นเป็นแค้นคนตาย 468 คนถือแต่แค้นคนตาย)
+        """
+        fade = C.GRUDGE_FADE_PER_YEAR * days / 365.0
+        for cid in self.alive_cids:
+            rivals = self.cast[cid].rivals
+            for foe, level in list(rivals.items()):
+                if level <= fade or not (0 <= foe < len(self.cast)) or not self.cast[foe].alive:
+                    del rivals[foe]
+                else:
+                    rivals[foe] = level - fade
 
     # ------------------------------------------------------------ ของ / แดนลับ
     def make_item(self, kind, tier, grade, maker=None):
@@ -1689,6 +1725,7 @@ class Sim:
             FOOD.tick(self, self.day - self.food_day)
         if C.WAGES_ENABLED:
             WAGES.tick(self, self.day - self.food_day)
+        self.fade_grudges(self.day - self.food_day)
         self.food_day = self.day
         WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
         # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
@@ -2173,16 +2210,18 @@ class Sim:
                 if not ch.alive:
                     continue
                 w_j = self.world(ch.world_id)
-                jailer = None
-                if ch.rivals:
+                # ผู้จับกุมที่บันทึกไว้ตอนจับ ไม่ใช่เดาจากคู่แค้น — ความแค้นจางและแค้นคนตายถูกลบ (Sim.fade_grudges)
+                # ถ้าเดาจากคู่แค้น ผู้จับที่ตายระหว่างโทษจะหายไปจากความจำ แล้วนักโทษแหกคุกไม่ได้อีกเลย
+                # เซฟเก่าที่ไม่ได้บันทึกไว้ยังเดาจากคู่แค้นที่แค้นที่สุดแบบเดิม
+                jcid = getattr(ch, "jailer", -1)
+                if jcid < 0 and ch.rivals:
                     jcid = max(ch.rivals, key=lambda c: (ch.rivals[c], -c))
-                    if 0 <= jcid < len(self.cast):
-                        jailer = self.cast[jcid]
+                jailer = self.cast[jcid] if 0 <= jcid < len(self.cast) else None
                 if self.day < ch.jail_until:
                     gap_j = ch.jail_until - self.day
                     bar = (jailer.realm + C.JAIL_ESCAPE_REALM_GAP) if jailer is not None else 99
                     if ch.realm >= bar and rng.random() < C.JAIL_ESCAPE_P:
-                        ch.jail_until, ch.hidden = 0, False
+                        ch.jail_until, ch.jailer, ch.hidden = 0, -1, False
                         ch.decay += 0.3
                         self.emit(w_j, "แหกคุก", ch, jailer, ["ทำลาย"], "แหกคุก",
                                   f"{ch.name}ทลายที่คุมขังหลบหนีออกมาได้ก่อนพ้นโทษ", 0,
@@ -2191,7 +2230,7 @@ class Sim:
                     else:
                         self.schedule(ch, gap_j)
                     continue
-                ch.jail_until, ch.hidden = 0, False
+                ch.jail_until, ch.jailer, ch.hidden = 0, -1, False
                 self.emit(w_j, "พ้นโทษ", ch, jailer, ["อดทน"], "พ้นโทษ",
                           f"{ch.name}พ้นโทษคุมขัง กลับสู่ยุทธภพอีกครั้ง", 0, {})
                 self.schedule(ch, rng.randint(30, 200))
@@ -3941,6 +3980,7 @@ class Sim:
             lo, hi = C.JAIL_DAYS
             years = int(min(hi, lo + (hi - lo) * min(1.0, weight / float(C.EXECUTE_KILLS))) / 365)
             t.jail_until = self.day + years * 365
+            t.jailer = a.cid
             t.hidden = True                 # ออกจากเวทีชั่วคราว (ทุกที่ที่กรอง hidden ข้ามให้เอง)
             t.travel_dest = -1              # ถูกจับกลางทางก็ไม่ได้ไปต่อ
             t.rivals[a.cid] = t.rivals.get(a.cid, 0) + C.JAIL_GRUDGE
@@ -4194,10 +4234,11 @@ class Sim:
             # (วัดจริง: ฝึกพลาด 60 จาก 137 ครั้ง = 44% ของการกระทำที่ถูกเลือกมากที่สุดในโลก)
             _el = EL.ensure(a)
             if rng.random() < C.ELEMENT_PICK_P:
-                # ถ้ารอบนี้เอนไปทางสายประจำแดนแล้ว ให้ถามคำถามที่แคบลงว่า "วิชา**สายนี้**
-                # อันไหนถูกกับธาตุข้าที่สุด" ธาตุยังสำคัญเท่าเดิม แต่ไม่ลบสายประจำแดนทิ้ง
-                # แดนหลักที่ไม่มีสายประจำแดนยังเลือกจากทั้งกองเหมือนเดิมทุกประการ
-                sk = EL.best_of(same_line or pool, _el)[0]
+                # ถามคำถามที่แคบลงว่า "วิชา**ในกองที่แคบไว้แล้ว** อันไหนถูกกับธาตุข้าที่สุด" ธาตุยังสำคัญ
+                # เท่าเดิม แต่ไม่ลบสายประจำแดนหรือทางที่แดนถนัดทิ้ง บั๊กเดิมแก้แค่สายประจำแดน รอบที่เลือกตาม
+                # ทางที่แดนถนัดยังหยิบจากทั้งกอง ความเอนของแดนจึงเหลือผลแค่ 30% ของการเลือก วัดที่ 45 ปี
+                # 6 เส้นทาง: สยามเอนไปทางกาย 0.46–0.65 ชมพูทวีป 0.34–0.45 ทั้งที่ตั้งไว้ 0.72 และ 0.30
+                sk = EL.best_of(choice_pool, _el)[0]
             _aff = EL.affinity(_el, EL.skill_element(sk[0]))
             p = C.LEARN_BASE_P + 0.05 * (a.realm - SK.GRADE_REALM_BAR[grade]) \
                 - 0.12 * grade - a.decay * 0.05 + C.ELEMENT_LEARN_W * _aff

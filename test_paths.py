@@ -22,6 +22,7 @@ from tiandao import treasures as T
 # เปลี่ยนทุกครั้งที่โลกคึกขึ้นหรือเงียบลง (แก้บั๊กเทิร์นหลังเข้าด่านแล้ว 60,000 เหตุการณ์ถึงแค่ปีที่ 37 จากเดิมปีที่ 45)
 YEARS = 45
 SEED = 3131
+LEAN_TOLERANCE = 0.15
 
 
 def run():
@@ -67,6 +68,11 @@ def test_paths_emerge(sim):
     if "siam" in keyed and "bharata" in keyed:
         print(f"    -> สยาม {keyed['siam']:.0%} เทียบ ชมพูทวีป {keyed['bharata']:.0%}")
         assert keyed["siam"] > keyed["bharata"], "สยามควรเอนไปทางกายมากกว่าชมพูทวีป"
+        # ความเอนจริงต้องใกล้ค่าที่ตั้งไว้ ไม่ใช่แค่เรียงถูก — เคยเหลือแค่ 0.51 กับ 0.42 เพราะชั้นธาตุหยิบวิชาจากทั้งกอง
+        # คลาดได้ ±LEAN_TOLERANCE เพราะแต่ละแดนมีคนที่บอกสายได้แค่ราว 40 คน (หกเส้นทาง: สยาม 0.59–0.79 ชมพูทวีป 0.27–0.34)
+        for key in ("siam", "bharata"):
+            gap = abs(keyed[key] - PATHS.body_bias(key))
+            assert gap <= LEAN_TOLERANCE, f"{key} เอนไปทางกาย {keyed[key]:.0%} ห่างจากที่ตั้งไว้ {PATHS.body_bias(key):.0%} เกินไป"
     return decided
 
 

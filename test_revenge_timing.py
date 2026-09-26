@@ -103,5 +103,65 @@ class TestLosingTwiceMakesTheThirdTryRarer(unittest.TestCase):
                         "แพ้สามครั้งติดแล้วยังบุกหนักขึ้น = ลูปค้างแบบเดิม")
 
 
+class TestWhoCarriesTheGrudge(unittest.TestCase):
+    """ฆ่าหนึ่งคน ใครแค้นผู้ฆ่า — ครอบครัวแค้นเต็มที่ คนตระกูลเดียวกันที่อยู่ตรงนั้นแค้นพอประมาณ ที่ไกลยังไม่รู้"""
+
+    def setUp(self):
+        self.sim = quiet(S.Sim, seed=5)
+        people = [c for c in self.sim.cast if c.alive and c.world_id == 0 and c.place is not None
+                  and c.place >= 0 and not c.hidden and c.sentient]
+        (self.victim, self.killer, self.parent, self.child, self.spouse, self.clan_here, self.clan_far,
+         self.clan_hidden, self.stranger) = people[:9]
+        here = self.victim.place
+        far = next(p for p in (c.place for c in people) if p != here)
+        for c in people[:9]:
+            c.rivals, c.org, c.clan, c.hidden = {}, None, -1, False
+        v = self.victim
+        v.clan, self.killer.clan = 0, 1
+        v.parents, v.children, v.spouse = [self.parent.cid], [self.child.cid], self.spouse.cid
+        self.parent.place = far                                  # ครอบครัวอยู่ไกลก็แค้น
+        self.child.clan, self.child.place = 0, here              # ญาติที่เป็นคนตระกูลอยู่ตรงนั้นด้วย ได้ระดับเดียว
+        self.clan_here.clan, self.clan_here.place = 0, here
+        self.clan_far.clan, self.clan_far.place = 0, far
+        self.clan_hidden.clan, self.clan_hidden.place, self.clan_hidden.hidden = 0, here, True
+        self.stranger.place = here
+        quiet(self.sim.kill, v, "ถูกสังหาร", killer=self.killer)
+
+    def grudge(self, ch):
+        return ch.rivals.get(self.killer.cid, 0)
+
+    def test_the_family_carries_the_full_grudge_wherever_they_are(self):
+        for kin in (self.parent, self.child, self.spouse):
+            self.assertEqual(self.grudge(kin), C.GRUDGE_KIN)
+
+    def test_clansfolk_on_the_spot_carry_a_lighter_grudge(self):
+        self.assertEqual(self.grudge(self.clan_here), C.GRUDGE_NEAR)
+
+    def test_nobody_far_away_hidden_or_unrelated_carries_it_yet(self):
+        for other in (self.clan_far, self.clan_hidden, self.stranger):
+            self.assertNotIn(self.killer.cid, other.rivals)
+
+
+class TestGrudgesFade(unittest.TestCase):
+    def setUp(self):
+        self.sim = quiet(S.Sim, seed=5)
+        self.me, self.foe, gone = [c for c in self.sim.cast if c.alive][:3]
+        quiet(self.sim.kill, gone, "ทดสอบ", natural=True)
+        self.me.rivals = {self.foe.cid: 1.0, gone.cid: 5}
+        self.gone = gone
+
+    def test_a_grudge_fades_each_year_and_one_against_the_dead_is_dropped(self):
+        self.sim.fade_grudges(365)
+        self.assertAlmostEqual(self.me.rivals[self.foe.cid], 1.0 - C.GRUDGE_FADE_PER_YEAR)
+        self.assertNotIn(self.gone.cid, self.me.rivals, "แค้นคนตายชำระไม่ได้")
+        self.sim.fade_grudges(365 * 5)
+        self.assertEqual(self.me.rivals, {}, "จางหมดแล้วไม่เป็นคู่แค้นอีก")
+
+    def test_the_world_clock_fades_grudges_every_round(self):
+        self.sim.world_tick_day = self.sim.food_day + 365          # รอบของโลกที่ห่างจากรอบก่อนหนึ่งปี
+        quiet(self.sim._world_tick, self.sim.rng)
+        self.assertAlmostEqual(self.me.rivals[self.foe.cid], 1.0 - C.GRUDGE_FADE_PER_YEAR)
+
+
 if __name__ == "__main__":
     unittest.main()

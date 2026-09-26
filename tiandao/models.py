@@ -251,6 +251,7 @@ class Character:
     # ถูกคุมขังอยู่ถึงวันไหน (0 = ไม่ได้ติดคุก) — คู่กับ hidden=True เพื่อให้ทุกที่ในโลกที่เคย
     # กรอง hidden อยู่แล้ว (เหยื่อมารบุก งานประมูล ศึกพันธมิตร) ข้ามคนติดคุกไปเองโดยไม่ต้องแก้
     jail_until: int = 0
+    jailer: int = -1            # cid ของผู้จับกุม (-1 = ไม่รู้ เซฟเก่าเดาจากคู่แค้นที่แค้นที่สุด) — ใช้เป็นเกณฑ์แหกคุก
     # แดนที่เกิด — ใช้แยก "ผู้มาจากโลกล่าง" ออกจากคนที่เกิดบนแดนสูงอยู่แล้ว ซึ่งเป็นความต่าง
     # ที่ทั้งเรื่องเล่าและการวัดผลต้องรู้ (ไม่งั้น peak_tier ของคนที่เกิดบนสวรรค์ก็ > 0 เหมือนกัน)
     birth_wid: int = -1
@@ -505,6 +506,7 @@ class Character:
         self.__dict__.setdefault("des_base", {})
         self.__dict__.setdefault("emo_day", self.__dict__.get("last_day", 0))
         self.__dict__.setdefault("jail_until", 0)
+        self.__dict__.setdefault("jailer", -1)
         self.__dict__.setdefault("birth_wid", self.__dict__.get("world_id", -1))
         self.__dict__.setdefault("system_foresight", False)
         self.__dict__.setdefault("visions", [])
