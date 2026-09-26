@@ -269,7 +269,8 @@ class Character:
     food_fed: float = 0.0               # วันที่กินอิ่ม สะสมไว้ให้ร่างกายใช้ตอนเทิร์นถัดไป
     food_missed: float = 0.0            # วันที่ไม่ได้กิน สะสมไว้ให้ร่างกายใช้ตอนเทิร์นถัดไป
     gold_endowed: bool = False          # ได้ทุนตั้งต้นจากระบบค่าแรงแล้วหรือยัง (tiandao/wages.py)
-    guardian: int = -1                  # cid ผู้ใหญ่ที่ดูแลเด็กคนนี้ (tiandao/guardians.py) -1 = ไม่มี
+    fieldwork: bool = False             # ลงไร่ช่วงข้าวขาด ทั้งที่อาชีพไม่ได้ผลิตอาหาร (tiandao/food.py)
+    guardian: int = -1                 # cid ผู้ใหญ่ที่ดูแลเด็กคนนี้ (tiandao/guardians.py) -1 = ไม่มี
     wards: List[int] = field(default_factory=list)   # เด็กที่คนนี้ดูแลอยู่
     # วันที่หายเข้าไปในแดนลับของตัวเอง (จาก "ซ่อนตัว") — ใช้บอกตอนออกมาว่าหายไปกี่ปี
     # และใช้เทียบว่าขั้นพลังไม่ขยับเลยระหว่างนั้น (ดู R.in_secret_realm)
@@ -364,6 +365,10 @@ class Character:
 
     def age(self, day: int) -> int:
         return (day - self.born_day) // 365
+
+    def produces_food(self) -> bool:
+        """ทำงานผลิตอาหาร: อาชีพผลิตอาหาร หรือลงไร่ช่วงข้าวขาด — ได้รายได้จากลิ้นชักไร่แทนค่าแรงตลาด"""
+        return self.profession in C.FOOD_PRODUCERS or self.fieldwork
 
     def lifespan(self) -> int:
         # ขั้นย่อยทุกขั้นเพิ่ม 100 ปี ขั้นใหญ่ทุกแดนเพิ่มอีก 300 ปี โดยนับขั้นที่ผ่านในแดนก่อน
@@ -517,6 +522,7 @@ class Character:
         self.__dict__.setdefault("food_fed", 0.0)
         self.__dict__.setdefault("food_missed", 0.0)
         self.__dict__.setdefault("gold_endowed", False)
+        self.__dict__.setdefault("fieldwork", False)
         self.__dict__.setdefault("guardian", -1)
         self.__dict__.setdefault("wards", [])
         self.__dict__.setdefault("core_temp", 37.0)

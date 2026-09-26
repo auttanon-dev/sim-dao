@@ -24,6 +24,8 @@
   เด็กที่แยกกับผู้ปกครองกลับไปอยู่ด้วยเมื่อที่ของผู้ปกครองมีข้าวแล้ว และในลำดับเดียวกันเลือกคนที่อยู่ใกล้ข้าวก่อน
   วัดแล้ว ถ้าย้ายตามผู้ปกครองโดยไม่ดู เด็กอดตายต่อ seed ผันผวนระหว่าง 35 ถึง 131 คน
 - ผู้ปกครองตาย เด็กได้ผู้ปกครองใหม่ทันทีในธุรกรรมความตายเดียวกัน ไม่มีใครรับได้ เด็กเป็นเด็กไร้ผู้ดูแล
+- เด็กหิวอยู่กับผู้ปกครองที่ไม่ต้องกินข้าวและไม่มีข้าวใกล้ที่อยู่ (food._child_hungry): คนที่อยู่ใกล้ข้าวรับไปเลี้ยงแทน
+  (`refoster`) ไม่มีใครรับได้ก็อยู่กับคนเดิม
 - ครบ 14 ปี หมดความเป็นผู้ปกครอง
 - ค่าข้าวของเด็ก (tiandao/food.py) ผู้ปกครองที่อยู่ที่เดียวกันจ่าย หมู่บ้านเลี้ยงเฉพาะเด็กที่ไม่มีใครอยู่ด้วย
 """
@@ -31,7 +33,7 @@ from . import config as C
 from . import travel as TR
 from . import wages as WAGES
 
-STAT_KEYS = ("assigned", "reassigned", "unplaced", "moved", "released")
+STAT_KEYS = ("assigned", "reassigned", "unplaced", "moved", "released", "refostered")
 # "unplaced" เป็นจำนวน ณ รอบล่าสุด (เด็กที่ตอนนี้ไม่มีผู้ปกครอง) ไม่ใช่ยอดสะสม ตัวอื่นเป็นยอดสะสม
 ADULT_AGE = 18
 
@@ -118,13 +120,17 @@ def _rank(sim, child, people):
                                          -WAGES.gold(sim, c), c.cid))
 
 
-def choose(sim, child, locals_by_spot=None, adults_by_world=None):
-    """ผู้ปกครองที่ควรดูแลเด็กคนนี้ หรือ None ถ้าไม่มีใครในแดนเดียวกันรับได้"""
+def choose(sim, child, locals_by_spot=None, adults_by_world=None, exclude=-1, near_food=False):
+    """ผู้ปกครองที่ควรดูแลเด็กคนนี้ หรือ None ถ้าไม่มีใครในแดนเดียวกันรับได้
+
+    `near_food` = รับเฉพาะคนที่อยู่ใกล้ข้าว (หาคนแทนผู้ปกครองที่เลี้ยงเด็กที่หิวไม่ได้) `exclude` = cid ที่ไม่เอา
+    """
     day = sim.day
 
     def fit(c, parent=False):
-        return (_can_care(c, day) and c.world_id == child.world_id
-                and (parent or len(c.wards) < C.GUARDIAN_MAX_WARDS))
+        return (_can_care(c, day) and c.world_id == child.world_id and c.cid != exclude
+                and (parent or len(c.wards) < C.GUARDIAN_MAX_WARDS)
+                and (not near_food or food_near(sim, c.world_id, c.place)))
 
     parents, kin = _family(sim, child)
     for group, parent in ((parents, True), (kin, False)):
@@ -158,18 +164,26 @@ def _release(sim, child):
     child.guardian = -1
 
 
+# เหตุที่รับเลี้ยง -> (ตัวนับใน guardian_stats, คำอธิบายในเหตุการณ์)
+_REASONS = {
+    "รับเลี้ยง": ("assigned", "ไม่มีผู้ใดดูแล"),
+    "สืบต่อ": ("reassigned", "ผู้ปกครองเดิมสิ้นชีวิต"),
+    "ย้ายไปใกล้ข้าว": ("refostered", "ผู้ปกครองเดิมไม่ต้องกินข้าวและไม่มีข้าวใกล้ที่อยู่ เด็กหิว"),
+}
+
+
 def assign(sim, child, guardian, reason):
     """ให้ `guardian` ดูแล `child` — เด็กย้ายไปอยู่ที่เดียวกับผู้ปกครองถ้าอยู่คนละที่"""
     _release(sim, child)
     child.guardian = guardian.cid
     guardian.wards.append(child.cid)
     is_parent = guardian.cid in (child.parents or ())
-    sim.guardian_stats["reassigned" if reason == "สืบต่อ" else "assigned"] += 1
+    stat, why = _REASONS[reason]
+    sim.guardian_stats[stat] += 1
     _move_child(sim, child, guardian.place)
     if not is_parent:
         sim.emit(sim.world(child.world_id), "รับเลี้ยง", guardian, child, ["ครอบครัว"], reason,
-                 f"{guardian.name}รับ{child.name}มาเลี้ยงดูที่{sim.place_name(guardian)}", 0,
-                 {"เหตุ": "ผู้ปกครองเดิมสิ้นชีวิต" if reason == "สืบต่อ" else "ไม่มีผู้ใดดูแล"})
+                 f"{guardian.name}รับ{child.name}มาเลี้ยงดูที่{sim.place_name(guardian)}", 0, {"เหตุ": why})
 
 
 def tick(sim) -> None:
@@ -199,8 +213,8 @@ def _tick(sim) -> None:
             adults_by_world.setdefault(ch.world_id, []).append(ch)
     sim.guardian_stats["unplaced"] = 0
     for child in children:
-        current = sim.cast[child.guardian] if 0 <= child.guardian < len(sim.cast) else None
-        if current is not None and current.alive and current.world_id == child.world_id:
+        current = guardian_of(sim, child)
+        if current is not None:
             if current.place != child.place and current.travel_dest < 0:
                 _move_child(sim, child, current.place)     # กลับไปอยู่กับผู้ปกครองเมื่อที่นั้นปลอดภัยแล้ว
             continue
@@ -211,6 +225,25 @@ def _tick(sim) -> None:
             sim.guardian_stats["unplaced"] += 1
             continue
         assign(sim, child, guardian, "รับเลี้ยง")
+
+
+def guardian_of(sim, child):
+    """ผู้ปกครองที่ยังมีชีวิตและอยู่แดนเดียวกับเด็ก หรือ None"""
+    if 0 <= child.guardian < len(sim.cast):
+        g = sim.cast[child.guardian]
+        if g.alive and g.world_id == child.world_id:
+            return g
+    return None
+
+
+def refoster(sim, child, current) -> bool:
+    """ให้คนที่อยู่ใกล้ข้าวรับเด็กที่หิวไปเลี้ยงแทน `current` (ลำดับเดิม: ครอบครัว ตระกูล คนที่เดียวกัน คนในแดน)
+    — ไม่มีใครใกล้ข้าวรับได้ เด็กอยู่กับผู้ปกครองเดิม"""
+    heir = choose(sim, child, exclude=current.cid, near_food=True)
+    if heir is None:
+        return False
+    assign(sim, child, heir, "ย้ายไปใกล้ข้าว")
+    return True
 
 
 def on_death(sim, ch) -> None:

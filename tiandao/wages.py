@@ -72,7 +72,7 @@ def earns_wages(ch, day) -> bool:
             and not getattr(ch, "is_spirit", False) and not getattr(ch, "is_lord", False)):
         return False
     # คนผลิตอาหารได้รายได้จากการขายข้าวแล้ว — ถ้าระบบอาหารปิด เขาก็เป็นแรงงานทั่วไปเหมือนคนอื่น
-    return not (C.FOOD_ENABLED and getattr(ch, "profession", "") in C.FOOD_PRODUCERS)
+    return not (C.FOOD_ENABLED and ch.produces_food())
 
 
 def tick(sim, days) -> None:

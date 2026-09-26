@@ -41,7 +41,9 @@ REPLACE_RETRY_SECONDS = 10.0
 #   4 — ค่าแรงตามเวลา (Sim.market_till, farm_till, wage_stats — tiandao/wages.py) และยุ้งฉางคีย์ (wid, place)
 #   5 — เหรียญทองคีย์ตามชั้นของแดนเท่านั้น (เดิมบางจุดคีย์ด้วย wid)
 #   6 — ผู้ปกครองเด็ก (Sim.guardian_stats; Character.guardian/wards ได้ค่าว่างจาก __setstate__)
-SAVE_VERSION = 6
+#   7 — ตัวนับใหม่ของ food_stats (ลงไร่ช่วงข้าวขาด) และ guardian_stats (ย้ายไปอยู่กับคนใกล้ข้าว)
+#       Character.fieldwork ได้ค่า False จาก __setstate__
+SAVE_VERSION = 7
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -259,6 +261,13 @@ def _migrate(sim, version):
     if version < 6:
         from . import guardians as GUARD
         sim.guardian_stats = GUARD.new_stats()
+    if version < 7:
+        # ตัวนับที่เพิ่มเข้ามาเริ่มจากศูนย์ ตัวเดิมคงค่าไว้
+        from . import food as FOOD
+        from . import guardians as GUARD
+        for stats, fresh in ((sim.food_stats, FOOD.new_stats()), (sim.guardian_stats, GUARD.new_stats())):
+            for key, zero in fresh.items():
+                stats.setdefault(key, zero)
 
 
 def _money_by_tier(sim):

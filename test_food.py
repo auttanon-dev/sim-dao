@@ -8,6 +8,7 @@
   · ผลผลิตคิดตามวันที่ทำงานจริง ไม่ให้ล่วงหน้า และที่ดินหนึ่งแห่งมีเพดาน
   · ข้าวไม่พอ ทุกคนได้ส่วนเท่ากันตามความต้องการ ไม่ใช่ cid ต่ำได้ก่อน
   · เส้นตายอดตายไม่ถูกข้าม แม้เทิร์นของคนนั้นจะอยู่อีกหลายปี
+  · ข้าวขาด ผู้ใหญ่ที่ไม่ได้ผลิตอาหารลงไร่จนพอหรือที่ดินเต็ม แล้วกลับไปทำงานเดิมเมื่อข้าวเหลือเฟือ
   · ปิดระบบอยู่ = โลกเดินเหมือนเดิมทุกประการ
 """
 import contextlib
@@ -123,6 +124,33 @@ class FoodRulesTests(unittest.TestCase):
         sent = 1000.0 - self.sim.granary[(0, self.near)]
         self.assertAlmostEqual(sent * (1 - C.FOOD_CARRY_LOSS_PER_HOP), 30.0, places=6)
         self.assertAlmostEqual(self.sim.food_stats["carried_lost"], sent - 30.0, places=6)
+
+    def test_when_food_runs_short_idle_adults_farm_until_the_granary_is_plentiful(self):
+        # แดนที่คนผลิตอาหารตายหมดและไม่มีข้าวที่ไหนในระยะส่ง: ผู้ใหญ่ที่อยู่ลงไร่แทน แล้วกลับไปทำงานเดิมเมื่อข้าวเหลือเฟือ
+        people = [setup_person(self.sim, ch, self.a, food=60.0) for ch in self.people[:3]]
+        with food_on(), no_spoil(), only(self.sim, *people):
+            FOOD.tick(self.sim, 30)
+            farming = [ch for ch in people if ch.fieldwork]
+            self.assertTrue(farming, "ข้าวขาดและไม่มีที่ไหนให้ไป ต้องมีคนลงไร่")
+            self.assertEqual(self.sim.food_stats["took_up_farming"], len(farming))
+            self.assertEqual(self.sim.food_stats["produced"], 0.0, "ผลผลิตเริ่มรอบหน้า ไม่ให้ย้อนหลัง")
+            self.assertFalse(WAGES.earns_wages(farming[0], self.sim.day), "คนลงไร่ได้เงินจากลิ้นชักไร่ ไม่ใช่ค่าแรงตลาด")
+            for _ in range(24):
+                FOOD.tick(self.sim, 30)
+        self.assertGreater(self.sim.food_stats["produced"], 0.0)
+        self.assertTrue(all(ch.alive for ch in people))
+        self.assertGreaterEqual(self.sim.food_stats["left_farming"], 1, "ข้าวเหลือเฟือแล้วกลับไปทำงานเดิม")
+
+    def test_nobody_takes_up_farming_on_land_that_is_already_full(self):
+        crowd = [setup_person(self.sim, ch, self.a, food=60.0) for ch in self.sim.cast[:60]]
+        with food_on(), no_spoil(), only(self.sim, *crowd):
+            FOOD.tick(self.sim, 30)
+        n = sum(ch.fieldwork for ch in crowd)
+        season = FOOD.season_mean(self.sim.day - 30, 30)
+        gain = lambda k: (FOOD.land_output_per_day(k) - FOOD.land_output_per_day(k - 1)) * season
+        self.assertLess(n, len(crowd))
+        self.assertGreaterEqual(gain(n), C.FOOD_RATION_ADULT, "คนสุดท้ายที่ลงไร่ยังเลี้ยงตัวเองได้")
+        self.assertLess(gain(n + 1), C.FOOD_RATION_ADULT, "คนถัดไปเพิ่มผลผลิตไม่ถึงสำรับที่ตัวเองกิน")
 
     def test_when_supply_falls_short_they_leave_while_provisions_last(self):
         eater = setup_person(self.sim, self.people[0], self.a)

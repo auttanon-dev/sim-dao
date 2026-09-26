@@ -21,6 +21,8 @@
   เท่ากันตามความต้องการ (ไม่ให้ cid ต่ำหรือสถานที่ลำดับต้นได้ก่อน) ที่ขาดกินจากเสบียงติดตัว ของในยุ้งฉางเน่าตามเวลา
 - เสบียงติดตัว: เติมได้จากส่วนเกินของยุ้งฉางเท่านั้น ใช้กินตอนเดินทาง ผู้ปิดด่านได้ข้าวส่งถึงถ้ำจากยุ้งฉางของ
   ที่นั้นเหมือนคนในที่นั้น (`_away`) เสบียงติดตัวเป็นแค่สำรอง
+- แรงงาน: ที่ที่ข้าวไม่พอแม้รวมข้าวที่ขนมาจากที่ใกล้เคียง ผู้ใหญ่ที่ไม่ได้ผลิตอาหารลงไร่ (`Character.fieldwork`)
+  จนพอชดเชยส่วนที่ขาดหรือที่ดินเต็ม แล้วกลับไปทำงานเดิมเมื่อยุ้งฉางของที่นั้นมีข้าวเหลือเฟือ (`_adapt_labour`)
 - ขาดอาหาร: นับวันหิวติดกัน คนที่ไม่มีข้าวเหลือในระยะส่งถึงเลย จะเดินทางไปที่ใกล้ที่สุดในแดนเดียวกันที่ยังมีอาหาร
   ผู้ปิดด่านที่ไม่มีข้าวส่งถึงและเสบียงหมดออกจากด่านก่อนกำหนด ถ้าหิวครบ FOOD_STARVE_DAYS จะอดตาย
 - ราคา: เมื่อเปิดค่าแรง (WAGES_ENABLED, tiandao/wages.py) ข้าวจากยุ้งฉางราคา FOOD_PRICE ทองต่อสำรับ เงินเข้า
@@ -49,7 +51,7 @@ from . import wages as WAGES
 from . import guardians as GUARD
 
 STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
-             "starved", "migrated", "seclusion_cut")
+             "starved", "migrated", "seclusion_cut", "took_up_farming", "left_farming")
 _AMOUNTS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity")
 _EPS = 1e-9
 
@@ -107,10 +109,14 @@ def _away(ch, day) -> bool:
     return ch.travel_dest >= 0 or ch.place is None or ch.place < 0
 
 
-def _working(ch, day) -> bool:
-    return (ch.alive and getattr(ch, "profession", "") in C.FOOD_PRODUCERS
-            and ch.age(day) >= 14 and not ch.hidden and not _away(ch, day)
+def _able_to_farm(ch, day) -> bool:
+    """อยู่ในวัยทำงาน อยู่ที่ที่มีที่ดิน และไม่ได้ซ่อนตัว ปิดด่าน หรือติดคุก"""
+    return (ch.alive and ch.age(day) >= 14 and not ch.hidden and not _away(ch, day)
             and getattr(ch, "jail_until", 0) <= day)
+
+
+def _working(ch, day) -> bool:
+    return ch.produces_food() and _able_to_farm(ch, day)
 
 
 def season_mean(start, days) -> float:
@@ -202,9 +208,11 @@ def tick(sim, days) -> None:
         sources[spot] = {spot: take}
         if total - take > _EPS:
             short[spot] = total - take
+    deficit = dict(short)                   # ส่วนที่ยังขาดหลังรวมข้าวที่ขนมาจากที่ใกล้เคียงแล้ว
     for dest, came in _carry_in(sim, short).items():
         for src, amount in came.items():
             sources[dest][src] = sources[dest].get(src, 0.0) + amount
+            deficit[dest] -= amount
     short = set()
     for spot in sorted(eaters_at):
         short |= _feed_place(sim, spot, eaters_at[spot], days, sources[spot])
@@ -226,6 +234,7 @@ def tick(sim, days) -> None:
             _respond(sim, ch)
         elif ch.cid in short and not _secluded(ch, day):
             _seek_food(sim, ch)             # ยุ้งฉางเริ่มไม่พอ ออกตอนนี้ขณะยังมีเสบียงพอเดินทาง
+    _adapt_labour(sim, eaters_at, workers_at, deficit, days, season)
 
 
 def _payers(sim, ch):
@@ -332,6 +341,45 @@ def _pay_farmers(sim, workers_at):
         sim.wage_stats["farm_paid"] += till
 
 
+def _adapt_labour(sim, eaters_at, workers_at, deficit, days, season):
+    """แรงงานตอบสนองต่อข้าวขาด — การขาดแคลนทำให้คนเปลี่ยนงาน (แบบ §1 ข้อ 5 และตัวอย่างใน §3)
+
+    อาชีพสุ่มครั้งเดียวตอนเกิดและไม่เคยเปลี่ยน แดนสาขาเล็กๆ มีคนผลิตอาหารแค่ 1–4 คน พอมารบุกกินคนผลิตไปก็ไม่มีใคร
+    มาแทน วัดกับสำเนาเซฟจริง 3 เส้นทาง 50 ปี: เด็กในแดนที่เหลือคนผลิต 0 คนอดตาย 123–166 ต่อพันคน-ปี แดนที่มี 4 คน
+    ขึ้นไป 1–3 ต่อพันคน-ปี เส้นทางที่มารบุกหนักเด็กอดตาย 748 และ 764 คน เส้นทางที่เบากว่า 214 คน
+    - ที่ที่ข้าวรอบนี้ไม่พอแม้รวมข้าวที่ขนมาจากที่ใกล้เคียงแล้ว: ผู้ใหญ่ที่ยังอยู่ที่นั่นและไม่ได้ผลิตอาหารลงไร่ คนที่มีเงิน
+      น้อยก่อน ทีละคน จนผลผลิตต่อวันของที่นั้นเพิ่มพอชดเชยส่วนที่ขาด หรือจนคนถัดไปเพิ่มผลผลิตได้ไม่ถึงสำรับที่ตัวเอง
+      กิน (ที่ดินเต็มแล้ว ลงไปอีกก็ไม่ช่วย)
+    - ที่ที่ยุ้งฉางมีข้าวพอเลี้ยงคนที่กินที่นั่นได้ FOOD_DEST_STOCK_DAYS วันแล้ว: คนที่ลงไร่อยู่กลับไปทำงานเดิม
+    คิดหลังคนที่มีที่ไปได้ออกเดินทางหาข้าวแล้ว คนที่ลงไร่ทำงานตั้งแต่รอบหน้า (Character.produces_food)
+    """
+    day = sim.day
+    stats = sim.food_stats
+    for spot in sorted(workers_at):
+        need = sum(ration(ch, day) for ch in eaters_at.get(spot, ()))
+        if sim.granary.get(spot, 0.0) < C.FOOD_DEST_STOCK_DAYS * need:
+            continue
+        for ch in workers_at[spot]:
+            if ch.fieldwork:
+                ch.fieldwork = False
+                stats["left_farming"] += 1
+    for spot in sorted(deficit):
+        short_per_day = deficit[spot] / days
+        if short_per_day <= _EPS:
+            continue
+        n = len(workers_at.get(spot, ()))
+        target = land_output_per_day(n) * season + short_per_day
+        idle = sorted((ch for ch in eaters_at[spot] if not ch.produces_food() and _able_to_farm(ch, day)),
+                      key=lambda c: (WAGES.gold(sim, c), c.cid))
+        for ch in idle:
+            output = land_output_per_day(n) * season
+            if output >= target or (land_output_per_day(n + 1) * season - output) < C.FOOD_RATION_ADULT:
+                break
+            ch.fieldwork = True
+            stats["took_up_farming"] += 1
+            n += 1
+
+
 def _reach(sim, place):
     """ยุ้งฉางอื่นบนผังเดียวกันที่ส่งข้าวมาถึงที่นี้ได้ — [(สถานที่, ก้าว)]"""
     return TR.places_within(sim, place, C.FOOD_REACH_HOPS)
@@ -403,7 +451,22 @@ def _respond(sim, ch):
         if ch.food <= _EPS:
             _end_seclusion(sim, ch, "เสบียงหมดก่อนครบกำหนด")
         return
+    if ch.age(day) < 14:
+        _child_hungry(sim, ch)
+        return
     _seek_food(sim, ch)
+
+
+def _child_hungry(sim, ch):
+    """เด็กเดินทางหาข้าวเองไม่ได้ ผู้ปกครองที่กินข้าวหิวไปด้วยแล้วพาย้ายเอง (_seek_food → GUARD.on_arrival)
+    แต่ผู้ปกครองที่ไม่ต้องกินข้าว (วิญญาณ ผู้ถึงขั้นงดธัญญาหาร) ไม่มีวันหิว จึงไม่มีวันย้าย วัดกับสำเนาเซฟจริง: ราวหนึ่งในสาม
+    ของเด็กที่อดตายข้างผู้ปกครองอยู่กับผู้ปกครองแบบนี้ — ถ้าที่ของผู้ปกครองไม่มีข้าวใกล้ๆ ให้คนที่อยู่ใกล้ข้าวรับไปเลี้ยง"""
+    if not C.GUARDIANS_ENABLED:
+        return
+    guardian = GUARD.guardian_of(sim, ch)
+    if guardian is None or eats(guardian) or GUARD.food_near(sim, guardian.world_id, guardian.place):
+        return
+    GUARD.refoster(sim, ch, guardian)
 
 
 def _seek_food(sim, ch):

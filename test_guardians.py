@@ -7,6 +7,7 @@
   · พ่อแม่เป็นผู้ปกครองก่อน ถ้าไม่มี ญาติ คนในตระกูล แล้วผู้ใหญ่ในที่เดียวกัน ตามลำดับ
   · ผู้ปกครองตาย เด็กได้คนใหม่ในธุรกรรมความตายเดียวกัน
   · ผู้ปกครองย้าย เด็กตามไป ครบ 14 ปีพ้นการดูแล คนที่ไม่ใช่พ่อแม่รับเลี้ยงได้ไม่เกินเพดาน
+  · เด็กหิวกับผู้ปกครองที่ไม่ต้องกินข้าวและไม่มีข้าวใกล้ๆ ไปอยู่กับคนที่อยู่ใกล้ข้าว
   · ผู้ปกครองที่อยู่ด้วยจ่ายค่าข้าวของเด็ก หมู่บ้านเลี้ยงเฉพาะเด็กที่ไม่มีใครอยู่ด้วย
 """
 import contextlib
@@ -164,6 +165,39 @@ class ChildRelocationSafetyTests(unittest.TestCase):
             self.guardian.place = self.far
             GUARD.on_arrival(self.sim, self.guardian, self.a)
         self.assertEqual(self.child.place, self.far, "ย้ายไม่ทำให้แย่ลง จึงอยู่กับผู้ปกครอง")
+
+    def _hungry_child_far_from_food(self, guardian_realm):
+        self.sim.granary = {(0, self.a): 500.0}
+        carer = setup_person(self.sim, self.sim.cast[2], self.a)
+        carer.parents, carer.children, carer.spouse, carer.clan, carer.guardian, carer.wards = [], [], None, -1, -1, []
+        self.guardian.place = self.child.place = self.far
+        self.guardian.realm = guardian_realm
+        self.child.food = 0.0
+        return carer
+
+    def test_a_hungry_child_whose_guardian_never_eats_is_fostered_near_food(self):
+        # พ่อที่ถึงขั้นงดธัญญาหารไม่หิว จึงไม่ย้ายหาข้าว — เด็กที่หิวอยู่ข้างๆ ไปอยู่กับคนที่อยู่ใกล้ข้าว
+        carer = self._hungry_child_far_from_food(C.FOOD_BIGU_REALM)
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.guardian, self.child, carer):
+            GUARD.tick(self.sim)
+            self.assertEqual(self.child.guardian, self.guardian.cid)
+            FOOD.tick(self.sim, 30)
+            self.assertEqual(self.child.guardian, carer.cid)
+            self.assertEqual(self.child.place, self.a)
+            self.assertEqual(self.sim.guardian_stats["refostered"], 1)
+            FOOD.tick(self.sim, 30)
+        self.assertTrue(self.child.alive)
+        self.assertEqual(self.child.hunger_days, 0.0)
+
+    def test_a_guardian_who_eats_keeps_the_child_and_goes_hungry_with_them(self):
+        # ผู้ปกครองที่กินข้าวหิวไปด้วยและหาข้าวเอง (_seek_food แล้วเด็กย้ายตาม) — ไม่ย้ายเด็กออกจากเขา
+        carer = self._hungry_child_far_from_food(0)
+        self.guardian.food = 0.0
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.guardian, self.child, carer):
+            GUARD.tick(self.sim)
+            FOOD.tick(self.sim, 30)
+        self.assertEqual(self.child.guardian, self.guardian.cid)
+        self.assertEqual(self.sim.guardian_stats["refostered"], 0)
 
     def test_among_equal_relatives_the_one_near_food_is_chosen(self):
         orphan = setup_person(self.sim, self.sim.cast[2], self.far, age=6)
