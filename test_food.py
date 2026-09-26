@@ -46,13 +46,18 @@ def no_spoil():
 
 @contextlib.contextmanager
 def only(sim, *people):
-    """ให้ FOOD.tick เห็นเฉพาะคนกลุ่มนี้ — แยกกฎหนึ่งข้อออกจากประชากรทั้งโลก"""
+    """ให้ FOOD.tick เห็นเฉพาะคนกลุ่มนี้ — แยกกฎหนึ่งข้อออกจากประชากรทั้งโลก
+
+    ขยับ `_alive_ver` ด้วย ไม่งั้นแคชของ alive_sorted()/living_in() ยังเห็นคนทั้งโลก (แคชดูแค่ตัวนับนี้)
+    """
     saved = sim.alive_cids
     sim.alive_cids = {ch.cid for ch in people}
+    sim._alive_ver = getattr(sim, "_alive_ver", 0) + 1
     try:
         yield
     finally:
         sim.alive_cids = saved
+        sim._alive_ver += 1
 
 
 def setup_person(sim, ch, place, *, food=0.0, profession="บัณฑิต", age=30, realm=0):

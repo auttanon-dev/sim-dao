@@ -7,7 +7,8 @@
   · พ่อแม่เป็นผู้ปกครองก่อน ถ้าไม่มี ญาติ คนในตระกูล แล้วผู้ใหญ่ในที่เดียวกัน ตามลำดับ
   · ผู้ปกครองตาย เด็กได้คนใหม่ในธุรกรรมความตายเดียวกัน
   · ผู้ปกครองย้าย เด็กตามไป ครบ 14 ปีพ้นการดูแล คนที่ไม่ใช่พ่อแม่รับเลี้ยงได้ไม่เกินเพดาน
-  · เด็กหิวกับผู้ปกครองที่ไม่ต้องกินข้าวและไม่มีข้าวใกล้ๆ ไปอยู่กับคนที่อยู่ใกล้ข้าว
+  · เด็กหิวที่ผู้ปกครองไม่มีข้าวใกล้ๆ หรือไม่มีผู้ปกครอง ไปอยู่กับคนที่อยู่ใกล้ข้าว เกินเพดานได้ถ้าจำเป็น
+    ในแดนไม่มีข้าวเลย ญาติแล้วคนในแดนอื่นชั้นและชนิดเดียวกันรับไป
   · ผู้ปกครองที่อยู่ด้วยจ่ายค่าข้าวของเด็ก หมู่บ้านเลี้ยงเฉพาะเด็กที่ไม่มีใครอยู่ด้วย
 """
 import contextlib
@@ -21,6 +22,7 @@ from tiandao import config as C
 from tiandao import food as FOOD
 from tiandao import guardians as GUARD
 from tiandao import persist as PS
+from tiandao import places as PL
 from tiandao import sim as S
 from tiandao import wages as WAGES
 from test_food import only, places_by_hops, setup_person
@@ -189,15 +191,79 @@ class ChildRelocationSafetyTests(unittest.TestCase):
         self.assertTrue(self.child.alive)
         self.assertEqual(self.child.hunger_days, 0.0)
 
-    def test_a_guardian_who_eats_keeps_the_child_and_goes_hungry_with_them(self):
-        # ผู้ปกครองที่กินข้าวหิวไปด้วยและหาข้าวเอง (_seek_food แล้วเด็กย้ายตาม) — ไม่ย้ายเด็กออกจากเขา
+    def test_a_hungry_child_whose_guardian_has_no_food_near_goes_to_someone_who_does(self):
+        # ผู้ปกครองที่กินข้าวแต่ไม่มีข้าวใกล้ๆ ก็ไปไม่ถึงข้าวเกือบทุกราย — ไม่รอให้เขาพาไปเอง
         carer = self._hungry_child_far_from_food(0)
         self.guardian.food = 0.0
         with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.guardian, self.child, carer):
             GUARD.tick(self.sim)
             FOOD.tick(self.sim, 30)
-        self.assertEqual(self.child.guardian, self.guardian.cid)
+        self.assertEqual(self.child.guardian, carer.cid)
+        self.assertEqual(self.child.place, self.a)
+
+    def test_a_guardian_near_food_keeps_a_hungry_child_and_the_child_is_brought_to_him(self):
+        carer = self._hungry_child_far_from_food(0)
+        self.guardian.place = self.a                                      # ผู้ปกครองอยู่ใกล้ข้าว เด็กยังอยู่ที่ไกล
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.guardian, self.child, carer):
+            self.child.guardian, self.guardian.wards = self.guardian.cid, [self.child.cid]
+            FOOD.tick(self.sim, 30)
+            self.assertEqual(self.child.guardian, self.guardian.cid)
+            GUARD.tick(self.sim)
+        self.assertEqual(self.child.place, self.a)
         self.assertEqual(self.sim.guardian_stats["refostered"], 0)
+
+    def test_when_everyone_near_food_is_full_the_least_burdened_still_takes_a_hungry_child(self):
+        carer = self._hungry_child_far_from_food(0)
+        carer.wards = [c.cid for c in self.sim.cast[10:10 + C.GUARDIAN_MAX_WARDS]]   # เต็มเพดานแล้ว
+        self.child.parents, self.guardian.children = [], []
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.child, carer):
+            FOOD.tick(self.sim, 30)
+        self.assertEqual(self.child.guardian, carer.cid)
+        self.assertEqual(len(carer.wards), C.GUARDIAN_MAX_WARDS + 1)
+
+    def _abroad(self, wid, cast_index):
+        """ผู้ใหญ่ที่อยู่ใกล้ข้าวในแดน `wid` — ในแดนของเด็กไม่มีข้าวที่ไหนเลย"""
+        place = PL.places_in(self.sim.world(wid).place_key)[0]
+        self.sim.granary = {(wid, place): 500.0}
+        c = setup_person(self.sim, self.sim.cast[cast_index], place)
+        c.world_id = wid
+        c.parents, c.children, c.spouse, c.clan, c.guardian, c.wards = [], [], None, -1, -1, []
+        self.guardian.place = self.child.place = self.far
+        self.guardian.food = self.child.food = 0.0
+        return c, place
+
+    def test_with_no_food_anywhere_in_its_realm_a_hungry_child_is_taken_in_by_another_realm(self):
+        siam = next(w.wid for w in self.sim.worlds if w.place_key == "siam")
+        carer, place = self._abroad(siam, 2)
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.guardian, self.child, carer):
+            GUARD.tick(self.sim)
+            FOOD.tick(self.sim, 30)
+            self.assertEqual((self.child.world_id, self.child.place, self.child.guardian), (siam, place, carer.cid))
+            self.assertEqual(self.sim.guardian_stats["fostered_across_realms"], 1)
+            FOOD.tick(self.sim, 30)
+        self.assertTrue(self.child.alive)
+        self.assertEqual(self.child.hunger_days, 0.0)
+
+    def test_a_relative_abroad_comes_before_a_stranger(self):
+        siam = next(w.wid for w in self.sim.worlds if w.place_key == "siam")
+        stranger, place = self._abroad(siam, 2)
+        grandma = setup_person(self.sim, self.sim.cast[3], place, age=60)
+        grandma.world_id, grandma.wards = siam, [c.cid for c in self.sim.cast[10:13]]   # เลี้ยงหลานอยู่แล้วสามคน
+        grandma.children, self.guardian.parents = [self.guardian.cid], [grandma.cid]
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), \
+                only(self.sim, self.guardian, self.child, stranger, grandma):
+            GUARD.tick(self.sim)
+            FOOD.tick(self.sim, 30)
+        self.assertEqual(self.child.guardian, grandma.cid)
+
+    def test_nobody_crosses_into_a_realm_of_another_kind(self):
+        mara = next(w.wid for w in self.sim.worlds if w.kind == "mara")
+        demon, _place = self._abroad(mara, 2)
+        with on(FOOD_ENABLED=True, FOOD_SPOIL_PER_YEAR=0.0), only(self.sim, self.guardian, self.child, demon):
+            GUARD.tick(self.sim)
+            FOOD.tick(self.sim, 30)
+        self.assertEqual(self.child.world_id, 0)
+        self.assertEqual(self.child.guardian, self.guardian.cid)
 
     def test_among_equal_relatives_the_one_near_food_is_chosen(self):
         orphan = setup_person(self.sim, self.sim.cast[2], self.far, age=6)

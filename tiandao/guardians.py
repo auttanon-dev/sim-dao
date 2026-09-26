@@ -24,8 +24,9 @@
   เด็กที่แยกกับผู้ปกครองกลับไปอยู่ด้วยเมื่อที่ของผู้ปกครองมีข้าวแล้ว และในลำดับเดียวกันเลือกคนที่อยู่ใกล้ข้าวก่อน
   วัดแล้ว ถ้าย้ายตามผู้ปกครองโดยไม่ดู เด็กอดตายต่อ seed ผันผวนระหว่าง 35 ถึง 131 คน
 - ผู้ปกครองตาย เด็กได้ผู้ปกครองใหม่ทันทีในธุรกรรมความตายเดียวกัน ไม่มีใครรับได้ เด็กเป็นเด็กไร้ผู้ดูแล
-- เด็กหิวอยู่กับผู้ปกครองที่ไม่ต้องกินข้าวและไม่มีข้าวใกล้ที่อยู่ (food._child_hungry): คนที่อยู่ใกล้ข้าวรับไปเลี้ยงแทน
-  (`refoster`) ไม่มีใครรับได้ก็อยู่กับคนเดิม
+- เด็กหิวที่ผู้ปกครองไม่มีข้าวใกล้ที่อยู่ หรือไม่มีผู้ปกครอง (food._child_hungry): คนที่อยู่ใกล้ข้าวรับไปเลี้ยงแทน (`refoster`)
+  ในแดนเดียวกันตามลำดับปกติก่อน ถ้าทุกคนที่อยู่ใกล้ข้าวเลี้ยงเด็กเต็มเพดานแล้ว คนที่เลี้ยงน้อยที่สุดรับเกินเพดานได้ ถ้าในแดนไม่มีใครอยู่
+  ใกล้ข้าวเลย ญาติแล้วคนที่อยู่ใกล้ข้าวในแดนอื่นชั้นและชนิดเดียวกันรับไป เด็กย้ายแดนตาม ไม่มีใครรับได้ก็อยู่ที่เดิม
 - ครบ 14 ปี หมดความเป็นผู้ปกครอง
 - ค่าข้าวของเด็ก (tiandao/food.py) ผู้ปกครองที่อยู่ที่เดียวกันจ่าย หมู่บ้านเลี้ยงเฉพาะเด็กที่ไม่มีใครอยู่ด้วย
 """
@@ -33,7 +34,7 @@ from . import config as C
 from . import travel as TR
 from . import wages as WAGES
 
-STAT_KEYS = ("assigned", "reassigned", "unplaced", "moved", "released", "refostered")
+STAT_KEYS = ("assigned", "reassigned", "unplaced", "moved", "released", "refostered", "fostered_across_realms")
 # "unplaced" เป็นจำนวน ณ รอบล่าสุด (เด็กที่ตอนนี้ไม่มีผู้ปกครอง) ไม่ใช่ยอดสะสม ตัวอื่นเป็นยอดสะสม
 ADULT_AGE = 18
 
@@ -168,7 +169,8 @@ def _release(sim, child):
 _REASONS = {
     "รับเลี้ยง": ("assigned", "ไม่มีผู้ใดดูแล"),
     "สืบต่อ": ("reassigned", "ผู้ปกครองเดิมสิ้นชีวิต"),
-    "ย้ายไปใกล้ข้าว": ("refostered", "ผู้ปกครองเดิมไม่ต้องกินข้าวและไม่มีข้าวใกล้ที่อยู่ เด็กหิว"),
+    "ย้ายไปใกล้ข้าว": ("refostered", "เด็กหิว และผู้ปกครองเดิมไม่มีข้าวใกล้ที่อยู่หรือไม่มีผู้ปกครอง"),
+    "ข้ามแดนไปหาข้าว": ("fostered_across_realms", "เด็กหิว และในแดนเดิมไม่มีใครที่อยู่ใกล้ข้าวรับเลี้ยงได้"),
 }
 
 
@@ -180,7 +182,12 @@ def assign(sim, child, guardian, reason):
     is_parent = guardian.cid in (child.parents or ())
     stat, why = _REASONS[reason]
     sim.guardian_stats[stat] += 1
-    _move_child(sim, child, guardian.place)
+    if guardian.world_id != child.world_id:       # รับไปเลี้ยงข้ามแดน (refoster) — ผู้ปกครองอยู่ใกล้ข้าวเสมอ
+        sim.move_world(child, guardian.world_id)
+        child.place, child.building, child.travel_dest = guardian.place, -1, -1
+        sim.guardian_stats["moved"] += 1
+    else:
+        _move_child(sim, child, guardian.place)
     if not is_parent:
         sim.emit(sim.world(child.world_id), "รับเลี้ยง", guardian, child, ["ครอบครัว"], reason,
                  f"{guardian.name}รับ{child.name}มาเลี้ยงดูที่{sim.place_name(guardian)}", 0, {"เหตุ": why})
@@ -236,14 +243,50 @@ def guardian_of(sim, child):
     return None
 
 
-def refoster(sim, child, current) -> bool:
-    """ให้คนที่อยู่ใกล้ข้าวรับเด็กที่หิวไปเลี้ยงแทน `current` (ลำดับเดิม: ครอบครัว ตระกูล คนที่เดียวกัน คนในแดน)
-    — ไม่มีใครใกล้ข้าวรับได้ เด็กอยู่กับผู้ปกครองเดิม"""
-    heir = choose(sim, child, exclude=current.cid, near_food=True)
+def refoster(sim, child, current=None) -> bool:
+    """ให้คนที่อยู่ใกล้ข้าวรับเด็กที่หิวไปเลี้ยงแทน `current` (None = ยังไม่มีผู้ปกครอง) — คืนว่าหาได้ไหม
+
+    1. ในแดนเดียวกันตามลำดับปกติ (ครอบครัว ตระกูล คนที่เดียวกัน คนในแดน) และตามเพดานรับเลี้ยง
+    2. คนที่อยู่ใกล้ข้าวในแดนเดียวกันที่เลี้ยงเด็กน้อยที่สุด แม้เต็มเพดานแล้ว — เพดานมีไว้กันคนหนึ่งรับเด็กทั้งหมู่บ้าน ไม่ใช่ให้เด็กอดตาย
+    3. ญาติ แล้วคนที่อยู่ใกล้ข้าวในแดนอื่นชั้นและชนิดเดียวกัน เด็กย้ายแดนตาม
+    วัดกับสำเนาเซฟจริงหลังทำงานแลกข้าว (3 เส้นทาง 100 ปี): เด็กอดตาย 200 คน 136 คนไม่มีผู้ปกครอง 87 ในนั้นเพราะผู้ใหญ่ทุกคน
+    ในแดนเลี้ยงเต็มเพดานแล้ว 49 คนเพราะแดนไม่เหลือผู้ใหญ่เลย แดนที่เด็กอดตายครึ่งหนึ่งไม่มีข้าวที่ไหนเลย ผู้ปกครองที่กินข้าวและอยู่ข้างเด็ก
+    41 คน มีแค่ 3 คนที่เดินทางไปหาข้าวได้ทัน — จึงไม่รอให้ผู้ปกครองพาไปเอง
+    """
+    exclude = current.cid if current is not None else -1
+    heir = choose(sim, child, exclude=exclude, near_food=True)
+    if heir is None:
+        heir = _foster_near_food(sim, child, {child.world_id}, exclude)
+    reason = "ย้ายไปใกล้ข้าว"
+    if heir is None:
+        home = sim.world(child.world_id)
+        realms = {w.wid for w in sim.worlds
+                  if w.wid != home.wid and w.tier == home.tier and w.kind == home.kind}
+        heir = _foster_near_food(sim, child, realms, exclude)
+        reason = "ข้ามแดนไปหาข้าว"
     if heir is None:
         return False
-    assign(sim, child, heir, "ย้ายไปใกล้ข้าว")
+    assign(sim, child, heir, reason)
     return True
+
+
+def _foster_near_food(sim, child, realms, exclude):
+    """ผู้ใหญ่ที่อยู่ใกล้ข้าวในแดนชุด `realms` ที่รับเด็กได้โดยไม่ดูเพดานรับเลี้ยง — ญาติก่อน แล้วคนที่เลี้ยงเด็กน้อยที่สุด"""
+    day = sim.day
+
+    def ok(c):
+        return (c.cid != exclude and c.world_id in realms and _can_care(c, day)
+                and food_near(sim, c.world_id, c.place))
+
+    parents, kin = _family(sim, child)
+    for group in (parents, kin):
+        found = [c for c in group if ok(c)]
+        if found:
+            return _rank(sim, child, found)[0]
+    pool = [c for wid in sorted(realms) for c in sim.living_in(wid) if ok(c)]
+    if not pool:
+        return None
+    return min(pool, key=lambda c: (len(c.wards), c.place != child.place, -WAGES.gold(sim, c), c.cid))
 
 
 def on_death(sim, ch) -> None:

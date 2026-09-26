@@ -45,7 +45,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #       Character.fieldwork ได้ค่า False จาก __setstate__
 #   8 — คนในด่านที่เทิร์นถัดไปถูกนัดไว้หลังวันครบด่าน ตื่นวันครบด่าน (ครบไปแล้ว = ตื่นวันที่โหลด)
 #   9 — ตัวนับใหม่ของ food_stats (ทำงานแลกข้าว ข้าวในคุก)
-SAVE_VERSION = 9
+#  10 — ตัวนับใหม่ของ guardian_stats (เด็กที่ย้ายแดนไปหาข้าว)
+SAVE_VERSION = 10
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -263,12 +264,10 @@ def _migrate(sim, version):
     if version < 6:
         from . import guardians as GUARD
         sim.guardian_stats = GUARD.new_stats()
-    if version < 7:
-        _add_new_counters(sim)
     if version < 8:
         _wake_at_seclusion_end(sim)
-    if version < 9:
-        _add_new_counters(sim)
+    if version < 10:
+        _add_new_counters(sim)          # รุ่น 7, 9, 10 เพิ่มตัวนับใน food_stats/guardian_stats
 
 
 def _add_new_counters(sim):

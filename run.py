@@ -11,6 +11,7 @@ from tiandao import story, config as C
 from tiandao import tuning as TN
 from tiandao import chronicle as CH
 from tiandao import persist as PS
+from tiandao import event_log as EL
 from tiandao.ai import config_ai as ACFG
 
 
@@ -63,6 +64,11 @@ def main():
                      help="แสดงตำนานที่สะสมไว้จากทุกรันที่ผ่านมา แล้วจบโปรแกรมทันที ไม่รันซิมใหม่")
     ap.add_argument("--save-path", default=PS.DEFAULT_PATH,
                      help="ตำแหน่งไฟล์บันทึกสถานะโลกทั้งก้อน (ดีฟอลต์ tiandao/world.save)")
+    ap.add_argument("--keep-recent-events", type=int, default=5000,
+                    help="ตอน --save เก็บเหตุการณ์ล่าสุดไว้ใน world.save เท่านี้ ที่เหลือต่อท้ายไฟล์ {save-path}.events.jsonl "
+                         "(เหมือน daemon.py) รายงานของรอบนี้ยังใช้ log เต็ม")
+    ap.add_argument("--no-trim-log", action="store_true",
+                    help="ตอน --save ไม่ตัด log — world.save โตไม่มีเพดานเมื่อ --resume --save ซ้ำหลายรอบ")
     ap.add_argument("--resume", action="store_true",
                      help="เดินต่อจากไฟล์ --save-path แทนที่จะสร้างโลกใหม่จาก --seed "
                           "(ถ้าไม่พบไฟล์ จะสร้างโลกใหม่แทนแล้วเตือน)")
@@ -143,7 +149,13 @@ def main():
         save_dir = os.path.dirname(a.save_path)
         if save_dir:
             os.makedirs(save_dir, exist_ok=True)
+        whole = sim.log
+        if not a.no_trim_log:
+            # เหตุการณ์เก่าไปต่อท้ายไฟล์คู่ save แล้วเซฟแค่ล่าสุด — เดิม --resume --save ซ้ำๆ ทำให้ log ใน world.save
+            # สะสมทุกเหตุการณ์ตั้งแต่เริ่มโลก (100 ปีจำลอง ~290,000 เหตุการณ์) รายงานข้างล่างยังใช้ log เต็มของรอบนี้
+            EL.flush_and_trim(sim, EL.default_log_path(a.save_path), a.keep_recent_events)
         PS.save_sim(sim, a.save_path)
+        sim.log = whole
         print(f"[persist] บันทึกสถานะโลกไว้ที่ {a.save_path}")
 
     os.makedirs(a.out, exist_ok=True)
