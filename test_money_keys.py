@@ -87,6 +87,27 @@ class MoneyKeyTests(unittest.TestCase):
         self.assertAlmostEqual(sum(sum(c.money.values()) for c in loaded.cast), total)
         self.assertEqual(loaded.rng.getstate(), rng_state)
 
+    def test_an_ambiguous_key_moves_only_for_people_living_in_that_world(self):
+        # เซฟจริงปีที่ 1,228: แดน wid 1 ตกเป็นชั้น 0 คีย์ 1 จึงเป็นได้ทั้ง "wid 1" และ "ชั้น 1"
+        sim = quiet(S.Sim, seed=5)
+        quiet(sim.run, 200)
+        demoted = sim.worlds[1]
+        demoted.tier = 0
+        other_tier1 = next(w for w in sim.worlds if w.wid > 2 and w.tier != 1)
+        other_tier1.tier = 1
+        local, visitor = sim.cast[0], sim.cast[1]
+        local.world_id, local.money = demoted.wid, {1: 30.0}
+        visitor.world_id, visitor.money = other_tier1.wid, {1: 50.0}
+        total = sum(sum(c.money.values()) for c in sim.cast)
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "world.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 4, "sim": sim}, f)
+            loaded = PS.load_sim(path)
+        self.assertEqual(loaded.cast[0].money, {0: 30.0}, "คนในแดน wid 1 เอง: คีย์ 1 คือ wid ย้ายไปชั้นของแดน")
+        self.assertEqual(loaded.cast[1].money, {1: 50.0}, "คนในแดนชั้น 1: คีย์ 1 คือเงินชั้น 1 อยู่แล้ว")
+        self.assertAlmostEqual(sum(sum(c.money.values()) for c in loaded.cast), total)
+
     def test_sect_payouts_are_paid_in_the_members_own_tier(self):
         sim = quiet(S.Sim, seed=5)
         member = sim.cast[0]
