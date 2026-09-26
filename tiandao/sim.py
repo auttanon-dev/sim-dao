@@ -1544,15 +1544,29 @@ class Sim:
             self.rumors.pop(0)
 
     def seed_ancient_rumors(self):
-        """ตำนานจากรันก่อนหน้า (tiandao/chronicle.json) แทรกเป็นข่าวลือเก่าแก่ในรันนี้"""
+        """ข่าวลือตำนานยุคก่อน RUMOR_ANCIENT_LEGENDS เรื่องในโลกมนุษย์ — จำนวนและผลต่อโลกเท่ากันทุกรัน
+
+        ตำนานจากรันก่อนหน้า (tiandao/chronicle.json) เป็นแค่ถ้อยคำของเรื่องเล่า เลือกด้วยสายสุ่มของงานเล่าเรื่อง
+        ที่ได้จาก seed (decision.rng.rng_for) ไม่ใช่ self.rng ไม่มีไฟล์ก็ใช้ถ้อยคำกลาง การได้ยินตำนานไม่ให้เบาะแส
+        และอารมณ์ตอบสนองตามชนิดเหตุการณ์ไม่ใช่ถ้อยคำ ถ้อยคำจึงไม่เปลี่ยนโลก (แบบ §12.4)
+        เดิมใช้ self.rng.sample ตามจำนวนตำนานในไฟล์ (ไม่มีไฟล์ = ไม่มีข่าวลือ) seed เดียวกันจึงได้โลกต่างกันตามไฟล์ที่
+        git ไม่เก็บ และ run.py เขียนไฟล์นี้ใหม่ทุกครั้งที่จบ รันถัดไปด้วย seed เดิมจึงได้โลกคนละใบ
+        """
+        from .decision import rng as DRNG
         legends = CH.all_legends(limit=8)
-        if not legends:
-            return
-        for lg in self.rng.sample(legends, min(2, len(legends))):
-            text = (f"คนแก่เล่าตำนานยุคก่อนถึง [{lg['name']}] {lg['race']}สาย{lg['dao']} "
-                    f"ผู้ไปถึง{lg['peak_realm']} เมื่อหลายชั่วอายุคนก่อน ({lg['status']})")
+        story_rng = DRNG.rng_for("ancient-legends", str(self.seed))
+        told = story_rng.sample(legends, min(C.RUMOR_ANCIENT_LEGENDS, len(legends)))
+        for i in range(C.RUMOR_ANCIENT_LEGENDS):
+            if i < len(told):
+                lg = told[i]
+                subject = lg["name"]
+                text = (f"คนแก่เล่าตำนานยุคก่อนถึง [{lg['name']}] {lg['race']}สาย{lg['dao']} "
+                        f"ผู้ไปถึง{lg['peak_realm']} เมื่อหลายชั่วอายุคนก่อน ({lg['status']})")
+            else:
+                subject = "ยอดฝีมือไร้นาม"
+                text = "คนแก่เล่าตำนานยุคก่อนถึงยอดฝีมือไร้นามผู้บำเพ็ญจนหายไปจากโลกเมื่อหลายชั่วอายุคนก่อน"
             self.rumors.append({
-                "id": self.nid("r"), "kind": "ตำนาน", "subject": lg["name"],
+                "id": self.nid("r"), "kind": "ตำนาน", "subject": subject,
                 "world_id": self.worlds[0].wid, "place": -1, "text": text,
                 "day": 0, "true": True, "heard": set(),
             })
