@@ -12,7 +12,11 @@
 ---------------------------------
 - เด็กอายุต่ำกว่า 14 ปีทุกคนมีผู้ปกครองหนึ่งคน (`Character.guardian`) อยู่แดนเดียวกัน ผู้ปกครองถือรายชื่อ `wards`
 - ลำดับที่เลือก: พ่อแม่ → พี่น้องที่เป็นผู้ใหญ่ ปู่ย่าตายาย และคู่ครองของพ่อแม่ → คนในตระกูลเดียวกัน → ผู้ใหญ่ที่อยู่
-  ที่เดียวกันซึ่งเลี้ยงไหว ในลำดับเดียวกัน คนที่อยู่ที่เดียวกับเด็กก่อน แล้วคนที่มีเงินมากกว่า ไม่ใช่ cid ต่ำก่อน
+  ที่เดียวกันซึ่งเลี้ยงไหว → ผู้ใหญ่คนอื่นในแดนเดียวกัน ในลำดับเดียวกัน คนที่อยู่ใกล้ข้าวก่อน แล้วคนที่อยู่ที่เดียวกับเด็ก
+  แล้วคนที่มีเงินมากกว่า ไม่ใช่ cid ต่ำก่อน
+  ขั้นสุดท้ายเพิ่มหลังวัดกับเซฟจริงปีที่ 1,228: เด็ก 343 จาก 975 คนไม่มีผู้ปกครอง 340 คนเพราะ "ไม่มีผู้ใหญ่ในที่ที่เด็กอยู่"
+  เกือบทั้งหมดอยู่ในแดนสาขาเล็กๆ ที่คนกระจายกันอยู่ และเด็กเหล่านี้ส่วนใหญ่ไม่มีพ่อแม่ (เกิดใหม่จากการเวียนว่าย
+  ตั้งแดนสาขา หรือ repopulate)
 - คนที่ไม่ใช่พ่อแม่รับเลี้ยงได้ไม่เกิน GUARDIAN_MAX_WARDS คน ผู้ปกครองต้องเป็นผู้ใหญ่ มีจิต และไม่ได้ปิดด่านหรือติดคุก
 - ผู้ปกครองอยู่คนละที่ในแดนเดียวกัน เด็กย้ายไปอยู่กับผู้ปกครอง ผู้ปกครองเดินทางไปถึงที่ใหม่ เด็กที่อยู่ด้วยย้ายตาม
   (ย้ายทันทีตอนรับเลี้ยงหรือตอนผู้ปกครองมาถึง — ยังไม่ได้จำลองการเดินทางของเด็กเป็นวัน)
@@ -47,17 +51,29 @@ def _can_care(ch, day) -> bool:
 
 
 def food_near(sim, wid, place) -> bool:
-    """ที่นี้มีข้าวพอเลี้ยงเด็กหนึ่งคนหนึ่งเดือนในยุ้งฉางของตัวเองหรือยุ้งฉางในระยะส่งไหม — ปิดระบบอาหาร = มีเสมอ"""
+    """ที่นี้มีข้าวพอเลี้ยงเด็กหนึ่งคนหนึ่งเดือนในยุ้งฉางของตัวเองหรือยุ้งฉางในระยะส่งไหม — ปิดระบบอาหาร = มีเสมอ
+
+    ระหว่างรอบของ tick() ยุ้งฉางไม่เปลี่ยน จึงจำคำตอบไว้ใน `_MEMO` ตลอดรอบนั้น เพราะการหาผู้ปกครองทั่วทั้งแดน
+    ถามซ้ำที่เดิมหลายร้อยครั้ง นอกรอบ (ผู้ปกครองตาย ผู้ปกครองย้าย) คิดใหม่ทุกครั้ง เพราะยุ้งฉางอาจเพิ่งเปลี่ยน
+    """
     if not C.FOOD_ENABLED:
         return True
     if place is None or place < 0:
         return False
+    key = (wid, place)
+    if _MEMO is not None and key in _MEMO:
+        return _MEMO[key]
     enough = C.FOOD_PACK_DAYS * C.FOOD_RATION_CHILD
     granary = getattr(sim, "granary", {})
-    if granary.get((wid, place), 0.0) >= enough:
-        return True
-    return any(granary.get((wid, other), 0.0) >= enough
-               for other, _hops in TR.places_within(sim, place, C.FOOD_REACH_HOPS))
+    near = granary.get(key, 0.0) >= enough or any(
+        granary.get((wid, other), 0.0) >= enough
+        for other, _hops in TR.places_within(sim, place, C.FOOD_REACH_HOPS))
+    if _MEMO is not None:
+        _MEMO[key] = near
+    return near
+
+
+_MEMO = None
 
 
 def _safe_to_move(sim, child, place) -> bool:
@@ -102,7 +118,7 @@ def _rank(sim, child, people):
                                          -WAGES.gold(sim, c), c.cid))
 
 
-def choose(sim, child, locals_by_spot=None):
+def choose(sim, child, locals_by_spot=None, adults_by_world=None):
     """ผู้ปกครองที่ควรดูแลเด็กคนนี้ หรือ None ถ้าไม่มีใครในแดนเดียวกันรับได้"""
     day = sim.day
 
@@ -124,7 +140,14 @@ def choose(sim, child, locals_by_spot=None):
     else:
         here = [c for c in sim.living_in(child.world_id) if c.place == child.place]
     here = [c for c in here if c.cid != child.cid and fit(c)]
-    return _rank(sim, child, here)[0] if here else None
+    if here:
+        return _rank(sim, child, here)[0]
+    if adults_by_world is not None:
+        anyone = adults_by_world.get(child.world_id, ())
+    else:
+        anyone = sim.living_in(child.world_id)
+    anyone = [c for c in anyone if c.cid != child.cid and fit(c)]
+    return _rank(sim, child, anyone)[0] if anyone else None
 
 
 def _release(sim, child):
@@ -151,8 +174,18 @@ def assign(sim, child, guardian, reason):
 
 def tick(sim) -> None:
     """ทุกรอบนาฬิกาโลก: เด็กที่ครบ 14 ปีพ้นการดูแล เด็กที่ยังไม่มีผู้ปกครองที่ใช้ได้ได้ผู้ปกครอง"""
+    global _MEMO
+    _MEMO = {}
+    try:
+        _tick(sim)
+    finally:
+        _MEMO = None
+
+
+def _tick(sim) -> None:
     day = sim.day
     locals_by_spot = {}
+    adults_by_world = {}
     children = []
     for cid in sorted(sim.alive_cids):
         ch = sim.cast[cid]
@@ -163,6 +196,7 @@ def tick(sim) -> None:
             sim.guardian_stats["released"] += 1
         else:
             locals_by_spot.setdefault((ch.world_id, ch.place), []).append(ch)
+            adults_by_world.setdefault(ch.world_id, []).append(ch)
     sim.guardian_stats["unplaced"] = 0
     for child in children:
         current = sim.cast[child.guardian] if 0 <= child.guardian < len(sim.cast) else None
@@ -170,7 +204,7 @@ def tick(sim) -> None:
             if current.place != child.place and current.travel_dest < 0:
                 _move_child(sim, child, current.place)     # กลับไปอยู่กับผู้ปกครองเมื่อที่นั้นปลอดภัยแล้ว
             continue
-        guardian = choose(sim, child, locals_by_spot)
+        guardian = choose(sim, child, locals_by_spot, adults_by_world)
         if guardian is None:
             if child.guardian >= 0:
                 _release(sim, child)

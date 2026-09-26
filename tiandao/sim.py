@@ -748,8 +748,13 @@ class Sim:
             return
         exp = deficit * (elapsed / 365.0) * C.REPOP_RATE
         n = int(exp) + (1 if self.rng.random() < exp % 1.0 else 0)
+        # เปิดระบบอาหารอยู่ ผู้ที่เข้ามาเติมเป็นผู้ใหญ่วัยทำงานที่อพยพเข้ามา (ประกาศเป็นแหล่งประชากร) ไม่ใช่เด็ก
+        # ไม่มีพ่อแม่อายุ 0–14 ปี วัดกับเซฟจริงปีที่ 1,228: 413 จาก 414 คนที่ repopulate สร้างใน 15 ปีเป็นเด็กแบบนั้น
+        # ซึ่งไม่มีใครเลี้ยงและอดตาย แล้วประชากรที่ลดลงก็ทำให้ repopulate สร้างเด็กแบบเดิมเพิ่มอีก
+        # ปิดระบบอาหาร: เหมือนเดิมทุกประการ (สุ่มครั้งเดียวต่อคนเท่ากัน)
+        low, high = (15, 40) if C.FOOD_ENABLED else (0, 14)
         for _ in range(min(n, deficit)):
-            self.spawn(world, self.rng.randint(0, 14))
+            self.spawn(world, self.rng.randint(low, high))
 
     def recount_worlds(self):
         """นับประชากรของทุกแดนใหม่จากของจริง — เดินรายชื่อคนเป็นรอบเดียว O(คนเป็น) ไม่ใช่ต่อแดน

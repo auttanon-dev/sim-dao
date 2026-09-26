@@ -25,6 +25,7 @@ from tiandao import food as FOOD
 from tiandao import persist as PS
 from tiandao import places as PL
 from tiandao import sim as S
+from tiandao import travel as TR
 from tiandao import wages as WAGES
 
 
@@ -123,17 +124,30 @@ class FoodRulesTests(unittest.TestCase):
         self.assertAlmostEqual(sent * (1 - C.FOOD_CARRY_LOSS_PER_HOP), 30.0, places=6)
         self.assertAlmostEqual(self.sim.food_stats["carried_lost"], sent - 30.0, places=6)
 
-    def test_food_beyond_reach_sends_the_hungry_on_the_road(self):
+    def test_when_supply_falls_short_they_leave_while_provisions_last(self):
         eater = setup_person(self.sim, self.people[0], self.a)
+        trip = TR.shortest_path_days(self.a, self.far, eater.realm, character=eater)
+        eater.food = 20 + trip + C.FOOD_TRIP_MARGIN_DAYS + 1      # หลังกินรอบนี้ยังพอเดินทางไปถึง
+        self.sim.granary[(0, self.a)] = 10.0                        # ยุ้งฉางที่นี่ให้ได้ไม่ครบ
         self.sim.granary[(0, self.far)] = 1000.0
         before = {cid for _d, cid in self.sim.queue}
-        with food_on(), only(self.sim, eater), quiet_emit(self.sim):
+        with food_on(), no_spoil(), only(self.sim, eater), quiet_emit(self.sim):
             FOOD.tick(self.sim, 30)
-        self.assertGreater(eater.hunger_days, 0)
-        self.assertGreaterEqual(eater.travel_dest, 0, "ต้องออกเดินทางไปหาข้าว")
+        self.assertEqual(eater.hunger_days, 0.0, "ยังไม่หิว แต่ออกเพราะยุ้งฉางเริ่มไม่พอ")
+        self.assertEqual(eater.travel_dest, self.far)
         self.assertEqual(sum(cid == eater.cid for _d, cid in self.sim.queue), 1, "คิวใบเดียวต่อคน")
         self.assertIn((eater.travel_arrival_day, eater.cid), self.sim.queue)
         self.assertEqual({cid for _d, cid in self.sim.queue} - {eater.cid}, before - {eater.cid})
+
+    def test_nobody_sets_out_on_a_trip_they_cannot_survive(self):
+        eater = setup_person(self.sim, self.people[0], self.a, food=0.0)
+        self.sim.granary[(0, self.far)] = 1000.0
+        with food_on(), no_spoil(), only(self.sim, eater), quiet_emit(self.sim):
+            FOOD.tick(self.sim, 30)                                 # หิวแล้ว 30 วัน ไม่มีเสบียงเหลือ
+        trip = TR.shortest_path_days(self.a, self.far, eater.realm, character=eater)
+        self.assertGreater(trip, C.FOOD_STARVE_DAYS - 30 - C.FOOD_TRIP_MARGIN_DAYS)
+        self.assertEqual(eater.travel_dest, -1, "ไปไม่ถึงก่อนอดตาย จึงอยู่ที่เดิม")
+        self.assertEqual(self.sim.food_stats["migrated"], 0)
 
     def test_a_cultivator_past_bigu_does_not_eat(self):
         sage = setup_person(self.sim, self.people[0], self.a, realm=C.FOOD_BIGU_REALM)

@@ -126,10 +126,20 @@ def land_output_per_day(workers: int) -> float:
 
 
 def _endow(sim, ch):
-    """เสบียงที่คนติดตัวมาตอนระบบเห็นเขาครั้งแรก — แหล่งที่ประกาศไว้ นับใน stats['endowed']"""
-    amount = C.FOOD_START_DAYS * ration(ch, sim.day)
-    ch.food = amount
-    sim.food_stats["endowed"] += amount
+    """เสบียงตั้งต้นตอนระบบเห็นคนนี้ครั้งแรก — แหล่งที่ประกาศไว้ นับใน stats['endowed']
+
+    รวม FOOD_START_DAYS วันต่อคนเท่าเดิม แต่ติดตัวแค่ FOOD_PACK_DAYS วัน ที่เหลือเข้ายุ้งฉางของที่ที่เขาอยู่
+    ของในยุ้งฉางแบ่งกันกินและขนไปให้ที่ใกล้เคียงได้ ส่วนของติดตัวแบ่งใครไม่ได้ วัดกับเซฟจริงปีที่ 1,228:
+    ตอนให้ทั้งหมดติดตัว คนอดตาย 701 คนในห้าปีแรกหลังเปิดระบบ (ปีแรก 366) ส่วนใหญ่เป็นผู้ใหญ่ที่ยังมีเงิน
+    """
+    total = C.FOOD_START_DAYS * ration(ch, sim.day)
+    sim.food_stats["endowed"] += total
+    if _away(ch, sim.day):
+        ch.food = total
+        return
+    ch.food = min(total, C.FOOD_PACK_DAYS * ration(ch, sim.day))
+    spot = _spot(ch)
+    sim.granary[spot] = sim.granary.get(spot, 0.0) + total - ch.food
 
 
 def _account(sim, ch, need, eaten, days):
@@ -195,8 +205,9 @@ def tick(sim, days) -> None:
     for dest, came in _carry_in(sim, short).items():
         for src, amount in came.items():
             sources[dest][src] = sources[dest].get(src, 0.0) + amount
+    short = set()
     for spot in sorted(eaters_at):
-        _feed_place(sim, spot, eaters_at[spot], days, sources[spot])
+        short |= _feed_place(sim, spot, eaters_at[spot], days, sources[spot])
     for ch in away:
         need = days * ration(ch, day)
         eaten = min(ch.food, need)
@@ -213,6 +224,8 @@ def tick(sim, days) -> None:
             _starve(sim, ch)
         elif ch.hunger_days > 0:
             _respond(sim, ch)
+        elif ch.cid in short and not _secluded(ch, day):
+            _seek_food(sim, ch)             # ยุ้งฉางเริ่มไม่พอ ออกตอนนี้ขณะยังมีเสบียงพอเดินทาง
 
 
 def _payers(sim, ch):
@@ -259,6 +272,7 @@ def _feed_place(sim, spot, group, days, sources):
     """แบ่งข้าวที่ได้มาให้คนในที่นี้ตามความต้องการเท่ากันทุกคน ส่วนที่ขาดหรือซื้อไม่ไหวกินจากเสบียงติดตัว
 
     `sources` คือข้าวที่ได้มารอบนี้แยกตามยุ้งฉางต้นทาง — ค่าข้าวที่จ่ายแบ่งให้ไร่ต้นทางตามสัดส่วนนี้
+    คืนเซต cid ของคนที่ยุ้งฉางให้ได้ไม่ครบรอบนี้ (ต้องควักเสบียงติดตัวหรือหิว)
     """
     day = sim.day
     supplied = sum(sources.values())
@@ -266,10 +280,13 @@ def _feed_place(sim, spot, group, days, sources):
     total = sum(need)
     share = min(1.0, supplied / total) if total > 0 else 1.0
     bought = paid = 0.0
+    short = set()
     for ch, n in zip(group, need):
         got, cost = _buy(sim, ch, n * share)
         bought += got
         paid += cost
+        if n - got > _EPS:
+            short.add(ch.cid)
         from_pack = min(ch.food, n - got)
         ch.food -= from_pack
         _account(sim, ch, n, got + from_pack, days)
@@ -286,11 +303,11 @@ def _feed_place(sim, spot, group, days, sources):
     keep_level = C.FOOD_GRANARY_KEEP_DAYS * sum(ration(ch, day) for ch in group)
     spare = sim.granary.get(spot, 0.0) - keep_level
     if spare <= 0:
-        return
+        return short
     want = [max(0.0, C.FOOD_PACK_DAYS * ration(ch, day) - ch.food) for ch in group]
     total_want = sum(want)
     if total_want <= 0:
-        return
+        return short
     give = min(spare, total_want)
     for ch, w in zip(group, want):
         got, cost = _buy(sim, ch, w * give / total_want)
@@ -299,6 +316,7 @@ def _feed_place(sim, spot, group, days, sources):
         if cost > 0:
             sim.farm_till[spot] = sim.farm_till.get(spot, 0.0) + cost
             sim.wage_stats["food_bought"] += cost
+    return short
 
 
 def _pay_farmers(sim, workers_at):
@@ -385,16 +403,29 @@ def _respond(sim, ch):
         if ch.food <= _EPS:
             _end_seclusion(sim, ch, "เสบียงหมดก่อนครบกำหนด")
         return
+    _seek_food(sim, ch)
+
+
+def _seek_food(sim, ch):
+    """ยุ้งฉางแถวนี้เลี้ยงไม่พอ — เดินทางไปที่ใกล้ที่สุดในแดนเดียวกันที่มีข้าวเหลือเฟือ ถ้าไปถึงก่อนอดตาย
+
+    เรียกทั้งตอนเริ่มหิว และตอนที่ยุ้งฉางเริ่มให้ไม่ครบแม้ยังไม่หิว (ต้องควักเสบียงติดตัว) เพราะวัดกับเซฟจริง
+    ปีที่ 1,228: คนที่รอจนหิวแล้วค่อยออกเดินทาง ออกไปพร้อมเสบียงศูนย์วัน บนทางที่ใช้มัธยฐาน 61 วัน แต่อดได้แค่
+    40 วัน อดตายกลางทาง 173 คนในปีแรก 162 คนในนั้นเป็นการเดินทางที่ไปไม่ถึงตั้งแต่ก่อนออก
+    ไปได้ = วันเดินทาง ≤ วันที่เสบียงพอกิน + วันที่ยังอดได้ − FOOD_TRIP_MARGIN_DAYS ไปไม่ถึงก็อยู่ที่เดิม
+    """
+    day = sim.day
     if ch.travel_dest >= 0 or ch.age(day) < 14 or ch.place is None or ch.place < 0:
         return
     wid = ch.world_id
-    if sim.granary.get(_spot(ch), 0.0) > _EPS or any(
-            sim.granary.get((wid, src), 0.0) > _EPS for src, _hops in _reach(sim, ch.place)):
-        return                      # ยังมีข้าวในระยะส่งถึง แค่ไม่พอหรือซื้อไม่ไหว ย้ายไปก็ไม่ช่วย
     dest = _nearest_food(sim, ch)
     if dest is None:
         return
     place, travel_days = dest
+    rate = ration(ch, day)
+    endurance = ch.food / rate + (C.FOOD_STARVE_DAYS - ch.hunger_days) - C.FOOD_TRIP_MARGIN_DAYS
+    if travel_days > endurance:
+        return                      # ไปไม่ถึงก่อนอดตาย อยู่รอข้าวที่ส่งมาถึงที่นี่ดีกว่า
     ch.travel_dest = place
     ch.travel_arrival_day = day + travel_days
     sim.food_stats["migrated"] += 1
@@ -405,20 +436,26 @@ def _respond(sim, ch):
 
 
 def _nearest_food(sim, ch):
-    """ที่ใกล้ที่สุดในแดนเดียวกันที่ยุ้งฉางยังมีอาหาร — คืน (สถานที่, วันเดินทาง) หรือ None"""
+    """ที่ใกล้ที่สุดในแดนเดียวกัน นอกระยะส่งข้าวของที่นี่ ที่ยุ้งฉางมีข้าวเลี้ยงคนที่ไปได้อย่างน้อย
+    FOOD_DEST_STOCK_DAYS วัน — คืน (สถานที่, วันเดินทาง) หรือ None (ที่ในระยะส่งอยู่แล้วส่งข้าวมาให้เองได้)"""
     world = sim.world(ch.world_id)
+    enough = C.FOOD_DEST_STOCK_DAYS * ration(ch, sim.day)
+    in_reach = {p for p, _hops in _reach(sim, ch.place)}
+    # เรียงด้วยระยะทางที่แคชไว้ต่อต้นทาง แล้วคิดวันเดินทางเฉพาะที่ที่เลือก — shortest_path_days รัน Dijkstra
+    # ใหม่ทุกคู่ การถามทุกสถานที่ของแดนให้ทุกคนที่ข้าวเริ่มไม่พอทำให้ทั้งซิมช้าลงเกือบครึ่ง
+    dist = TR.distances_from(ch.place)
     best = None
     for place in PL.places_in(world.place_key):
         stock = sim.granary.get((world.wid, place), 0.0)
-        if place == ch.place or stock <= _EPS:
+        if place == ch.place or place in in_reach or stock < enough or place not in dist:
             continue
-        days = TR.shortest_path_days(ch.place, place, ch.realm, character=ch)
-        if days is None:
-            continue
-        key = (days, -stock, place)
-        if best is None or key < best[0]:
-            best = (key, place, days)
-    return None if best is None else (best[1], best[2])
+        key = (dist[place], -stock, place)
+        if best is None or key < best:
+            best = key
+    if best is None:
+        return None
+    days = TR.shortest_path_days(ch.place, best[2], ch.realm, character=ch)
+    return None if days is None else (best[2], days)
 
 
 def on_death(sim, ch):
