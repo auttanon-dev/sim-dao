@@ -101,6 +101,14 @@ class SuccessionAndCleanupTests(World):
         self.assertEqual(org.facilities["หอโอสถ"], alch.cid, "ฝีมือปรุงยาสูงสุด")
         self.assertEqual(org.founder, head.cid, "ผู้ก่อตั้งยังเป็นประวัติเดิม")
 
+    def test_a_sect_whose_last_member_dies_is_dissolved(self):
+        last = self.people[0]
+        org = Org(oid=len(self.sim.orgs), kind="สำนัก", name="สำนักสุดท้าย", world_id=0, founder=last.cid,
+                  founded_day=0, members=[last.cid])
+        self.sim.orgs.append(org)
+        self.die(last)
+        self.assertFalse(org.alive)
+
     def test_a_same_sect_killer_usurps_the_sect_master(self):
         master, traitor, elder = self.people[:3]
         for c, role in ((master, "เจ้าสำนัก"), (traitor, "ศิษย์ในสำนัก"), (elder, "ศิษย์ในสำนัก")):
@@ -154,6 +162,7 @@ class OldSaveTests(World):
                 pickle.dump({"save_version": 11, "sim": self.sim}, f)
             back = PS.load_sim(path)
         self.assertEqual(back.org_head(back.orgs[org.oid]), core.cid)
+        self.assertTrue(back.orgs[org.oid].alive, "ยังมีสมาชิกเหลือ ไม่สลาย")
         self.assertEqual(back.rng.getstate(), state, "ย้ายข้อมูลไม่แตะ RNG")
 
 class BodyGateTests(World):

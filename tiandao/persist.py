@@ -48,7 +48,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  10 — ตัวนับใหม่ของ guardian_stats (เด็กที่ย้ายแดนไปหาข้าว)
 #  11 — ตัวนับใหม่ของ food_stats (เสบียงที่ซื้อก่อนออกเดินทาง การเดินทางที่เลื่อนไปเพราะเสบียงไม่พอ)
 #  12 — สำนักที่ผู้นำตายไปก่อนมีการสืบทอด ได้ผู้นำใหม่ (Sim.next_org_head / next_sect_master)
-SAVE_VERSION = 12
+#  13 — สำนักที่ไม่เหลือสมาชิกที่ยังมีชีวิตสลายไป (Org.alive = False)
+SAVE_VERSION = 13
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -272,6 +273,8 @@ def _migrate(sim, version):
         _add_new_counters(sim)          # รุ่น 7, 9, 10, 11 เพิ่มตัวนับใน food_stats/guardian_stats
     if version < 12:
         _appoint_missing_heads(sim)
+    if version < 13:
+        _dissolve_empty_sects(sim)
 
 
 def _appoint_missing_heads(sim):
@@ -291,6 +294,14 @@ def _appoint_missing_heads(sim):
             new = sim.next_sect_master(sect)
             if new is not None:
                 new.sect_role = "เจ้าสำนัก"
+
+
+def _dissolve_empty_sects(sim):
+    """สำนักที่ยังนับว่าอยู่แต่ไม่เหลือสมาชิกที่ยังมีชีวิตเลย สลายไป — ไม่แตะ RNG ทำซ้ำได้ผลเดิม
+    เซฟจริงปีที่ 1,136: 56 จาก 131 สำนัก ตั้งแต่รุ่น 13 สำนักสลายเองตอนสมาชิกคนสุดท้ายตาย (Sim.succeed)"""
+    for org in sim.orgs:
+        if org.alive and sim.next_org_head(org) is None:
+            org.alive = False
 
 
 def _add_new_counters(sim):

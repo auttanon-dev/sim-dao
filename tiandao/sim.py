@@ -1034,6 +1034,8 @@ class Sim:
                     org.leader = new.cid
                     self.emit(self.world(new.world_id), "สืบทอดตำแหน่ง", new, ch, ["ชื่อเสียง"], "เป็นผู้นำสำนัก",
                               f"{new.name}รับช่วงเป็นผู้นำ{org.name}ต่อจาก{ch.name}", 0, {"สำนัก": org.name})
+            if org.alive and self.next_org_head(org) is None:
+                org.alive = False           # ไม่เหลือสมาชิกที่ยังมีชีวิต สำนักสลายไป (ทุกที่ข้ามสำนักที่ alive=False อยู่แล้ว)
             for name, master in list(org.facilities.items()):
                 if master != ch.cid:
                     continue
