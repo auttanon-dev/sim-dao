@@ -219,11 +219,13 @@ class WorldRunner:
 
     def _loop(self) -> None:
         cfg = self.cfg
+        lock = None
         try:
             ACFG.LLM_ENABLED = cfg.llm
             state = TN.load_state()
             if cfg.autotune and state.get("overrides"):
                 TN.apply_overrides(state["overrides"])
+            lock = PS.writer_lock(cfg.save_path)
             sim, created = load_or_create(cfg)
             self.created_world = created
             while not self._stop.is_set():
@@ -243,9 +245,15 @@ class WorldRunner:
                 while waited < cfg.interval and not self._stop.is_set():
                     time.sleep(min(0.25, cfg.interval - waited))
                     waited += 0.25
+        except PS.WorldLocked as exc:
+            self.state, self.error = "error", str(exc)
+            return
         except Exception as exc:                     # noqa: BLE001 — ต้องรายงานให้หน้าเว็บเห็น
             self.state, self.error = "error", f"{type(exc).__name__}: {exc}"
             return
+        finally:
+            if lock is not None:
+                lock.close()                         # ปล่อยสิทธิ์เขียนทันทีที่หยุด หน้าเว็บยังเปิดอยู่ต่อได้
         self.state = "idle"
 
 

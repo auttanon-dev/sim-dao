@@ -107,6 +107,12 @@ def main():
             TN.apply_overrides(state["overrides"])
             print(f"[autotune] โหลดค่าที่เรียนรู้ไว้: {state['overrides']}")
 
+    lock = None
+    if a.save:
+        try:
+            lock = PS.writer_lock(a.save_path)   # noqa: F841 — ถือไว้จนโปรเซสจบ
+        except PS.WorldLocked as ex:
+            raise SystemExit(f"[persist] {ex}")
     sim = None
     if a.resume:
         try:

@@ -450,3 +450,33 @@ def _backfill_new_attrs(sim):
                 }
             sim.update_apex_blessing(ch)
     sim.refresh_bloodline_buffs()
+
+
+# ---------------------------------------------------------------- ผู้เขียนโลกคนเดียว (แบบ §12.1)
+class WorldLocked(RuntimeError):
+    """มีอีกโปรเซสกำลังเดินโลกนี้อยู่"""
+
+
+def writer_lock(save_path):
+    """จองสิทธิ์เขียนโลกนี้แต่ผู้เดียว — คืนไฟล์ที่ถือล็อกไว้ ต้องเก็บไว้จนเลิกเขียน (ปิดไฟล์ = ปล่อยล็อก)
+
+    ใช้ล็อกของระบบปฏิบัติการบน {save_path}.writer.lock ระบบปล่อยให้เองเมื่อโปรเซสจบ พัง หรือโดน Ctrl+C
+    จึงไม่มีล็อกค้าง เคยมีสองโปรเซสเดินโลกเดียวกันพร้อมกัน ต่างคนต่างเซฟทับกันและต่อท้ายประวัติชนกันจนไฟล์เสีย
+    """
+    path = save_path + ".writer.lock"
+    d = os.path.dirname(os.path.abspath(path))
+    os.makedirs(d, exist_ok=True)
+    f = open(path, "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        raise WorldLocked(f"มีอีกโปรเซสกำลังเดินโลก {save_path} อยู่ (daemon, ปุ่มเดินโลกบนหน้าเว็บ หรือ run.py --save) "
+                          f"— หยุดตัวนั้นก่อน หรือใช้ --save-path อื่น") from None
+    return f

@@ -83,6 +83,10 @@ def main():
     if state.get("overrides"):
         TN.apply_overrides(state["overrides"])
 
+    try:
+        lock = PS.writer_lock(cfg.save_path)   # noqa: F841 — ถือไว้ตลอดอายุโปรเซส
+    except PS.WorldLocked as ex:
+        raise SystemExit(f"[daemon] {ex}")
     sim = load_or_create(cfg)
 
     it = save_failures = 0
