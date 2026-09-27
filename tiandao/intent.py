@@ -12,6 +12,11 @@ from . import config as C
 from . import physics as PHYS
 from . import economy as EC
 
+# การกระทำที่ต้องออกแรงสู้ (ตารางเหตุการณ์ติดป้าย "ต่อสู้" รวมการลงมือกับคนโดยตรง) และที่ต้องใช้ร่างกายหนัก (รวมการเดินทาง)
+COMBAT_KINDS = frozenset({"ล่าอสูร", "สงครามเบิกฟ้า", "ประลอง", "ชิงสมบัติ", "สงครามสำนัก", "ปกป้องชาวบ้าน",
+                          "จับกุมอาชญากร", "ล้างแค้น", "ลอบสังหาร", "ขูดรีดชาวบ้าน"})
+PHYSICAL_KINDS = COMBAT_KINDS | {"เก็บวัตถุดิบ", "เดินทาง", "ค้นแดนลับ", "ลงโลกล่าง", "ลาดตระเวน"}
+
 # ---------------------------------------------------------------- นิสัย
 TRAITS = {
     "ใจโอบอ้อม": "เลือกช่วยคนและรักษาสมาชิกตระกูลก่อนเสมอ",
@@ -668,6 +673,16 @@ def weigh(ch, sim, table, has_others, loot_nearby=None,
         for k in need_target:
             w.pop(k, None)
     valid = {e["kind"] for e in table}
+    # ---- ร่างกายเป็นด่านบังคับ ไม่ใช่แค่พลัง (แบบ §10) ----
+    # หมดสติหรือยืนไม่ได้ ออกไปสู้หรือเดินทางไม่ได้ ยืนได้แต่ออกหมัดไม่ไหวก็ยังไม่ไปหาเรื่องใคร
+    # เดิมมีด่านนี้เฉพาะใน decision engine ที่ปิดเป็นค่าเริ่มต้น ทางปกติจึงให้คนขาหักไปท้าประลองได้
+    from . import body as _BODY
+    if not _BODY.conscious(ch) or not _BODY.can_stand(ch):
+        for k in PHYSICAL_KINDS:
+            w[k] = 0.0
+    elif not _BODY.can_fight(ch):
+        for k in COMBAT_KINDS:
+            w[k] = 0.0
     return {k: v for k, v in w.items() if v > 0 and k in valid}
 
 

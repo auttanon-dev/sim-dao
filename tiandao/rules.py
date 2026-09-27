@@ -342,9 +342,44 @@ def resolve_clash(a, b, world, items, rng, day=None):
     return b, a, (abs(adv) if adv < 0 else 0.15)
 
 
-def apply_defeat(sim, world, win, lose, margin, rng, lethal_at=None):
+def lethal_margin(world, lethal_at=None) -> float:
+    """ความห่างของการปะทะที่ถึงตาย — โลกสูงยิ่งอันตราย (float('inf') = ประลองไม่ถึงตาย)"""
     lethal_at = C.DEATH_MARGIN if lethal_at is None else lethal_at
-    lethal_at *= (1.0 - C.DANGER_PER_TIER) ** world.tier     # โลกสูงยิ่งอันตราย
+    return lethal_at * (1.0 - C.DANGER_PER_TIER) ** world.tier
+
+
+def escape_with_talisman(sim, ch) -> bool:
+    """ใช้ยันต์หนีตายใบหนึ่งถ้ามี — หนีไปทั้งตัวและของ คืน True ถ้าหนีได้"""
+    for iid in list(getattr(ch, "items", [])):
+        it = sim.items.get(iid)
+        if it is not None and it.kind == C.TALISMAN_KIND and it.name == C.TALISMAN_ESCAPE:
+            ch.items.remove(iid)
+            del sim.items[iid]
+            return True
+    return False
+
+
+def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False):
+    """การปะทะหนึ่งครั้งตัดสินที่นี่ที่เดียว — คืน (ผู้ชนะ, ผู้แพ้, margin, ผล)
+
+    ใครชนะมาจาก resolve_clash ผลต่อร่าง (บาดเจ็บ ความล้า ความเสื่อม) และชีวิตของผู้แพ้มาจาก apply_defeat
+    เดิมมีอีกทางคือ combat.resolve_combat ซึ่งคิดพลังอีกสูตรและไม่ลงแผลเลย ผู้เรียกแต่ละที่ตัดสินความตายเอง
+    (บัญชาสวรรค์ไม่เคยฆ่ามารได้สักครั้ง) ตอนนี้ทุกการปะทะผ่านที่นี่
+    - ยันต์หนีตายใช้เมื่อมีอะไรต้องเสีย (ถึงตาย หรือจะถูกริบของ) หนีได้ก็ไม่บาดเจ็บและไม่เสียของ ผล "หนีรอด"
+    - plunder=True ผู้ชนะริบของผู้แพ้ที่ยังไม่ตาย (ถ้าตาย Sim.kill ส่งของให้ผู้ฆ่าอยู่แล้ว)
+    """
+    win, lose, margin = resolve_clash(a, b, world, sim.items, rng, day)
+    if (plunder or margin >= lethal_margin(world, lethal_at)) and escape_with_talisman(sim, lose):
+        return win, lose, margin, "หนีรอด"
+    res = apply_defeat(sim, world, win, lose, margin, rng, lethal_at)
+    if plunder and lose.alive and lose.items:
+        win.items.extend(lose.items)
+        lose.items = []
+    return win, lose, margin, res
+
+
+def apply_defeat(sim, world, win, lose, margin, rng, lethal_at=None):
+    lethal_at = lethal_margin(world, lethal_at)
     lose.decay += C.DECAY_PER_FIGHT * (1.0 + margin) / (1.0 + 0.25 * lose.realm)
     # ผู้แพ้รับแรงเข้าร่างจริงเป็นบาดเจ็บเฉพาะส่วน (ดู body/injury · §26–28) พลังงานมาจาก
     # หมัดของผู้ชนะตามกายวิภาคของเขาเอง ถ่วงด้วยว่าเฉือนกันขาดแค่ไหน

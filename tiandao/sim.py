@@ -927,6 +927,7 @@ class Sim:
         if ch.realm == 0:
             w.n_mortal -= 1
         R.death_return(w, ch, natural)
+        self.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
         if killer:
             killer.kills += 1
             if ch.is_unique_beast:
@@ -945,10 +946,125 @@ class Sim:
                 self.items[i].legend for i in ch.items):
             # สมบัติฟ้าดินที่มีชื่อไม่มีวันสูญหาย เจ้าของตายก็ถูกผนึกรอผู้มีวาสนาคนต่อไป
             self.make_cache(ch, faked=False)
+            ch.money = {}           # ทองที่ไม่มีทายาทรับไปอยู่ในแดนลับแล้ว (เดิมถูกนับทั้งในแดนลับและบนศพ)
+        self.succeed(ch, killer)
+        for cid in self.alive_cids:                  # แค้นคนตายชำระไม่ได้ (เหมือน fade_grudges แต่ทันที)
+            self.cast[cid].rivals.pop(ch.cid, None)
+        ch.travel_dest = ch.building_dest = -1       # ไม่มีศพที่ยังเดินทางหรือเดินในเมืองค้างอยู่
 
         # ผู้ฝึกสายวัฏจักร: ร่างตายแล้ว แต่ดวงจิตไปเกิดใหม่ — ทำหลังกระบวนการตายครบทุกอย่าง
         if ch.sentient and not ch.is_lord and self._knows_cycle(ch):
             self.reincarnate(ch)
+
+    # ------------------------------------------------------------ มรดกและตำแหน่งของผู้ตาย
+    def heirs_of(self, ch):
+        """ทายาทตามกฎหมาย — คู่ครองที่ยังมีชีวิต ไม่มีก็ลูกที่โตแล้วทุกคน"""
+        cast = self.cast
+        if ch.spouse is not None and 0 <= ch.spouse < len(cast) and cast[ch.spouse].alive:
+            return [cast[ch.spouse]]
+        return [cast[c] for c in ch.children
+                if 0 <= c < len(cast) and cast[c].alive and cast[c].age(self.day) >= C.ADULT_AGE]
+
+    def settle_estate(self, ch, items_to_heirs):
+        """ทองของผู้ตายไปที่ทายาท (แบ่งเท่ากัน) ไม่มีทายาทเข้าคลังทองของสำนัก ไม่มีสำนักก็ค้างอยู่กับศพ (แดนลับหรือ
+        buried_gold ภายหลัง) ของธรรมดาไปที่ทายาทเมื่อไม่มีผู้ฆ่าริบ ของที่มีชื่อยังตามกฎเดิม (ผนึกในแดนลับ)
+        เดิมทองอยู่บนศพตลอดไป ไม่มีใครได้ใช้"""
+        heirs = self.heirs_of(ch)
+        org = (self.orgs[ch.org] if ch.org is not None and 0 <= ch.org < len(self.orgs)
+               and self.orgs[ch.org].alive else None)
+        stats = self.__dict__.setdefault("estate_stats", {"to_heirs": 0.0, "to_sect": 0.0, "unclaimed": 0.0,
+                                                          "items_to_heirs": 0})
+        for tier, gold in list(ch.money.items()):
+            if gold <= 0:
+                continue
+            if heirs:
+                for h in heirs:
+                    h.money[tier] = h.money.get(tier, 0.0) + gold / len(heirs)
+                stats["to_heirs"] += gold
+            elif org is not None:
+                purse = org.__dict__.setdefault("treasury_gold", {})
+                purse[tier] = purse.get(tier, 0.0) + gold
+                stats["to_sect"] += gold
+            else:
+                stats["unclaimed"] += gold
+                continue
+            ch.money[tier] = 0.0
+        if items_to_heirs and heirs:
+            regular = [i for i in ch.items if i in self.items and not self.items[i].legend]
+            for n, iid in enumerate(regular):
+                heirs[n % len(heirs)].items.append(iid)
+                ch.items.remove(iid)
+            stats["items_to_heirs"] += len(regular)
+
+    def org_head(self, org):
+        """ผู้นำสำนักตอนนี้ — ผู้ก่อตั้งจนกว่าจะมีผู้สืบทอด"""
+        lead = getattr(org, "leader", -1)
+        return lead if lead >= 0 else org.founder
+
+    def next_org_head(self, org):
+        """ผู้นำคนถัดไปของสำนัก — ศิษย์สายแกน แล้วสายใน สายนอก สมาชิกอื่น ในกลุ่มเดียวกันเลือกขั้นสูงสุด (ไม่ใช้ RNG)"""
+        cast = self.cast
+        for group in (org.core_disciples, org.inner_disciples, org.outer_disciples, org.members):
+            cands = [c for c in group if 0 <= c < len(cast) and cast[c].alive]
+            if cands:
+                return cast[max(cands, key=lambda c: (cast[c].realm, -c))]
+        return None
+
+    def next_sect_master(self, sect):
+        """เจ้าสำนักคนถัดไปตามชื่อสำนัก — คนในสำนักที่ขั้นสูงสุด (ไม่ใช้ RNG)"""
+        same = [c for c in map(self.cast.__getitem__, self.alive_sorted()) if getattr(c, "sect_name", None) == sect]
+        return max(same, key=lambda c: (c.realm, -c.cid)) if same else None
+
+    def succeed(self, ch, killer):
+        """ตำแหน่งของผู้ตายมีคนรับช่วงทันที ไม่ว่างค้างตลอดไป
+        - ผู้นำสำนัก: ศิษย์สายแกน แล้วสายใน สายนอก สมาชิกอื่น ในกลุ่มเดียวกันเลือกขั้นสูงสุด
+        - ผู้คุมหอโอสถ/หอศาสตรา: สมาชิกที่ฝีมือทางนั้นสูงสุด (กฎเดียวกับที่ตั้งผู้คุมรายเดือน)
+        - เจ้าสำนักตามชื่อสำนัก: ผู้ฆ่าที่อยู่สำนักเดียวกัน (ชิงตำแหน่ง) ไม่งั้นคนในสำนักที่ขั้นสูงสุด
+        - เจ้าเมือง: คนในเมืองที่ขั้นสูงสุด รับตำแหน่งเดิม
+        """
+        cast = self.cast
+        ok = lambda c: 0 <= c < len(cast) and cast[c].alive                      # noqa: E731
+        world = self.world(ch.world_id)
+        for org in self.orgs:
+            if not org.alive:
+                continue
+            if self.org_head(org) == ch.cid:
+                new = self.next_org_head(org)
+                if new is not None:
+                    org.leader = new.cid
+                    self.emit(self.world(new.world_id), "สืบทอดตำแหน่ง", new, ch, ["ชื่อเสียง"], "เป็นผู้นำสำนัก",
+                              f"{new.name}รับช่วงเป็นผู้นำ{org.name}ต่อจาก{ch.name}", 0, {"สำนัก": org.name})
+            for name, master in list(org.facilities.items()):
+                if master != ch.cid:
+                    continue
+                skill = {"หอโอสถ": "alch_rank", "หอศาสตรา": "forge_rank"}.get(name)
+                cands = [c for c in org.members if ok(c) and (skill is None or getattr(cast[c], skill, 0) > 0)]
+                if cands:
+                    org.facilities[name] = max(cands, key=lambda c: (getattr(cast[c], skill, 0) if skill
+                                                                     else cast[c].realm, -c))
+                else:
+                    del org.facilities[name]
+        sect = getattr(ch, "sect_name", None)
+        if sect and getattr(ch, "sect_role", "") == "เจ้าสำนัก":
+            ch.sect_role = ""
+            if killer is not None and killer.alive and getattr(killer, "sect_name", None) == sect:
+                new = killer
+            else:
+                new = self.next_sect_master(sect)
+            if new is not None:
+                new.sect_role = "เจ้าสำนัก"
+                self.emit(self.world(new.world_id), "สืบทอดตำแหน่ง", new, ch, ["ชื่อเสียง"], "เป็นเจ้าสำนัก",
+                          f"{new.name}ขึ้นเป็นเจ้า{sect}ต่อจาก{ch.name}", 0, {"สำนัก": sect})
+        for city in getattr(C, "CITIES", ()):
+            if city.get("ruler_cid") != ch.cid:
+                continue
+            here = [c for c in map(cast.__getitem__, self.alive_sorted()) if getattr(c, "city_id", -1) == city["id"]]
+            new = max(here, key=lambda c: (c.realm, -c.cid)) if here else None
+            city["ruler_cid"] = new.cid if new is not None else -1
+            if new is not None:
+                new.title = getattr(ch, "title", "") or getattr(new, "title", "")
+                self.emit(world, "สืบทอดตำแหน่ง", new, ch, ["ชื่อเสียง"], "เป็นเจ้าเมือง",
+                          f"{new.name}ขึ้นปกครองเมืองต่อจาก{ch.name}", 0, {"เมือง": city.get("name", city["id"])})
 
     # ------------------------------------------------------------ หุ่นเชิด
     def raise_corpse(self, killer, victim, rng):
@@ -1469,9 +1585,7 @@ class Sim:
         if k.trap and self.cast[k.owner].alive:
             owner = self.cast[k.owner]
             owner.hidden = False
-            win, lose, margin = R.resolve_clash(owner, ch, self.world(ch.world_id),
-                                                self.items, rng)
-            res = R.apply_defeat(self, self.world(ch.world_id), win, lose, margin, rng)
+            win, lose, margin, res = R.fight(self, self.world(ch.world_id), owner, ch, rng)
             d["กับดัก"] = f"{owner.name}แกล้งตายรออยู่ — {lose.name}{res}"
             d["margin"] = round(margin, 3)
             d["winner"] = win.cid
@@ -1864,7 +1978,7 @@ class Sim:
             # บัญชาสวรรค์เป็นหน้าที่รบของผู้ใหญ่ ทั้งผู้ล่าและเป้าหมายต้องพ้นวัยเด็ก
             # มิฉะนั้นสิ่งมีชีวิตที่เกิดมาพร้อมสายเลือดวิญญาณ/มารจะออกรบตั้งแต่อายุหนึ่งปี
             spirits = [c for c in living_now
-                       if c.age(self.day) >= 14 and getattr(c, "is_spirit", False)]
+                       if c.age(self.day) >= 14 and getattr(c, "is_spirit", False) and BODY.can_fight(c)]
             demons = [c for c in living_now
                       if c.age(self.day) >= 14 and getattr(c, "is_demon", False)]
             if spirits and demons:
@@ -1873,7 +1987,7 @@ class Sim:
                     target = self.rng.choice(demons)
                     safe_print(f"\n⚔️ [บัญชาสวรรค์] เผ่าวิญญาณศักดิ์สิทธิ์ [{hunter.name}] บุกสังหารมารร้าย [{target.name}] เพื่อรักษาสมดุลโลก!")
                     import tiandao.combat as combat
-                    combat.resolve_combat(hunter, target, self.worlds[0], self)
+                    combat.resolve_combat(hunter, target, self.worlds[0], self, lethal=True)
                     # เดิมบล็อกนี้ print() อย่างเดียว ไม่ emit — เหตุการณ์ดราม่าที่สุดของโลก
                     # จึงไม่มีอยู่ในประวัติศาสตร์ ไม่ขึ้นใน log ไม่ถูกนับเป็นจุดเปลี่ยนของใคร
                     # และโรงงานนิยายมองไม่เห็นเลยสักครั้ง วัดจริง 121 ปี: 0 บรรทัดใน log
@@ -2122,7 +2236,7 @@ class Sim:
             # ------------------------------------------------
             # Beast Forest Farming (ป่าหมื่นอสูร)
             # ------------------------------------------------
-            if ch.energy > 50 and getattr(ch, "is_beast", False) == False and getattr(ch, "is_demon", False) == False and getattr(ch, "is_spirit", False) == False:
+            if ch.energy > 50 and getattr(ch, "is_beast", False) == False and getattr(ch, "is_demon", False) == False and getattr(ch, "is_spirit", False) == False and BODY.can_fight(ch):
                 if self.rng.random() < 0.1: # 10% chance to farm
                     ch.energy -= 40
                     if self.rng.random() < 0.15: # 15% chance to encounter beast
@@ -2535,8 +2649,7 @@ class Sim:
                        and c.blood.get("human", 0) > 0.5]
             if hunters:
                 h = rng.choice(hunters)
-                win, lose, margin = R.resolve_clash(h, actor, world, self.items, rng)
-                res = R.apply_defeat(self, world, win, lose, margin, rng)
+                win, lose, margin, res = R.fight(self, world, h, actor, rng)
                 actor.rivals[h.cid] = actor.rivals.get(h.cid, 0) + 2
                 e = self.emit(world, "ล่ามนุษย์มาร", h, actor, ["เลือด", "ทำลาย"], res,
                               f"{h.name}ตามล่า{actor.name}เพราะเป็นมนุษย์มาร — {lose.name}เป็นฝ่ายเสีย",
@@ -2723,7 +2836,8 @@ class Sim:
 
         # --- Sect Rank Challenge ---
         if (getattr(actor, "org", None) is not None and actor.org < len(self.orgs)
-                and not (mind is not None and mind.skip_side_rolls(actor)) and rng.random() < 0.1):
+                and not (mind is not None and mind.skip_side_rolls(actor)) and BODY.can_fight(actor)
+                and rng.random() < 0.1):
             org = self.orgs[actor.org]
             rank = getattr(actor, "sect_rank", "ศิษย์สายนอก")
             target_list = []
@@ -2845,13 +2959,12 @@ class Sim:
         spot = rng.choice(cands)
         spot_name = PL.PLACES[spot][0]
         defenders = [x for x in self.living_in(world.wid)
-                     if x.place == spot and x.age(self.day) >= 14]
+                     if x.place == spot and x.age(self.day) >= 14 and not x.hidden]   # คนในคุก/ในด่านไม่อยู่บนเวที
         d = {"รอยแยก": f"กว้าง {world.rift:.1f} — ขั้นที่ลงมาได้ถึง {C.CHAOS_RANKS[min(cap, len(C.CHAOS_RANKS)-1)]}",
              "ถูกกด": f"ลงมาโลกมนุษย์แล้วถูกกดลง {C.CHAOS_DESCEND_PUSH} ขั้นตามกฎของโลกล่าง"}
         if defenders:
             v = max(defenders, key=lambda x: R.power(x, world, self.items))
-            win, lose, margin = R.resolve_clash(c, v, world, self.items, rng, self.day)
-            res = R.apply_defeat(self, world, win, lose, margin, rng)
+            win, lose, margin, res = R.fight(self, world, c, v, rng, day=self.day)
             d["ผู้ต้านทาน"] = f"{v.name} — {res}"
             d["margin"] = round(margin, 3)
             d["winner"] = win.cid
@@ -3348,8 +3461,7 @@ class Sim:
         c = rng.choice(raiders)
         prey.sort(key=lambda x: -R.power(x, world, self.items))
         v = rng.choice(prey[:3])          # ไล่ล่าผู้แข็งแกร่งก่อน แต่ไม่ใช่คนเดิมทุกครั้ง
-        win, lose, margin = R.resolve_clash(c, v, world, self.items, rng, self.day)
-        res = R.apply_defeat(self, world, win, lose, margin, rng)
+        win, lose, margin, res = R.fight(self, world, c, v, rng, day=self.day)
         d = {"แพ้ทาง": "มนุษย์แพ้ทางเผ่าโกลาหล", "margin": round(margin, 3), "winner": win.cid}
         if R.has_anti_chaos(v, self.items):
             d["แก้ทาง"] = "รู้วิชาที่แก้ทางเผ่าโกลาหลได้"
@@ -4849,13 +4961,12 @@ class Sim:
                     victims = [c for c in self.living_in(w.wid) if c.org == host.oid]
                     if victims:
                         v = rng.choice(victims)
-                        win, lose, margin = R.resolve_clash(f, v, w, self.items, rng, self.day)
-                        res = R.apply_defeat(self, w, win, lose, margin, rng)
+                        win, lose, margin, res = R.fight(self, w, f, v, rng, day=self.day)
                         d["เปิดทาง"] = f"{f.name}เข้าโจมตี{v.name} — {res}"
                         d["margin"] = round(margin, 3)
                         d["winner"] = win.cid
             a.inner += 1.0
-            R.add_debt(a, "ทรยศ", host.founder, host.name, self.day)
+            R.add_debt(a, "ทรยศ", self.org_head(host), host.name, self.day)
             return "ไส้ศึกลงมือ", f"{a.name}ลงมือให้{master.name}จากในไส้ของ{host.name}", d
 
         if k == "เข้าสำนัก":
@@ -4878,7 +4989,7 @@ class Sim:
                 return "ไม่มีสำนักแถวนี้", f"{a.name}ยังไม่เจอสำนักที่รับคนแถว{self.place_name(a)}", d
             here.sort(key=lambda x: -x[1])
             org = here[0][0]
-            founder = self.cast[org.founder] if org.founder < len(self.cast) else None
+            founder = self.cast[self.org_head(org)] if self.org_head(org) < len(self.cast) else None
             if founder is not None and a.realm > founder.realm:
                 return "ไม่ยอมก้มหัว", f"{a.name}ฝีมือเหนือกว่าผู้ก่อตั้ง{org.name} จึงไม่ยอมเข้าสังกัด", d
             if rng.random() > C.ORG_JOIN_P:
@@ -5280,12 +5391,12 @@ class Sim:
             treas = [i for i in t.items if self.items[i].kind != "ยาวิเศษ"]
             if not treas:
                 return "ไม่มีของ", f"{a.name}หมายตาสมบัติของ{t.name} แต่ไม่มีอะไรให้ชิง", d
-            win, lose, margin = R.resolve_clash(a, t, w, self.items, rng)
-            res = R.apply_defeat(self, w, win, lose, margin, rng)
+            win, lose, margin, res = R.fight(self, w, a, t, rng)
             d["margin"] = round(margin, 3)
             d["winner"] = win.cid
-            if win is a and lose.alive:
-                iid = treas[0]
+            left = [i for i in treas if i in t.items]     # หนีด้วยยันต์ได้ ยันต์หายไปแล้วและไม่เสียของ
+            if win is a and lose.alive and res != "หนีรอด" and left:
+                iid = left[0]
                 t.items.remove(iid)
                 a.items.append(iid)
                 d["ชิงได้"] = self.items[iid].name
@@ -5393,10 +5504,9 @@ class Sim:
         # ที่ทำให้คนแปลกหน้าสองคนซ้อมมือกันแล้วจบด้วยศพและการล้างแค้นข้ามรุ่น
         grudge = a.rivals.get(t.cid, 0) + t.rivals.get(a.cid, 0)
         friendly = (k == "ประลอง" and grudge == 0)
-        win, lose, margin = R.resolve_clash(a, t, w, self.items, rng)
         mult = (C.DUEL_FRIENDLY_LETHAL_MULT if friendly
                 else C.DUEL_LETHAL_MULT if k == "ประลอง" else 1.0)
-        res = R.apply_defeat(self, w, win, lose, margin, rng, C.DEATH_MARGIN * mult)
+        win, lose, margin, res = R.fight(self, w, a, t, rng, lethal_at=C.DEATH_MARGIN * mult)
         if k == "ล้างแค้น" and win is a:
             R.settle_debt(a, t.cid)
         dmg = 2 if k == "ล้างแค้น" else 1

@@ -59,6 +59,14 @@ class Org:
     threat_level: int = 0
     mara: bool = False        # สำนักของมนุษย์มาร รับเฉพาะพวกเดียวกัน
     alive: bool = True
+    leader: int = -1          # ผู้นำตอนนี้ (-1 = ผู้ก่อตั้งยังนำอยู่) — Sim.org_head, สืบทอดใน Sim.succeed
+    treasury_gold: Dict[int, float] = field(default_factory=dict)  # ทองที่สมาชิกไร้ทายาททิ้งไว้ คีย์ตามชั้น
+
+    def __setstate__(self, state: dict) -> None:
+        # เซฟก่อนมีผู้สืบทอดและคลังทอง — ใส่ค่าเริ่มต้นตอนโหลด (__eq__ ของ dataclass อ่านทุก field)
+        self.__dict__.update(state)
+        self.__dict__.setdefault("leader", -1)
+        self.__dict__.setdefault("treasury_gold", {})
 
 
 @dataclass

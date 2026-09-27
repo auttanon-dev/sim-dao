@@ -160,9 +160,18 @@ def test_realms_are_separated(sim):
     pb = [i for i, p in enumerate(PL.PLACES) if p[1] == b.place_key]
     assert pa and pb and not set(pa) & set(pb), "สองสาขาใช้สถานที่ร่วมกัน — ไม่ได้แยกขาด"
     print(f"  {a.name}: {len(pa)} สถานที่ | {b.name}: {len(pb)} สถานที่ (ไม่ทับกันเลย)")
-    d_in = TV.shortest_path_distance(pa[0], pa[1])
-    d_out = TV.shortest_path_distance(pa[0], pb[0])
-    days = TV.shortest_path_days(pa[0], pb[0], 3)
+    # วัดแผนที่ตั้งต้น ไม่นับประตูมิติที่คนสร้างระหว่างซิม (ประตูต่อเข้า GEO.EDGES ถาวรและย่นระยะได้จริง — test_portals วัดเรื่องนั้น)
+    # เส้นทางไหนมีคนสร้างประตูเชื่อมสองสาขานี้ไว้ ระยะที่วัดได้จะเหลือแค่ความยาวของประตู
+    saved = list(GEO.EDGES)
+    GEO.EDGES[:] = [e for e in saved if not (len(e) > 3 and e[3] == "portal")]
+    TV._ADJ = TV._ADJ_OPEN = None
+    try:
+        d_in = TV.shortest_path_distance(pa[0], pa[1])
+        d_out = TV.shortest_path_distance(pa[0], pb[0])
+        days = TV.shortest_path_days(pa[0], pb[0], 3)
+    finally:
+        GEO.EDGES[:] = saved
+        TV._ADJ = TV._ADJ_OPEN = None
     print(f"  เดินในแดนตัวเอง {d_in:,.0f} หน่วย | ข้ามไปอีกสาขา {d_out:,.0f} หน่วย "
           f"({days} วันสำหรับขั้น 3)")
     assert d_out > d_in * 20, "ข้ามสาขาใกล้เกินไป การเดินทางยังไม่มีน้ำหนัก"

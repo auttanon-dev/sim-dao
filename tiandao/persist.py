@@ -47,7 +47,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #   9 — ตัวนับใหม่ของ food_stats (ทำงานแลกข้าว ข้าวในคุก)
 #  10 — ตัวนับใหม่ของ guardian_stats (เด็กที่ย้ายแดนไปหาข้าว)
 #  11 — ตัวนับใหม่ของ food_stats (เสบียงที่ซื้อก่อนออกเดินทาง การเดินทางที่เลื่อนไปเพราะเสบียงไม่พอ)
-SAVE_VERSION = 11
+#  12 — สำนักที่ผู้นำตายไปก่อนมีการสืบทอด ได้ผู้นำใหม่ (Sim.next_org_head / next_sect_master)
+SAVE_VERSION = 12
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -269,6 +270,27 @@ def _migrate(sim, version):
         _wake_at_seclusion_end(sim)
     if version < 11:
         _add_new_counters(sim)          # รุ่น 7, 9, 10, 11 เพิ่มตัวนับใน food_stats/guardian_stats
+    if version < 12:
+        _appoint_missing_heads(sim)
+
+
+def _appoint_missing_heads(sim):
+    """สำนักที่ยังอยู่แต่ผู้นำตายไปแล้ว (ก่อนรุ่น 12 ไม่มีการสืบทอด) ได้ผู้นำใหม่ตามกฎเดียวกับตอนตาย — ไม่แตะ RNG
+    เจ้าสำนักตามชื่อสำนักที่ไม่มีเจ้าสำนักที่ยังมีชีวิตก็เช่นกัน วัดกับเซฟจริงปีที่ 1,136: 97 จาก 134 สำนักผู้นำตายแล้ว"""
+    cast = sim.cast
+    for org in sim.orgs:
+        head = sim.org_head(org)
+        if org.alive and not (0 <= head < len(cast) and cast[head].alive):
+            new = sim.next_org_head(org)
+            if new is not None:
+                org.leader = new.cid
+    sects = {getattr(cast[c], "sect_name", None) for c in sim.alive_cids} - {None, ""}
+    for sect in sorted(sects):
+        if not any(getattr(cast[c], "sect_name", None) == sect and getattr(cast[c], "sect_role", "") == "เจ้าสำนัก"
+                   for c in sim.alive_cids):
+            new = sim.next_sect_master(sect)
+            if new is not None:
+                new.sect_role = "เจ้าสำนัก"
 
 
 def _add_new_counters(sim):
