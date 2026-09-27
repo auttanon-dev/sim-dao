@@ -67,5 +67,26 @@ class RunPyTrimsTheSaveTests(unittest.TestCase):
             self.assertGreater(len(whole), 2000, "สองรอบ รอบละ 1,500 เหตุการณ์ ประวัติต้องอยู่ครบ")
 
 
+NEWLINE = bytes([10])
+
+
+class DamagedArchiveTests(unittest.TestCase):
+    def test_damaged_and_repeated_lines_are_skipped_instead_of_crashing(self):
+        sim = quiet(S.Sim, seed=3)
+        quiet(sim.run, 300)
+        events = sim.log[:12]
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "world.save.events.jsonl")
+            EL.append_events(path, events[:6])
+            with open(path, "ab") as f:
+                f.write('{"seq": 999, "text": "ตำนาน'.encode("utf-8")[:-1] + NEWLINE)   # ขาดกลางอักษรไทย
+                f.write('ำเพ็ญ", "actor": 1}'.encode("utf-8")[1:] + NEWLINE)             # หัวบรรทัดหาย
+            EL.append_events(path, events[3:6])                              # flush ซ้ำหลัง Ctrl+C
+            EL.append_events(path, events[6:])
+            with self.assertWarns(RuntimeWarning):
+                back = list(EL.read_events(path))
+        self.assertEqual(seqs(back), seqs(events), "ได้ทุกเหตุการณ์จริงครั้งเดียวตามลำดับ ข้ามแค่ที่เสียและที่ซ้ำ")
+
+
 if __name__ == "__main__":
     unittest.main()

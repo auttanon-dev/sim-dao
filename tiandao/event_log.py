@@ -16,6 +16,7 @@
 """
 import json
 import os
+import warnings
 from typing import Iterator, List, Optional
 
 from .models import Event
@@ -27,22 +28,49 @@ def default_log_path(save_path: str) -> str:
 
 
 def append_events(path: str, events: List[Event]) -> None:
+    """ต่อท้ายทั้งชุดด้วยการเขียนครั้งเดียว แล้ว flush + fsync ให้ถึงดิสก์ก่อนคืน
+
+    เดิมเขียนทีละบรรทัดผ่าน buffer ของไฟล์ ถ้าโปรเซสถูกฆ่าระหว่างนั้น หรือมีอีกโปรเซสต่อท้ายไฟล์เดียวกันอยู่
+    (บน Windows การต่อท้ายคือเลื่อนไปท้ายไฟล์แล้วค่อยเขียน ไม่ใช่ขั้นเดียว) บรรทัดจะขาดกลางอักษรหลายไบต์ได้
+    เขียนครั้งเดียวต่อชุดทำให้ช่วงที่เสี่ยงแคบลงมาก แต่ไม่กันสองโปรเซสเขียนพร้อมกัน — โลกหนึ่งใบต้องมีผู้เขียนคนเดียว
+    """
     if not events:
         return
+    batch = "".join(json.dumps(e.to_dict(), ensure_ascii=False) + "\n" for e in events)
     with open(path, "a", encoding="utf-8") as f:
-        for e in events:
-            f.write(json.dumps(e.to_dict(), ensure_ascii=False) + "\n")
+        f.write(batch)
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def read_events(path: str) -> Iterator[Event]:
+    """อ่านประวัติตามลำดับ ข้ามบรรทัดที่เสียหรือซ้ำแทนที่จะพังทั้งการอ่าน
+
+    - ถอดรหัสไม่ได้ JSON ไม่ครบ หรือ field ไม่ตรง Event: ข้าม
+    - seq ไม่มากกว่าบรรทัดก่อนหน้า: ข้าม เพราะ flush_and_trim ต่อท้ายตามลำดับ seq เสมอ บรรทัดแบบนี้จึงเป็นของที่เขียนซ้ำ
+      (Ctrl+C ระหว่าง flush แล้ว flush อีกรอบตอนปิด) หรือของโลกอีกชุดที่เดินจากเซฟเดียวกันแล้วต่อท้ายไฟล์เดียวกัน
+    ข้ามไปกี่บรรทัดเตือนครั้งเดียวตอนอ่านจบ — เจอจริงกับประวัติ 2.18 GB: บรรทัดเสีย 1 บรรทัด ซ้ำ 159 บรรทัด
+    """
     if not os.path.exists(path):
         return
-    with open(path, "r", encoding="utf-8") as f:
+    skipped, last_seq = 0, None
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
-            yield Event(**json.loads(line))
+            try:
+                e = Event(**json.loads(line))
+            except (ValueError, TypeError):          # json.JSONDecodeError เป็น ValueError
+                skipped += 1
+                continue
+            if last_seq is not None and e.seq <= last_seq:
+                skipped += 1
+                continue
+            last_seq = e.seq
+            yield e
+    if skipped:
+        warnings.warn(f"{path}: ข้าม {skipped} บรรทัดที่เสียหรือซ้ำ", RuntimeWarning, stacklevel=2)
 
 
 def flush_and_trim(sim, path: str, keep_recent: Optional[int] = 5000) -> int:
