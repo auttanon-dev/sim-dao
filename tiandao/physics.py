@@ -623,3 +623,12 @@ def hotelling_price(base: float, reserve_frac: float, elasticity: float,
     frac = min(1.0, max(1e-4, float(reserve_frac)))
     p = max(0.0, float(base)) * (frac ** (-max(0.0, float(elasticity))))
     return min(max(0.0, float(base)) * hi, max(max(0.0, float(base)) * lo, p))
+
+
+def hazard_p(rate_per_year: float, days: float) -> float:
+    """โอกาสที่เหตุหนึ่งเกิดอย่างน้อยครั้งหนึ่งในช่วง `days` วัน ถ้าเกิดด้วยอัตราคงที่ rate_per_year ครั้งต่อปี
+    (กระบวนการปัวซอง: 1 − e^(−λΔt)) — ความเสี่ยงขึ้นกับเวลาที่เผชิญ ไม่ใช่จำนวนครั้งที่ถูกตรวจ (แบบ §5.4)"""
+    if days <= 0 or rate_per_year <= 0:
+        return 0.0
+    return 1.0 - math.exp(-rate_per_year * days / 365.0)
+

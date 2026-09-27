@@ -8,6 +8,7 @@ import heapq
 from typing import Dict, List, Optional, Tuple
 
 from . import config as C
+from . import physics as PHYS
 from . import geo as GEO
 
 _ADJ: Optional[Dict[int, List[Tuple[int, float]]]] = None  # lazy-built, cache ไว้ครั้งเดียวต่อโปรเซส
@@ -173,12 +174,15 @@ def places_within(sim, place: int, max_hops: int) -> List[Tuple[int, int]]:
     return got
 
 
-def roll_enroute_event(rng, config=None) -> Optional[Tuple[str, Dict[str, int]]]:
+def roll_enroute_event(rng, config=None, days=None) -> Optional[Tuple[str, Dict[str, int]]]:
     """ทอยว่าจะเจอเหตุการณ์ระหว่างทางไหม (เรียกจาก sim.py ทุกครั้งที่ตัวละครที่กำลังเดินทางตื่นมาเช็ค
     ระหว่างทาง — ดู config.TRAVEL_ENROUTE_CHECK_DAYS) — ใช้ rng ที่รับมา (ไม่ใช่ random กลาง เพื่อ
     determinism ตามที่ทั้งโปรเจกต์ยึดถือ) คืน None ถ้าไม่เจออะไร (กรณีปกติ) หรือ (outcome, deltas) ถ้าเจอ"""
     cfg = config or C
-    if rng.random() > cfg.TRAVEL_ENROUTE_EVENT_P:
+    # ความเสี่ยงตามวันที่เดินทางจริงตั้งแต่ตรวจครั้งก่อน (ช่วงสุดท้ายที่สั้นกว่า 15 วันเสี่ยงน้อยกว่า)
+    # days=None คือเรียกแบบเดิมหนึ่งรอบตรวจเต็ม TRAVEL_ENROUTE_CHECK_DAYS
+    days = cfg.TRAVEL_ENROUTE_CHECK_DAYS if days is None else days
+    if rng.random() >= PHYS.hazard_p(cfg.TRAVEL_MISHAP_PER_YEAR, days):
         return None
     r, acc = rng.random(), 0.0
     for outcome, p, deltas in _ENROUTE_OUTCOMES:

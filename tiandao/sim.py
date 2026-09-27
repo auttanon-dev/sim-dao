@@ -747,7 +747,7 @@ class Sim:
         if world.kind == "chaos":
             target = C.CHAOS_POP
             deficit = target - world.n_alive
-            if deficit > 0 and self.rng.random() < 0.02:
+            if deficit > 0 and self.rng.random() < PHYS.hazard_p(C.CHAOS_SPAWN_PER_YEAR, elapsed):
                 ch = self.spawn(world, self.rng.randint(100, 800))
                 ch.chaos_rank = 0
                 ch.blood = {"chaos": 1.0}
@@ -1905,6 +1905,7 @@ class Sim:
             self._portal_regen_day = self.day
         PORT.tick(self, rng)    # การสร้างประตูมิติ (ดู tiandao/portals.py)
         if self.day - getattr(self, "last_disaster_day", 0) >= C.WORLD_TICK_DAYS:
+            round_days = self.day - getattr(self, "last_disaster_day", 0)
             self.last_disaster_day = self.day
             
             # Sect Resource Distribution & Facilities
@@ -1984,7 +1985,7 @@ class Sim:
             demons = [c for c in living_now
                       if c.age(self.day) >= 14 and getattr(c, "is_demon", False)]
             if spirits and demons:
-                if self.rng.random() < 0.3: # 30% chance for a holy crusade
+                if self.rng.random() < PHYS.hazard_p(C.CRUSADE_PER_YEAR, round_days):
                     hunter = self.rng.choice(spirits)
                     target = self.rng.choice(demons)
                     safe_print(f"\n⚔️ [บัญชาสวรรค์] เผ่าวิญญาณศักดิ์สิทธิ์ [{hunter.name}] บุกสังหารมารร้าย [{target.name}] เพื่อรักษาสมดุลโลก!")
@@ -2014,7 +2015,7 @@ class Sim:
                         and not getattr(pc, "is_spirit", False)
                         and not getattr(pc, "is_beast", False)):
                     if getattr(pc, "karmic_debt", 0) > 1000 or getattr(pc, "ambition", 0) > 80:
-                        if self.rng.random() < 0.05: # 5% chance every 30 days
+                        if self.rng.random() < PHYS.hazard_p(C.DEMON_TEMPTATION_PER_YEAR, round_days):
                             pc.is_demon = True
                             pc.dao = "วิถีมาร"
                             if pc.org is not None and pc.org < len(self.orgs):
@@ -2047,7 +2048,7 @@ class Sim:
                         old=king.name, marker="ตัวที่")
                     safe_print(f"\n🐉 [คลื่นสัตว์อสูร] สัตว์อสูรบำเพ็ญตบะทะลวงขั้นสำเร็จ จำแลงกายเป็นมนุษย์ นามว่า [{king.name}]!")
                 
-                if self.rng.random() < 0.1: # 10% chance to attack a city
+                if self.rng.random() < PHYS.hazard_p(C.BEAST_CITY_RAID_PER_YEAR, round_days):
                     if hasattr(C, "CITIES"):
                         targets = [city for city in C.CITIES if "ชายแดน" in city.get("type_desc", "") or "หน้าด่านสำนัก" in city.get("type_desc", "")]
                         if targets:
@@ -2239,7 +2240,7 @@ class Sim:
             # Beast Forest Farming (ป่าหมื่นอสูร)
             # ------------------------------------------------
             if ch.energy > 50 and getattr(ch, "is_beast", False) == False and getattr(ch, "is_demon", False) == False and getattr(ch, "is_spirit", False) == False and BODY.can_fight(ch):
-                if self.rng.random() < 0.1: # 10% chance to farm
+                if self.rng.random() < PHYS.hazard_p(C.BEAST_HUNT_PER_YEAR, self.day - ch.last_day):   # ตามเวลาตั้งแต่เทิร์นก่อน
                     ch.energy -= 40
                     if self.rng.random() < 0.15: # 15% chance to encounter beast
                         # Spawn wild beast
@@ -2464,7 +2465,8 @@ class Sim:
                 # กำลังเดินทางอยู่ (ตั้งไว้จาก resolve() "เดินทาง") — เหมือนกับ ch.hidden ด้านบน: ไม่ผ่าน
                 # การเลือก intent ปกติเลยจนกว่าจะถึงจุดหมายจริง แค่ไปโผล่เช็คเป็นระยะระหว่างทางแทน
                 world0 = self.world(ch.world_id)
-                R.age_and_decay(self, ch, world0, self.day - ch.last_day, rng)
+                on_road = self.day - ch.last_day
+                R.age_and_decay(self, ch, world0, on_road, rng)
                 ch.last_day = self.day
                 if not ch.alive:
                     continue
@@ -2481,7 +2483,7 @@ class Sim:
                     travel_ev = next(e for e in E.EVENT_TABLE if e["kind"] == "เดินทาง")
                     self.schedule(ch, rng.randint(*travel_ev["gap"]))
                     continue
-                hit = TR.roll_enroute_event(rng)
+                hit = TR.roll_enroute_event(rng, days=on_road)
                 if hit is not None:
                     outcome, deltas = hit
                     if "hp" in deltas:
