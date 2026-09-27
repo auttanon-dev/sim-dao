@@ -11,7 +11,7 @@ from . import worldtree as WT
 from . import paths as PATHS
 from . import crises as CRISES
 from . import rules as R
-from .models import Cache, Character, Departed, Event, Item, Org, World
+from .models import ActionProcess, Cache, Character, Departed, Event, Item, Org, World
 from .treasures import TREASURES, BURST_MULT
 from . import skills as SK
 from . import crafting as CR
@@ -950,7 +950,7 @@ class Sim:
         self.succeed(ch, killer)
         for cid in self.alive_cids:                  # แค้นคนตายชำระไม่ได้ (เหมือน fade_grudges แต่ทันที)
             self.cast[cid].rivals.pop(ch.cid, None)
-        ch.travel_dest = ch.building_dest = -1       # ไม่มีศพที่ยังเดินทางหรือเดินในเมืองค้างอยู่
+        ch.process, ch.building_dest = None, -1      # ไม่มีศพที่ยังเดินทาง ปิดด่าน หรือเดินในเมืองค้างอยู่
 
         # ผู้ฝึกสายวัฏจักร: ร่างตายแล้ว แต่ดวงจิตไปเกิดใหม่ — ทำหลังกระบวนการตายครบทุกอย่าง
         if ch.sentient and not ch.is_lord and self._knows_cycle(ch):
@@ -1264,6 +1264,64 @@ class Sim:
             pruned += 1
         self.pruned_total = getattr(self, "pruned_total", 0) + pruned
         return pruned
+
+    # ------------------------------------------------------------ กิจกรรมยาว (models.ActionProcess, แบบ §5.2)
+    def start_process(self, ch, kind, days, payload=None, yield_rate=0.0):
+        """เริ่มกิจกรรมยาววันนี้ ครบกำหนดอีก `days` วัน"""
+        ch.process = ActionProcess(kind, self.day, self.day + max(0, int(days)), self.day, yield_rate,
+                                   dict(payload or {}))
+        return ch.process
+
+    def accrue_process(self, ch):
+        """คิดผลของกิจกรรมยาวตามวันที่ทำไปจริงจนถึงวันนี้ ไม่เกินกำหนดจบ — คืนจำนวนวันที่เพิ่งคิด
+        ปิดด่าน: ความเข้าใจและการกลั่นตามปีที่รู้สึก (วัน/365 × yield_rate ซึ่งคือ gamma ของปราณที่นั่น)"""
+        p = ch.process
+        if p is None:
+            return 0
+        if p.progress_day < 0:
+            # เริ่มผ่านช่องเดิม (ไม่รู้วันเริ่ม) — ใช้วันในภาพโลกตอนเข้าด่าน ไม่มีก็นับหนึ่งปีก่อนครบกำหนด
+            start = p.payload.get("snap", {}).get("day")
+            p.start_day = p.progress_day = int(start) if start is not None else p.end_day - 365
+        upto = min(self.day, p.end_day)
+        days = max(0, upto - p.progress_day)
+        if days and p.kind == "seclusion":
+            felt = days / 365.0 * (p.yield_rate or 1.0)
+            ch.insight += C.SECLUDE_INSIGHT_PER_YEAR * felt
+            ch.refine += C.SECLUDE_REFINE_PER_YEAR * felt
+        p.progress_day = max(p.progress_day, upto)
+        return days
+
+    def interrupt_process(self, ch, reason):
+        """หยุดกิจกรรมยาวกลางทางวันนี้ — คืน True ถ้าหยุดจริง
+        ปิดด่าน: ได้ผลถึงวันนี้ แล้วออกจากด่านในเทิร์นวันนี้พร้อมเหตุ (บล็อกออกจากด่านใน _step)
+        เดินทาง: หยุดอยู่ที่ต้นทาง — ยังไม่มีตำแหน่งกลางทางบนแผนที่"""
+        p = ch.process
+        if p is None or not ch.alive or p.end_day <= self.day:
+            return False
+        stats = self.__dict__.setdefault("process_stats", {})
+        stats[f"{p.kind}:{reason}"] = stats.get(f"{p.kind}:{reason}", 0) + 1
+        if p.kind == "seclusion":
+            self.accrue_process(ch)
+            p.end_day = self.day
+            ch.seclude_cut = reason
+        else:
+            ch.process = None
+            self.emit(self.world(ch.world_id), "หยุดเดินทาง", ch, None, ["เดินทาง"], "หยุดกลางทาง",
+                      f"{ch.name}ต้องหยุดการเดินทาง — {reason}", 0, {"เหตุ": reason})
+        self.requeue(ch, self.day)
+        return True
+
+    def check_processes(self):
+        """ทุกรอบของโลก: คนที่หมดสติหยุดทุกกิจกรรม คนที่ยืนไม่ได้หยุดเดินทาง (ยังนั่งบำเพ็ญในด่านต่อได้)"""
+        for cid in self.alive_sorted():
+            ch = self.cast[cid]
+            p = ch.process
+            if p is None or p.end_day <= self.day:
+                continue
+            if not BODY.conscious(ch):
+                self.interrupt_process(ch, "หมดสติ")
+            elif p.kind == "travel" and not BODY.can_stand(ch):
+                self.interrupt_process(ch, "บาดเจ็บจนเดินต่อไม่ได้")
 
     def fade_grudges(self, days):
         """ความแค้นจางลง GRUDGE_FADE_PER_YEAR ต่อปี จางหมดแล้วลบทิ้ง แค้นคนที่ตายไปแล้วลบทิ้งเลย
@@ -1893,6 +1951,7 @@ class Sim:
         if C.WAGES_ENABLED:
             WAGES.tick(self, self.day - self.food_day)
         self.fade_grudges(self.day - self.food_day)
+        self.check_processes()
         self.food_day = self.day
         if self.day - getattr(self, "prune_day", 0) >= 365:
             self.prune_day = self.day
@@ -2345,23 +2404,22 @@ class Sim:
                 if self.day < ch.seclude_until:
                     self.schedule(ch, ch.seclude_until - self.day)
                     continue
-                days_in = self.day - int(ch.seclude_snap.get("day", self.day))
-                # ออกก่อนกำหนดเพราะเสบียงหมด (tiandao/food.py) ได้ผลเท่าเวลาที่อยู่จริง ไม่ปัดขึ้นเป็นหนึ่งปี
+                # ผลของด่านคิดตามวันที่อยู่จริง (accrue_process) ถูกขัดจังหวะก็ได้เท่าที่อยู่ ไม่ปัดขึ้นเป็นหนึ่งปี
+                # เวลาที่ "ได้ใช้" ไม่เท่ากับเวลาที่โลกภายนอกผ่านไป ถ้าปราณตรงนั้นหนาแน่นพอ (yield_rate = gamma)
                 cut_short = getattr(ch, "seclude_cut", False)
                 ch.seclude_cut = False
-                yrs = days_in / 365.0 if cut_short else max(1, days_in // 365)
-                # เวลาที่ "ได้ใช้" ไม่เท่ากับเวลาที่โลกภายนอกผ่านไป ถ้าปราณตรงนั้นหนาแน่นพอ
-                gamma = float(ch.seclude_snap.get("gamma", 1.0) or 1.0)
-                felt = yrs * gamma
-                ch.insight += C.SECLUDE_INSIGHT_PER_YEAR * felt
-                ch.refine += C.SECLUDE_REFINE_PER_YEAR * felt
-                ch.seclude_until, ch.hidden = 0, False
+                self.accrue_process(ch)
+                proc = ch.process
+                done = (proc.progress_day - proc.start_day) / 365.0
+                yrs = done if cut_short else max(1, int(round(done)))
+                ch.hidden = False
                 wv = self.world(ch.world_id)
                 EM.decay(ch, self.day)
                 for key in list(ch.emotions):
                     base = ch.emo_base.get(key, ch.emotions[key])
                     ch.emotions[key] += (base - ch.emotions[key]) * C.SECLUDE_FOCUS
                 d_out = self.seclusion_diff(ch, wv, yrs)
+                ch.process = None
                 if cut_short:
                     d_out["เหตุที่ออก"] = (cut_short if isinstance(cut_short, str)
                                           else "เสบียงหมดก่อนครบกำหนด")
@@ -4789,7 +4847,7 @@ class Sim:
 
         if k == "ปิดด่าน":
             years = rng.randint(*C.SECLUDE_YEARS)
-            a.seclude_until = self.day + years * 365
+            self.start_process(a, "seclusion", years * 365, {"snap": {}}, 1.0)
             a.hidden = True
             a.travel_dest = -1
             # ภาพของโลกตอนเข้าด่าน — ตอนออกมาจะได้รู้ว่าอะไรเปลี่ยนไปบ้าง ไม่ใช่โผล่มาเฉยๆ
@@ -4811,6 +4869,7 @@ class Sim:
             rho = self.qi_density(a.place, w)
             gamma = PHYS.time_dilation(rho, C.QI_CRITICAL, C.QI_DILATION_CAP)
             a.seclude_snap["gamma"] = gamma
+            a.process.yield_rate = gamma          # ผลต่อวันของด่านนี้ (accrue_process)
             d["ปราณ ณ ที่แห่งนี้"] = f"{rho:.0f}/{C.QI_CRITICAL:.0f} ของขีดที่มิติรับไหว"
             d["เวลาที่ได้ใช้จริง"] = (f"{gamma:.2f} เท่าของเวลาข้างนอก"
                                       + (" — ที่นี่แทบไม่ต่างจากข้างนอก" if gamma < 1.15 else
@@ -5088,8 +5147,7 @@ class Sim:
                     # ซื้อเสบียงได้ไม่พอกินจนถึงจุดหมาย — ไม่ออกไปอดตายกลางทาง (tiandao/food.py)
                     d["เสบียง"] = f"ไม่พอกินตลอดทาง {days} วัน"
                     return "ผ่านไป", f"{a.name}อยากไป{dest_name} แต่เสบียงไม่พอเดินทาง {days} วัน", d
-                a.travel_dest = dest
-                a.travel_arrival_day = self.day + days
+                self.start_process(a, "travel", days, {"dest": dest, "origin": a.place})
                 tail = ""
                 if tail_want:
                     lack = ", ".join(list(a.wants)[:2])

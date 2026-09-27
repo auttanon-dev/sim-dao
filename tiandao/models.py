@@ -114,6 +114,23 @@ class World:
 
 
 @dataclass
+class ActionProcess:
+    """กิจกรรมยาวหนึ่งอย่างที่ใช้เวลาจริงและถูกขัดจังหวะได้ (แบบ §5.2) — ผลคิดตามวันที่ทำไปจริง (Sim.accrue_process)
+
+    - kind = "seclusion" (ปิดด่าน) หรือ "travel" (เดินทาง)
+    - start_day/end_day = เริ่มและกำหนดจบ · progress_day = คิดผลไปถึงวันไหนแล้ว
+    - yield_rate = ผลต่อวัน — ปิดด่านคือตัวคูณปีที่รู้สึก (gamma ของปราณที่นั่น)
+    - payload = ของเฉพาะชนิด — ปิดด่าน {"snap": ภาพโลกตอนเข้า} · เดินทาง {"dest": ปลายทาง, "origin": ต้นทาง}
+    """
+    kind: str
+    start_day: int
+    end_day: int
+    progress_day: int
+    yield_rate: float = 0.0
+    payload: dict = field(default_factory=dict)
+
+
+@dataclass
 class Character:
     cid: int
     name: str
@@ -221,8 +238,8 @@ class Character:
     mats: int = 0               # วัตถุดิบที่เก็บสะสมไว้
     place: int = -1             # สถานที่ที่อยู่ตอนนี้ (ดัชนีใน places.PLACES) — ระหว่างเดินทางยังคงเป็น
                                  # จุดออกเดินทางเดิม จะเปลี่ยนเป็นปลายทางตอนถึงจริงเท่านั้น
-    travel_dest: int = -1       # กำลังเดินทางไปไหน (ดัชนีใน places.PLACES) — -1 = ไม่ได้เดินทางอยู่
-    travel_arrival_day: int = 0 # จะถึงจุดหมายวันไหน (มีความหมายเฉพาะตอน travel_dest >= 0)
+    # กิจกรรมยาวที่กำลังทำอยู่ (ปิดด่าน เดินทาง) — ดู ActionProcess และ property travel_dest ฯลฯ ท้ายคลาส
+    process: Optional["ActionProcess"] = None
     building: int = -1          # อาคารที่อยู่ตอนนี้ภายใน place ปัจจุบัน (ดัชนีใน settlement ของ place นั้น)
                                  # — -1 = ยังไม่ระบุ/อยู่ในเมืองทั่วไป, รีเซ็ตเป็น -1 ทุกครั้งที่ place เปลี่ยน
     building_dest: int = -1     # กำลังเดินไปอาคารไหนภายในเมือง — -1 = ไม่ได้เดินอยู่
@@ -271,7 +288,6 @@ class Character:
     foreseen: dict = field(default_factory=dict)        # cid -> วันที่เห็นว่าเขาจะตาย
     fate_changed: int = 0                               # เปลี่ยนชะตาที่เห็นได้สำเร็จกี่ครั้ง
     fate_kept: int = 0                                  # กี่ครั้งที่มันเกิดตามนิมิตอยู่ดี
-    seclude_until: int = 0
     # อาหาร (tiandao/food.py) — food คือเสบียงติดตัวเป็นสำรับ None = ระบบอาหารยังไม่เคยเห็นคนนี้
     food: Optional[float] = None
     hunger_days: float = 0.0            # วันที่ไม่ได้กินติดกันตอนนี้
@@ -344,7 +360,6 @@ class Character:
     acc_rate: float = 0.0
     decay_mark: float = 0.0
     decay_rate: float = 0.0
-    seclude_snap: dict = field(default_factory=dict)
     profession: str = "ผู้ฝึกตน"
     tribe: str = "ชาวตงหยวน"
     city_id: int = -1
@@ -488,6 +503,66 @@ class Character:
             return "มนุษย์ผสม" + C.BLOOD_TH[second]
         return C.BLOOD_TH[top] + "ผสม"
 
+    # ---- ช่องเดิมก่อนมี ActionProcess (เซฟรุ่น 14) — อ่านและเขียนผ่าน self.process ที่เดียว ----
+    # เขียนได้เพื่อให้โค้ดและเทสต์เดิมใช้ต่อได้: ตั้งปลายทาง = เริ่มเดินทาง, ตั้ง -1 = จบ, ตั้งวันครบด่าน = เริ่ม/ย้ายกำหนด
+    def _proc(self, kind):
+        p = self.process
+        return p if p is not None and p.kind == kind else None
+
+    @property
+    def travel_dest(self) -> int:
+        p = self._proc("travel")
+        return p.payload.get("dest", -1) if p is not None else -1
+
+    @travel_dest.setter
+    def travel_dest(self, dest) -> None:
+        p = self._proc("travel")
+        if dest is None or dest < 0:
+            if p is not None:
+                self.process = None
+        elif p is not None:
+            p.payload["dest"] = dest
+        else:
+            self.process = ActionProcess("travel", -1, 0, -1, 0.0, {"dest": dest, "origin": self.place})
+
+    @property
+    def travel_arrival_day(self) -> int:
+        p = self._proc("travel")
+        return p.end_day if p is not None else 0
+
+    @travel_arrival_day.setter
+    def travel_arrival_day(self, day) -> None:
+        p = self._proc("travel")
+        if p is not None:
+            p.end_day = day
+
+    @property
+    def seclude_until(self) -> int:
+        p = self._proc("seclusion")
+        return p.end_day if p is not None else 0
+
+    @seclude_until.setter
+    def seclude_until(self, day) -> None:
+        p = self._proc("seclusion")
+        if not day or day <= 0:
+            if p is not None:
+                self.process = None
+        elif p is not None:
+            p.end_day = day
+        else:
+            self.process = ActionProcess("seclusion", -1, day, -1, 1.0, {"snap": {}})
+
+    @property
+    def seclude_snap(self) -> dict:
+        p = self._proc("seclusion")
+        return p.payload.setdefault("snap", {}) if p is not None else {}
+
+    @seclude_snap.setter
+    def seclude_snap(self, snap) -> None:
+        p = self._proc("seclusion")
+        if p is not None:
+            p.payload["snap"] = snap
+
     def to_dict(self):
         return asdict(self)
 
@@ -495,8 +570,6 @@ class Character:
         """save เก่าที่เซฟไว้ก่อนมีระบบเดินทางจริง (tiandao/travel.py) ยัง unpickle ได้ — เติมค่า default
         แทน (ไม่ได้เดินทางอยู่) เหมือนที่ Event ทำไว้แล้วด้านล่างตอนเพิ่ม place/realm"""
         self.__dict__.update(state)
-        self.__dict__.setdefault("travel_dest", -1)
-        self.__dict__.setdefault("travel_arrival_day", 0)
         self.__dict__.setdefault("building", -1)
         self.__dict__.setdefault("building_dest", -1)
         self.__dict__.setdefault("building_arrival_day", 0)
@@ -521,7 +594,6 @@ class Character:
         self.__dict__.setdefault("foreseen", {})
         self.__dict__.setdefault("fate_changed", 0)
         self.__dict__.setdefault("fate_kept", 0)
-        self.__dict__.setdefault("seclude_until", 0)
         self.__dict__.setdefault("hide_day", 0)
         self.__dict__.setdefault("fatigue", 0.0)
         self.__dict__.setdefault("blood_frac", 1.0)
@@ -554,7 +626,6 @@ class Character:
         self.__dict__.setdefault("acc_rate", 0.0)
         self.__dict__.setdefault("decay_mark", 0.0)
         self.__dict__.setdefault("decay_rate", 0.0)
-        self.__dict__.setdefault("seclude_snap", {})
 
 
 _CHARACTER_FIELDS = {f.name: f for f in fields(Character)}

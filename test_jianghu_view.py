@@ -25,7 +25,8 @@ class ObserverTests(unittest.TestCase):
             values.update(kw)
             return Character(**values)
         self.cast = [character(0), character(1, hidden=True), character(2, alive=False),
-                     character(3, travel_dest=0), character(4, world_id=1), character(5, place=0)]
+                     character(3), character(4, world_id=1), character(5, place=0)]
+        self.cast[3].travel_dest = 0            # กำลังเดินทาง (ตั้งผ่าน property ของ ActionProcess)
         self.sim = NS(worlds=[World(0, 'โลกมนุษย์', 0), World(1, 'อีกโลก', 0)], orgs=[], day=30,
                       log=[NS(seq=1, day=1, kind='เดินทาง', text='ถึงโรงเตี๊ยม', place=INN, world_id=0),
                            NS(seq=2, day=2, kind='ฝึก', text='คนละโลก', place=INN, world_id=1),

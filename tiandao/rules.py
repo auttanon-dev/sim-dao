@@ -369,6 +369,9 @@ def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False):
     - plunder=True ผู้ชนะริบของผู้แพ้ที่ยังไม่ตาย (ถ้าตาย Sim.kill ส่งของให้ผู้ฆ่าอยู่แล้ว)
     """
     win, lose, margin = resolve_clash(a, b, world, sim.items, rng, day)
+    for x in (a, b):                                 # การปะทะขัดจังหวะกิจกรรมยาวของทั้งสองฝ่าย
+        if getattr(x, "process", None) is not None and hasattr(sim, "interrupt_process"):
+            sim.interrupt_process(x, "ถูกโจมตี")
     if (plunder or margin >= lethal_margin(world, lethal_at)) and escape_with_talisman(sim, lose):
         return win, lose, margin, "หนีรอด"
     res = apply_defeat(sim, world, win, lose, margin, rng, lethal_at)

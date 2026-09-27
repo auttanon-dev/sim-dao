@@ -460,10 +460,8 @@ def _leave_before_broke(sim, people):
 
 def _end_seclusion(sim, ch, reason):
     """ให้ผู้ปิดด่านออกจากด่านวันนี้ — ผลของการปิดด่านคิดตามเวลาที่อยู่จริงตอนเทิร์นออกจากด่าน"""
-    ch.seclude_until = sim.day
-    ch.seclude_cut = reason
-    sim.food_stats["seclusion_cut"] += 1
-    sim.requeue(ch, sim.day)
+    if sim.interrupt_process(ch, reason):
+        sim.food_stats["seclusion_cut"] += 1
 
 
 def _starve(sim, ch):
@@ -528,8 +526,7 @@ def _seek_food(sim, ch):
     place, travel_days = dest
     if travel_days > trip_endurance(ch, day, ch.food):
         return                      # ไปไม่ถึงก่อนอดตาย อยู่รอข้าวที่ส่งมาถึงที่นี่ดีกว่า
-    ch.travel_dest = place
-    ch.travel_arrival_day = day + travel_days
+    sim.start_process(ch, "travel", travel_days, {"dest": place, "origin": ch.place})
     sim.food_stats["migrated"] += 1
     sim.requeue(ch, ch.travel_arrival_day)
     sim.emit(sim.world(wid), "ย้ายหาอาหาร", ch, None, ["เดินทาง"], "ออกเดินทาง",

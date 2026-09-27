@@ -49,7 +49,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  11 — ตัวนับใหม่ของ food_stats (เสบียงที่ซื้อก่อนออกเดินทาง การเดินทางที่เลื่อนไปเพราะเสบียงไม่พอ)
 #  12 — สำนักที่ผู้นำตายไปก่อนมีการสืบทอด ได้ผู้นำใหม่ (Sim.next_org_head / next_sect_master)
 #  13 — สำนักที่ไม่เหลือสมาชิกที่ยังมีชีวิตสลายไป (Org.alive = False)
-SAVE_VERSION = 13
+#  14 — ปิดด่านและการเดินทางเป็น Character.process (ActionProcess) แทนช่อง seclude_*/travel_*
+SAVE_VERSION = 14
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -234,6 +235,10 @@ def _migrate(sim, version):
     เซฟเดิมจะเดินไปคนละทางกับที่เคยเดิน เพียงเพราะเราอัปเกรด schema — ที่ต้องสุ่มให้ใช้
     random.Random ที่ผูกกับ (seed, cid) แบบที่เห็นข้างล่าง
     """
+    if version < 14:
+        # ต้องทำก่อนขั้นอื่น: ตั้งแต่รุ่น 14 seclude_until/travel_dest อ่านจาก process ขั้นเก่า (เช่นรุ่น 8) ที่อ่านช่องพวกนี้
+        # จะเห็นค่าจริงก็ต่อเมื่อสร้าง process จากค่าที่เก็บไว้แล้ว
+        _processes_from_legacy_fields(sim)
     if version < 1:
         _backfill_new_attrs(sim)
     if version < 2:
@@ -302,6 +307,31 @@ def _dissolve_empty_sects(sim):
     for org in sim.orgs:
         if org.alive and sim.next_org_head(org) is None:
             org.alive = False
+
+
+_LEGACY_PROCESS_FIELDS = ("travel_dest", "travel_arrival_day", "seclude_until", "seclude_snap")
+
+
+def _processes_from_legacy_fields(sim):
+    """สร้าง Character.process จากช่องเดิมที่เซฟก่อนรุ่น 14 เก็บไว้ในตัวคน แล้วลบช่องเดิมออก — ไม่แตะ RNG
+
+    ช่องเดิมยังอยู่ใน __dict__ ของเซฟเก่า แต่ property ของคลาสบังไว้ จึงต้องอ่านจาก __dict__ ตรงๆ
+    ผลของด่านยังไม่เคยจ่ายเลย (รุ่นเก่าจ่ายทั้งก้อนตอนออก) จึงให้ progress_day เท่ากับวันเข้าด่าน
+    """
+    from .models import ActionProcess
+    for ch in sim.cast:
+        old = {k: ch.__dict__.pop(k) for k in _LEGACY_PROCESS_FIELDS if k in ch.__dict__}
+        if not old or not ch.alive or ch.__dict__.get("process") is not None:
+            continue
+        dest, until = old.get("travel_dest", -1), old.get("seclude_until", 0)
+        if dest is not None and dest >= 0:
+            end = old.get("travel_arrival_day", 0)
+            ch.process = ActionProcess("travel", end, end, end, 0.0, {"dest": dest, "origin": ch.place})
+        elif until and until > 0 and ch.hidden:       # ค่าค้างของคนที่ออกจากด่านแล้วไม่นับ
+            snap = old.get("seclude_snap") or {}
+            start = int(snap.get("day", until - 365))
+            ch.process = ActionProcess("seclusion", start, until, start, float(snap.get("gamma", 1.0) or 1.0),
+                                       {"snap": snap})
 
 
 def _add_new_counters(sim):

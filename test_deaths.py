@@ -259,9 +259,13 @@ class TestHeavenWar(unittest.TestCase):
                            "ถ้าไม่ตั้งค่ายกลใหม่ ประตูที่ปิดอีกครั้งจะถูกทุบเปิดได้ในหมัดเดียว")
 
     def test_over_a_long_run_the_sky_is_fought_for_not_walked_through(self):
-        sim = quiet(S.Sim, seed=11)
-        quiet(sim.run, 60000)
-        evs = [e for e in sim.log if e.kind == "สงครามเบิกฟ้า"]
+        # รวมสามโลก (seed 11–13) — การทุบกำแพงฟ้าเป็นเหตุหายาก ต่อโลกแกว่ง 0–12 ครั้งใน 60,000 เหตุการณ์
+        # โลกเดียวจึงได้ศูนย์ครั้งได้ทุกเมื่อที่เส้นทางเปลี่ยน โดยที่อัตราจริงไม่ได้เปลี่ยน
+        evs = []
+        for seed in (11, 12, 13):
+            sim = quiet(S.Sim, seed=seed)
+            quiet(sim.run, 60000)
+            evs += [e for e in sim.log if e.kind == "สงครามเบิกฟ้า"]
         opened = [e for e in evs if e.outcome == "เปิดสวรรค์"]
         self.assertGreater(len(evs), 0, "ต้องมีคนลองทุบกำแพงฟ้าจริง")
         self.assertLess(len(opened), len(evs), "เปิดได้ทุกครั้งที่ลอง = ค่ายกลไม่ได้ถูกตั้งใหม่")
