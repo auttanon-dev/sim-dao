@@ -34,7 +34,7 @@ from . import config as C
 from . import travel as TR
 from . import wages as WAGES
 
-STAT_KEYS = ("assigned", "reassigned", "unplaced", "moved", "released", "refostered", "fostered_across_realms")
+STAT_KEYS = ("born", "assigned", "reassigned", "unplaced", "moved", "released", "refostered", "fostered_across_realms")
 # "unplaced" เป็นจำนวน ณ รอบล่าสุด (เด็กที่ตอนนี้ไม่มีผู้ปกครอง) ไม่ใช่ยอดสะสม ตัวอื่นเป็นยอดสะสม
 ADULT_AGE = 18
 
@@ -167,6 +167,7 @@ def _release(sim, child):
 
 # เหตุที่รับเลี้ยง -> (ตัวนับใน guardian_stats, คำอธิบายในเหตุการณ์)
 _REASONS = {
+    "แรกเกิด": ("born", "พ่อแม่ดูแลตั้งแต่เกิด"),
     "รับเลี้ยง": ("assigned", "ไม่มีผู้ใดดูแล"),
     "สืบต่อ": ("reassigned", "ผู้ปกครองเดิมสิ้นชีวิต"),
     "ย้ายไปใกล้ข้าว": ("refostered", "เด็กหิว และผู้ปกครองเดิมไม่มีข้าวใกล้ที่อยู่หรือไม่มีผู้ปกครอง"),
@@ -191,6 +192,16 @@ def assign(sim, child, guardian, reason):
     if not is_parent:
         sim.emit(sim.world(child.world_id), "รับเลี้ยง", guardian, child, ["ครอบครัว"], reason,
                  f"{guardian.name}รับ{child.name}มาเลี้ยงดูที่{sim.place_name(guardian)}", 0, {"เหตุ": why})
+
+
+def at_birth(sim, child, mother, father) -> bool:
+    """ทารกเกิดใหม่อยู่กับแม่ ถ้าแม่ดูแลไม่ได้ (เช่นอยู่ในคุก) ให้พ่อที่อยู่แดนเดียวกัน ไม่งั้นรอรอบนาฬิกาโลกหาให้"""
+    day = sim.day
+    for parent in (mother, father):
+        if _can_care(parent, day) and parent.world_id == child.world_id:
+            assign(sim, child, parent, "แรกเกิด")
+            return True
+    return False
 
 
 def tick(sim) -> None:

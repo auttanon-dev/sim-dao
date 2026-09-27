@@ -372,7 +372,6 @@ class FoodInTheRunningWorldTests(unittest.TestCase):
             monk.hidden, monk.seclude_until = True, sim.day + 5 * 365
             monk.seclude_snap = {"day": sim.day, "gamma": 1.0}
             sim.requeue(monk, monk.seclude_until)
-            insight = monk.insight
             start = sim.day
             with mock.patch.object(FOOD, "_working", return_value=False):
                 while monk.alive and monk.seclude_until and sim.day < start + 365:
@@ -384,8 +383,11 @@ class FoodInTheRunningWorldTests(unittest.TestCase):
         self.assertLess(sim.day - start, 365)
         out = [e for e in sim.log if e.kind == "ออกจากด่าน" and e.actor == monk.cid]
         self.assertEqual(out[-1].deltas.get("เหตุที่ออก"), "เสบียงหมดก่อนครบกำหนด")
-        gained = monk.insight - insight
-        self.assertLess(gained, C.SECLUDE_INSIGHT_PER_YEAR, "ได้ผลเท่าเวลาที่อยู่จริง ไม่ปัดเป็นหนึ่งปี")
+        # วัดจากเวลาที่บันทึกตอนออกจากด่าน ไม่ใช่ความเข้าใจทั้งหมด — เทิร์นเดียวกันอาจมีเหตุอื่นให้ความเข้าใจด้วย
+        # (seed 11 หลังมีการตั้งครรภ์: ออกไปล่าอสูรในป่าหมื่นอสูรวันเดียวกันได้ +10)
+        spent = float(out[-1].deltas["เวลาในด่าน"].split()[0])
+        self.assertLess(spent, 1.0, "ได้ผลเท่าเวลาที่อยู่จริง ไม่ปัดเป็นหนึ่งปี")
+        self.assertAlmostEqual(spent, (sim.day - start) / 365.0, places=1)
 
     @mock.patch.multiple(C, FOOD_ENABLED=False, WAGES_ENABLED=False, GUARDIANS_ENABLED=False)
     def test_switched_off_the_world_never_touches_food(self):

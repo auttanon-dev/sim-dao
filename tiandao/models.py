@@ -240,6 +240,8 @@ class Character:
                                  # จุดออกเดินทางเดิม จะเปลี่ยนเป็นปลายทางตอนถึงจริงเท่านั้น
     # กิจกรรมยาวที่กำลังทำอยู่ (ปิดด่าน เดินทาง) — ดู ActionProcess และ property travel_dest ฯลฯ ท้ายคลาส
     process: Optional["ActionProcess"] = None
+    pregnancy: Optional["ActionProcess"] = None    # ครรภ์ แยกช่องเพราะตั้งครรภ์ไปพร้อมกิจกรรมอื่นได้ (Sim.conceive)
+    postpartum_until: int = 0
     building: int = -1          # อาคารที่อยู่ตอนนี้ภายใน place ปัจจุบัน (ดัชนีใน settlement ของ place นั้น)
                                  # — -1 = ยังไม่ระบุ/อยู่ในเมืองทั่วไป, รีเซ็ตเป็น -1 ทุกครั้งที่ place เปลี่ยน
     building_dest: int = -1     # กำลังเดินไปอาคารไหนภายในเมือง — -1 = ไม่ได้เดินอยู่

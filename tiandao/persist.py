@@ -50,7 +50,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  12 — สำนักที่ผู้นำตายไปก่อนมีการสืบทอด ได้ผู้นำใหม่ (Sim.next_org_head / next_sect_master)
 #  13 — สำนักที่ไม่เหลือสมาชิกที่ยังมีชีวิตสลายไป (Org.alive = False)
 #  14 — ปิดด่านและการเดินทางเป็น Character.process (ActionProcess) แทนช่อง seclude_*/travel_*
-SAVE_VERSION = 14
+#  15 — เมืองและเจ้าเมืองอยู่ในเซฟ (Sim.cities) แทนการแก้ config.CITIES ของ module; ตั้งครรภ์เป็น Character.pregnancy
+SAVE_VERSION = 15
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -280,6 +281,29 @@ def _migrate(sim, version):
         _appoint_missing_heads(sim)
     if version < 13:
         _dissolve_empty_sects(sim)
+    if version < 15:
+        _cities_into_save(sim)
+        _add_new_counters(sim)          # guardian_stats["born"]
+
+
+def _cities_into_save(sim):
+    """เมืองก่อนรุ่น 15 อยู่ใน config.CITIES ของ module ซึ่งไม่ถูกเซฟ — เจ้าเมืองและความเข้มงวดหายทุกครั้งที่โหลด
+    สร้างสำเนาของโลกนี้ แล้วหาเจ้าเมืองคืนจากคนที่ยังมีชีวิตในเมืองซึ่งถือตำแหน่งของเมืองนั้น (สืบทอดส่งตำแหน่งต่อด้วย)
+    ขั้นสูงสุดก่อน ไม่มีก็ใช้กฎสืบทอดเดียวกับตอนเจ้าเมืองตาย — ไม่แตะ RNG"""
+    import copy
+    from . import config as C
+    from .sim import city_office
+    sim.cities = copy.deepcopy(C.CITIES)
+    if not getattr(sim, "cities_initialized", False):
+        return                          # ยังไม่เคยตั้งเจ้าเมือง รอบแรกของ _step ทำเอง
+    living = [sim.cast[c] for c in sorted(sim.alive_cids)]
+    for city in sim.cities:
+        office = city_office(city.get("type_desc", ""))
+        city["law_strictness"] = office["strictness"]
+        here = [c for c in living if getattr(c, "city_id", -1) == city["id"]]
+        titled = [c for c in here if getattr(c, "title", "") == office["title"]]
+        pick = max(titled or here, key=lambda c: (c.realm, -c.cid)) if (titled or here) else None
+        city["ruler_cid"] = pick.cid if pick is not None else -1
 
 
 def _appoint_missing_heads(sim):

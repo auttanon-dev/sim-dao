@@ -90,6 +90,8 @@ class WorldClockTests(unittest.TestCase):
     def test_a_world_where_nobody_ever_comes_reports_an_empty_queue(self):
         sim = world_after(200)
         sim.queue = []
+        for ch in sim.cast:
+            ch.pregnancy = None             # ครรภ์ที่ครบกำหนดคลอดคนใหม่เข้าคิว เหมือน repopulate ข้างล่าง
         start = sim.day
         with mock.patch.object(C, "WORLD_IDLE_LIMIT_DAYS", 365), \
                 mock.patch.object(sim, "repopulate"):
@@ -100,8 +102,12 @@ class WorldClockTests(unittest.TestCase):
     def test_a_world_tick_and_a_turn_on_the_same_day_run_world_first(self):
         sim = world_after(200)
         due = sim.world_tick_day
-        cid = sim.queue[0][1]
+        # คนที่ถึงเทิร์นแล้วลงมือจริง — คนในด่านหรือกลางทางได้เทิร์นแบบไม่มีเหตุการณ์ แล้วโลกเดินรอบถัดไปก่อน
+        cid = next(c for _, c in sorted(sim.queue) if not sim.cast[c].hidden and sim.cast[c].process is None
+                   and sim.cast[c].age(sim.day) >= 16)
         sim.queue = [(due, cid)]
+        for ch in sim.cast:
+            ch.pregnancy = None             # ทารกที่คลอดในรอบโลกได้ใบคิวของตัวเอง — เทสต์นี้ต้องการคิวใบเดียว
         order = []
         original = sim._world_tick
         sim._world_tick = lambda rng: (order.append("world"), original(rng))

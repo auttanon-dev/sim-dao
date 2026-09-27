@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import copy
 import heapq
 import math
 import random
@@ -66,6 +67,20 @@ def _auction_q(value: float) -> float:
     return math.floor(max(0.0, value) * step) / step
 
 
+def city_office(type_desc):
+    """ตำแหน่งผู้ปกครองของเมืองแต่ละแบบ — ความเข้มงวดของกฎเมือง ตำแหน่ง ฝ่าย ชื่อตั้งต้น และขั้นของเจ้าเมืองคนแรก
+    (persist._cities_into_save ใช้หาเจ้าเมืองคืนจากตำแหน่งในเซฟก่อนรุ่น 15)"""
+    if "เมืองหลวง" in type_desc:
+        return dict(strictness=90, title="ฮ่องเต้", faction="ราชสำนัก", name="หมิงหยวนตี้", realm=6)
+    if "ชายแดน" in type_desc:
+        return dict(strictness=80, title="แม่ทัพใหญ่", faction="กองทัพทหารม้าเหล็ก", name="เฉินเฟิง", realm=5)
+    if "หน้าด่านสำนัก" in type_desc:
+        return dict(strictness=40, title="ตัวแทนสำนัก", faction="พันธมิตรยุทธ", name="เย่ฟาน", realm=7)
+    if "ลับแล" in type_desc or "เถื่อน" in type_desc or "ตลาดมืด" in type_desc:
+        return dict(strictness=10, title="ราชาตลาดมืด", faction="สมาคมนักฆ่า", name="เงาทมิฬ", realm=8)
+    return dict(strictness=50, title="นายอำเภอ", faction="ราชสำนัก", name="หวังป๋อ", realm=3)
+
+
 class Sim:
     def __init__(self, seed=0, tiers=3):
         self.rng = random.Random(seed)
@@ -81,6 +96,7 @@ class Sim:
         self.farm_till = {}       # (wid, place) -> ค่าข้าวที่รอจ่ายให้คนผลิตของที่นั้น
         self.wage_stats = WAGES.new_stats()
         self.guardian_stats = GUARD.new_stats()
+        self.cities = copy.deepcopy(C.CITIES)   # เมืองของโลกนี้ — เจ้าเมืองอยู่ในเซฟ (เดิมแก้ config.CITIES ของ module)
         self.seq = 0
         self.cast = []
         self.used_names = set()          # ชื่อที่ถูกใช้แล้วทั้งจักรวาล (unique_name)
@@ -559,8 +575,8 @@ class Sim:
         
         # City (only applicable for tier 1)
         city_id = -1
-        if world.tier == 1 and hasattr(C, "CITIES") and C.CITIES:
-            city = rng.choice(C.CITIES)
+        if world.tier == 1 and self.cities:
+            city = rng.choice(self.cities)
             city_id = city["id"]
         ch = Character(
             cid=self.nid("c"),
@@ -951,6 +967,7 @@ class Sim:
         for cid in self.alive_cids:                  # แค้นคนตายชำระไม่ได้ (เหมือน fade_grudges แต่ทันที)
             self.cast[cid].rivals.pop(ch.cid, None)
         ch.process, ch.building_dest = None, -1      # ไม่มีศพที่ยังเดินทาง ปิดด่าน หรือเดินในเมืองค้างอยู่
+        self.end_pregnancy(ch, "มารดาเสียชีวิต")
 
         # ผู้ฝึกสายวัฏจักร: ร่างตายแล้ว แต่ดวงจิตไปเกิดใหม่ — ทำหลังกระบวนการตายครบทุกอย่าง
         if ch.sentient and not ch.is_lord and self._knows_cycle(ch):
@@ -1057,7 +1074,7 @@ class Sim:
                 new.sect_role = "เจ้าสำนัก"
                 self.emit(self.world(new.world_id), "สืบทอดตำแหน่ง", new, ch, ["ชื่อเสียง"], "เป็นเจ้าสำนัก",
                           f"{new.name}ขึ้นเป็นเจ้า{sect}ต่อจาก{ch.name}", 0, {"สำนัก": sect})
-        for city in getattr(C, "CITIES", ()):
+        for city in self.cities:
             if city.get("ruler_cid") != ch.cid:
                 continue
             here = [c for c in map(cast.__getitem__, self.alive_sorted()) if getattr(c, "city_id", -1) == city["id"]]
@@ -1314,8 +1331,106 @@ class Sim:
             ch.process = None
             self.emit(self.world(ch.world_id), "หยุดเดินทาง", ch, None, ["เดินทาง"], "หยุดกลางทาง",
                       f"{ch.name}ต้องหยุดการเดินทาง — {reason}", 0, {"เหตุ": reason})
-        self.requeue(ch, self.day)
+        if any(c == ch.cid for _, c in self.queue):
+            # ผู้ที่กำลังอยู่ในเทิร์นของตัวเอง (เช่นคนเดินทางที่ไปรบเองแล้วแพ้) ไม่มีใบในคิว — ท้ายเทิร์นนัดให้เอง
+            # ถ้า requeue ตรงนี้จะได้สองใบ และโหลดเซฟแล้ว _repair_queue ตัดใบหนึ่งทิ้ง โลกเดินต่างจากไม่เซฟ
+            self.requeue(ch, self.day)
         return True
+
+    def conceive(self, mother, father, initiator):
+        """ตั้งครรภ์ (แบบ §7.2) — ครรภ์เป็น ActionProcess บนแม่ คลอดเมื่อครบ GESTATION_DAYS (check_processes)
+        `initiator` คือฝ่ายที่ชวน ตระกูลของเด็กตามฝ่ายนี้ก่อนเหมือนตอนเกิดทันที"""
+        mother.pregnancy = ActionProcess("pregnancy", self.day, self.day + C.GESTATION_DAYS, self.day, 0.0,
+                                         {"father": father.cid, "initiator": initiator.cid})
+        return mother.pregnancy
+
+    def end_pregnancy(self, mother, reason):
+        """ครรภ์สิ้นสุดก่อนคลอด — แท้ง บาดเจ็บสาหัส อดอาหาร หรือแม่ตาย คืน True ถ้ามีครรภ์ให้จบ"""
+        p = mother.pregnancy
+        if p is None:
+            return False
+        mother.pregnancy = None
+        stats = self.__dict__.setdefault("process_stats", {})
+        stats[f"pregnancy:{reason}"] = stats.get(f"pregnancy:{reason}", 0) + 1
+        if mother.alive:
+            mother.postpartum_until = self.day + C.POSTPARTUM_DAYS
+            self.emit(self.world(mother.world_id), "แท้ง", mother, None, ["คน", "เลือด"], "สูญเสียครรภ์",
+                      f"{mother.name}สูญเสียครรภ์ — {reason}", 0, {"เหตุ": reason,
+                                                                  "อายุครรภ์": f"{self.day - p.start_day} วัน"})
+        return True
+
+    def deliver(self, mother):
+        """คลอดเมื่อครบกำหนด — ทารกเกิดที่ที่แม่อยู่ สายเลือด ธาตุ ตระกูล และโบนัสผู้ฝึกตนเหมือนการเกิดเดิม
+        แล้วแม่พักฟื้น POSTPARTUM_DAYS ผู้ปกครองคือแม่ (หรือพ่อ) ทันทีผ่าน guardians.at_birth"""
+        p = mother.pregnancy
+        mother.pregnancy = None
+        mother.postpartum_until = self.day + C.POSTPARTUM_DAYS
+        father = self.cast[p.payload["father"]]
+        a, t = (father, mother) if p.payload.get("initiator") == father.cid else (mother, father)
+        w = self.world(mother.world_id)
+        rng = self.rng
+        d = {}
+        child = self.spawn(w, age_years=0)
+        if C.FOOD_ENABLED:
+            child.food = 0.0       # ทารกไม่ได้พกเสบียงมา กินจากยุ้งฉางของที่ที่เกิด
+        if C.WAGES_ENABLED:
+            child.gold_endowed = True   # ทารกไม่ได้ทุนตั้งต้น พ่อแม่จ่ายค่าข้าวให้
+        blood = {}
+        for kk in C.BLOODS:
+            v = (a.blood.get(kk, 0.0) + t.blood.get(kk, 0.0)) * CL.INHERIT_MIX
+            if v > 0.05:
+                blood[kk] = min(1.0, v)
+        if sum(blood.values()) > 1.0:
+            s = sum(blood.values())
+            blood = {kk: v/s for kk, v in blood.items()}
+        child.blood = blood
+        child.bonds[a.cid] = 10
+        child.bonds[t.cid] = 10
+        # โบนัสทายาทผู้ฝึกตน
+        p_realm = a.realm + t.realm
+        if p_realm > 0:
+            child.insight += p_realm * 2.0
+            child.refine += p_realm * 2.0
+            d["ทายาทผู้ฝึกตน"] = f"{child.name} ได้รับพรสวรรค์มหาศาลตั้งแต่เกิด!"
+            v += rng.uniform(-CL.MUTATE, CL.MUTATE)
+            blood[kk] = max(0.0, v)
+        # สายเลือดวิญญาณเจือจางทุกรุ่น ส่วนที่หายไปกลายเป็นเลือดอสูร
+        lost = blood.get("spirit", 0.0) * CL.SPIRIT_DILUTE
+        blood["spirit"] = blood.get("spirit", 0.0) - lost
+        blood["demon"] = blood.get("demon", 0.0) + lost
+        child.blood = R.normalize(blood)
+        # หลังผสมสายเลือดจริงแล้วจึงสุ่มดวงรับพรและตรึงปริมาณพรตามความเข้มข้นแรกเกิด
+        child.bloodline_affinity = {
+            line: round(rng.uniform(C.BLOODLINE_AFFINITY_MIN, C.BLOODLINE_AFFINITY_MAX), 4)
+            for line, share in child.blood.items() if share > 0.0
+        }
+        child.bloodline_grants = {}
+        self.apply_bloodline_buff(child)
+        child.parents = [a.cid, t.cid]
+        # ธาตุสืบสาย — ต้องตั้งตรงนี้ ไม่ใช่ใน spawn() เพราะตอน spawn ยังไม่รู้ว่าใครเป็นพ่อแม่
+        # (วัดจริงตอนตั้งไว้ใน spawn: ลูกได้ธาตุตรงกับพ่อแม่ 22% = เท่ากับสุ่มล้วนพอดี)
+        EL.roll(child, rng, (a, t))
+        d["ธาตุของทายาท"] = f"{child.element} ({EL.relation_words(a.element, t.element)})"
+        child.generation = max(a.generation, t.generation) + 1
+        child.clan = a.clan if a.clan >= 0 else t.clan
+        child.place = mother.place              # เกิดที่ที่แม่อยู่ตอนคลอด
+        child.origin = "ทายาทตระกูล" if child.clan >= 0 else "ชาวบ้าน"
+        if child.clan >= 0:
+            child.name = self.unique_name(
+                CL.CLANS[child.clan][0].replace("ตระกูล", "") + rng.choice(E.GIVEN), old=child.name)
+        a.children.append(child.cid)
+        t.children.append(child.cid)
+        a.bonds[t.cid] = a.bonds.get(t.cid, 0) + 2
+        d["ทายาท"] = f"{child.name} — {child.race()} รุ่นที่ {child.generation}"
+        if lost > 0.01:
+            d["สายเลือดเจือจาง"] = f"เลือดวิญญาณลดลง {lost*100:.0f}% กลายเป็นเลือดอสูร"
+        clan = CL.CLANS[child.clan][0] if child.clan >= 0 else "ไร้ตระกูล"
+        d["child_id"] = child.cid
+        if C.GUARDIANS_ENABLED:
+            GUARD.at_birth(self, child, mother, father)
+        self.emit(w, "กำเนิดทายาท", mother, father, ["คน", "เลือด"], "กำเนิด",
+                  f"{a.name}กับ{t.name}ให้กำเนิด{child.name}แห่ง{clan}", 0, d)
+        return child
 
     def begin_cultivation(self, ch, days, rate=1.0):
         """บำเพ็ญจากวันนี้ไปจนถึงเทิร์นถัดไป (`days` คือช่วงที่ _next_turn นัดไว้) ผลคิดตามวันที่ได้บำเพ็ญจริง
@@ -1336,6 +1451,13 @@ class Sim:
         """ทุกรอบของโลก: คนที่หมดสติหยุดทุกกิจกรรม คนที่ยืนไม่ได้หยุดเดินทาง (ยังนั่งบำเพ็ญในด่านต่อได้)"""
         for cid in self.alive_sorted():
             ch = self.cast[cid]
+            if ch.pregnancy is not None:
+                if ch.pregnancy.end_day <= self.day:
+                    self.deliver(ch)
+                elif not BODY.can_fight(ch):
+                    self.end_pregnancy(ch, "บาดเจ็บสาหัส")
+                elif ch.hunger_days >= C.PREGNANCY_STARVE_DAYS:
+                    self.end_pregnancy(ch, "อดอาหาร")
             p = ch.process
             if p is None or p.end_day <= self.day:
                 continue
@@ -2129,8 +2251,8 @@ class Sim:
                     safe_print(f"\n🐉 [คลื่นสัตว์อสูร] สัตว์อสูรบำเพ็ญตบะทะลวงขั้นสำเร็จ จำแลงกายเป็นมนุษย์ นามว่า [{king.name}]!")
                 
                 if self.rng.random() < PHYS.hazard_p(C.BEAST_CITY_RAID_PER_YEAR, round_days):
-                    if hasattr(C, "CITIES"):
-                        targets = [city for city in C.CITIES if "ชายแดน" in city.get("type_desc", "") or "หน้าด่านสำนัก" in city.get("type_desc", "")]
+                    if self.cities:
+                        targets = [city for city in self.cities if "ชายแดน" in city.get("type_desc", "") or "หน้าด่านสำนัก" in city.get("type_desc", "")]
                         if targets:
                             target = self.rng.choice(targets)
                             safe_print(f"\n🌋 [คลื่นสัตว์อสูรบุกเมือง] [{king.name}] นำกองทัพอสูรบุกโจมตีเมือง <{target['name_th']}>!")
@@ -2232,39 +2354,10 @@ class Sim:
         # --- City Governance Initialization ---
         if not getattr(self, "cities_initialized", False):
             self.cities_initialized = True
-            if hasattr(C, "CITIES"):
-                for c in C.CITIES:
-                    c_type = c.get("type_desc", "")
-                    strictness = 50
-                    title = "นายอำเภอ"
-                    faction = "ราชสำนัก"
-                    ruler_name = "หวังป๋อ"
-                    realm = 3
-                    
-                    if "เมืองหลวง" in c_type:
-                        strictness = 90
-                        title = "ฮ่องเต้"
-                        ruler_name = "หมิงหยวนตี้"
-                        realm = 6
-                    elif "ชายแดน" in c_type:
-                        strictness = 80
-                        title = "แม่ทัพใหญ่"
-                        faction = "กองทัพทหารม้าเหล็ก"
-                        ruler_name = "เฉินเฟิง"
-                        realm = 5
-                    elif "หน้าด่านสำนัก" in c_type:
-                        strictness = 40
-                        title = "ตัวแทนสำนัก"
-                        faction = "พันธมิตรยุทธ"
-                        ruler_name = "เย่ฟาน"
-                        realm = 7
-                    elif "ลับแล" in c_type or "เถื่อน" in c_type or "ตลาดมืด" in c_type:
-                        strictness = 10
-                        title = "ราชาตลาดมืด"
-                        faction = "สมาคมนักฆ่า"
-                        ruler_name = "เงาทมิฬ"
-                        realm = 8
-                        
+            for c in self.cities:
+                    office = city_office(c.get("type_desc", ""))
+                    strictness, title, faction = office["strictness"], office["title"], office["faction"]
+                    ruler_name, realm = office["name"], office["realm"]
                     c["law_strictness"] = strictness
                     
                     # Spawn the Ruler
@@ -2752,8 +2845,8 @@ class Sim:
             others = [c for c in others if c.alive]
 
         city_dict = None
-        if hasattr(C, "CITIES") and actor.city_id >= 0:
-            for c in C.CITIES:
+        if actor.city_id >= 0:
+            for c in self.cities:
                 if c["id"] == actor.city_id:
                     city_dict = c
                     break
@@ -2940,8 +3033,8 @@ class Sim:
                     import tiandao.combat as combat
                     # Law Enforcement Check
                     blocked = False
-                    if actor.city_id >= 0 and hasattr(C, "CITIES"):
-                        city_dict = next((c for c in C.CITIES if c["id"] == actor.city_id), None)
+                    if actor.city_id >= 0:
+                        city_dict = next((c for c in self.cities if c["id"] == actor.city_id), None)
                         if city_dict and "law_strictness" in city_dict:
                             if rng.random() * 100 < city_dict["law_strictness"]:
                                 blocked = True
@@ -3887,8 +3980,8 @@ class Sim:
                     self.kill(a, f"สิ้นอายุขัยในวัย {age_now} ปี อย่างสงบ")
                     return "ความสงบ", f"🧓🍂 [สิ้นอายุขัย] ปิดตำนานยอดฝีมือ... [{a.name}] สิ้นใจลงด้วยโรคชราในวัย {age_now} ปี", d
             
-            if a.city_id >= 0 and hasattr(C, "CITIES"):
-                city = next((c for c in C.CITIES if c["id"] == a.city_id), None)
+            if a.city_id >= 0:
+                city = next((c for c in self.cities if c["id"] == a.city_id), None)
                 if city:
                     safety = city["attributes"]["safety"]
                     jianghu = city["attributes"]["jianghu"]
@@ -4000,18 +4093,15 @@ class Sim:
                                     b.companions[a.name] = 80
                                     msg = f"💖 [แต่งงาน] [{a.name}] และ [{b.name}] พบกันที่ {city['name_th']} และเข้าพิธีวิวาห์!"
                                     
-                                    # 👶 กำเนิดทายาท
-                                    if rng.random() < 0.5:
-                                        child = self.spawn(w)
-                                        child.parent_name = a.name
-                                        child.parents = [a.cid, b.cid]
-                                        child.bonds[a.cid] = 10
-                                        child.bonds[b.cid] = 10
-                                        a.children.append(child.cid)
-                                        b.children.append(child.cid)
-                                        child.generation = getattr(a, "generation", 1) + 1
-                                        child.money[w.tier] = a.money.get(w.tier, 0) // 2
-                                        msg += f" 🍼 [สายเลือดสืบทอด] ให้กำเนิดทายาทชื่อ [{child.name}] (รุ่นที่ {child.generation})!"
+                                    # 👶 ตั้งครรภ์ (คลอดเมื่อครบกำหนด — Sim.conceive)
+                                    if rng.random() < 0.5 and {a.gender, b.gender} == {"ชาย", "หญิง"} \
+                                            and min(a.age(self.day), b.age(self.day)) >= C.ADULT_AGE:
+                                        mother = a if a.gender == "หญิง" else b
+                                        fertile = self.fertility(w)
+                                        if (mother.pregnancy is None and mother.postpartum_until <= self.day
+                                                and (fertile >= 1.0 or rng.random() < fertile)):
+                                            self.conceive(mother, b if mother is a else a, a)
+                                            msg += f" 🤰 [ตั้งครรภ์] {mother.name}ตั้งครรภ์ทายาทรุ่นถัดไป!"
                                     return "ความสัมพันธ์", pre_msg + msg, d
                                 else:
                                     a.nemeses[b.name] = {"title": getattr(b, "title", ""), "power": R.power(b, w), "hatred": 100}
@@ -5292,66 +5382,18 @@ class Sim:
             elif a.race() == "มาร" and t.race() == "มนุษย์":
                 if "พัวพันกับมาร" not in t.traits: t.traits.append("พัวพันกับมาร")
 
+            mother = a if a.gender == "หญิง" else t
+            father = t if mother is a else a
+            if mother.pregnancy is not None or mother.postpartum_until > self.day:
+                why = "ตั้งครรภ์อยู่แล้ว" if mother.pregnancy is not None else "เพิ่งคลอด ยังพักฟื้นอยู่"
+                return "ยังไม่มีทายาท", f"{mother.name}{why}", d
             fertile = self.fertility(w)
             if fertile < 1.0 and rng.random() >= fertile:
                 d["คนในแดน"] = f"{w.n_alive}/{C.POP_K_MULT * self.realm_target(w):.0f}"
                 return "ยังไม่มีทายาท", f"{a.name}กับ{t.name}ยังไม่มีทายาท แดนนี้คนแน่นแล้ว", d
-            child = self.spawn(w, age_years=0)
-            if C.FOOD_ENABLED:
-                child.food = 0.0       # ทารกไม่ได้พกเสบียงมา กินจากยุ้งฉางของที่ที่เกิด
-            if C.WAGES_ENABLED:
-                child.gold_endowed = True   # ทารกไม่ได้ทุนตั้งต้น พ่อแม่จ่ายค่าข้าวให้
-            blood = {}
-            for kk in C.BLOODS:
-                v = (a.blood.get(kk, 0.0) + t.blood.get(kk, 0.0)) * CL.INHERIT_MIX
-                if v > 0.05:
-                    blood[kk] = min(1.0, v)
-            if sum(blood.values()) > 1.0:
-                s = sum(blood.values())
-                blood = {kk: v/s for kk, v in blood.items()}
-            child.blood = blood
-            child.bonds[a.cid] = 10
-            child.bonds[t.cid] = 10
-            # โบนัสทายาทผู้ฝึกตน
-            p_realm = a.realm + t.realm
-            if p_realm > 0:
-                child.insight += p_realm * 2.0
-                child.refine += p_realm * 2.0
-                d["ทายาทผู้ฝึกตน"] = f"{child.name} ได้รับพรสวรรค์มหาศาลตั้งแต่เกิด!"
-                v += rng.uniform(-CL.MUTATE, CL.MUTATE)
-                blood[kk] = max(0.0, v)
-            # สายเลือดวิญญาณเจือจางทุกรุ่น ส่วนที่หายไปกลายเป็นเลือดอสูร
-            lost = blood.get("spirit", 0.0) * CL.SPIRIT_DILUTE
-            blood["spirit"] = blood.get("spirit", 0.0) - lost
-            blood["demon"] = blood.get("demon", 0.0) + lost
-            child.blood = R.normalize(blood)
-            # หลังผสมสายเลือดจริงแล้วจึงสุ่มดวงรับพรและตรึงปริมาณพรตามความเข้มข้นแรกเกิด
-            child.bloodline_affinity = {
-                line: round(rng.uniform(C.BLOODLINE_AFFINITY_MIN, C.BLOODLINE_AFFINITY_MAX), 4)
-                for line, share in child.blood.items() if share > 0.0
-            }
-            child.bloodline_grants = {}
-            self.apply_bloodline_buff(child)
-            child.parents = [a.cid, t.cid]
-            # ธาตุสืบสาย — ต้องตั้งตรงนี้ ไม่ใช่ใน spawn() เพราะตอน spawn ยังไม่รู้ว่าใครเป็นพ่อแม่
-            # (วัดจริงตอนตั้งไว้ใน spawn: ลูกได้ธาตุตรงกับพ่อแม่ 22% = เท่ากับสุ่มล้วนพอดี)
-            EL.roll(child, rng, (a, t))
-            d["ธาตุของทายาท"] = f"{child.element} ({EL.relation_words(a.element, t.element)})"
-            child.generation = max(a.generation, t.generation) + 1
-            child.clan = a.clan if a.clan >= 0 else t.clan
-            child.place = a.place
-            child.origin = "ทายาทตระกูล" if child.clan >= 0 else "ชาวบ้าน"
-            if child.clan >= 0:
-                child.name = self.unique_name(
-                    CL.CLANS[child.clan][0].replace("ตระกูล", "") + rng.choice(E.GIVEN), old=child.name)
-            a.children.append(child.cid)
-            t.children.append(child.cid)
-            a.bonds[t.cid] = a.bonds.get(t.cid, 0) + 2
-            d["ทายาท"] = f"{child.name} — {child.race()} รุ่นที่ {child.generation}"
-            if lost > 0.01:
-                d["สายเลือดเจือจาง"] = f"เลือดวิญญาณลดลง {lost*100:.0f}% กลายเป็นเลือดอสูร"
-            clan = CL.CLANS[child.clan][0] if child.clan >= 0 else "ไร้ตระกูล"
-            return "กำเนิด", f"{a.name}กับ{t.name}ให้กำเนิด{child.name}แห่ง{clan}", d
+            p = self.conceive(mother, father, a)
+            d["กำหนดคลอด"] = f"อีก {p.end_day - self.day} วัน"
+            return "ตั้งครรภ์", f"{mother.name}ตั้งครรภ์กับ{father.name}", d
 
         if k == "ให้สัญญา":
             if a.ascends > 0 and t.ascends == 0:

@@ -81,8 +81,10 @@ class ChildhoodTests(unittest.TestCase):
         outcome, _text, _details = sim.resolve(
             {"kind": "กำเนิดทายาท", "tgt": True}, father, mother,
             sim.worlds[0], 0, sim.rng)
-        self.assertEqual(outcome, "กำเนิด")
-        child = sim.cast[before]
+        self.assertEqual(outcome, "ตั้งครรภ์")
+        sim.day = mother.pregnancy.end_day
+        child = sim.deliver(mother)
+        self.assertEqual(child.cid, before)
         self.assertEqual(child.insight, 14.0)
         self.assertEqual(child.refine, 14.0)
 

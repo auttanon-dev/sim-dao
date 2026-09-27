@@ -133,7 +133,7 @@ class SuccessionAndCleanupTests(World):
         for c in (ruler, weak, strong):
             c.city_id = 999
         strong.realm = weak.realm + 2
-        with mock.patch.object(C, "CITIES", [city], create=True):
+        with mock.patch.object(self.sim, "cities", [city]):   # เมืองอยู่ในเซฟของโลก (Sim.cities)
             self.die(ruler)
         self.assertEqual(city["ruler_cid"], strong.cid)
 

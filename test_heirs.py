@@ -32,8 +32,9 @@ class TestPartnerChoice(Base):
         mate = next(c for c in self.others if c.gender == "หญิง" and c.age(self.day) >= C.ADULT_AGE)
         outcome, text, d = self.sim.resolve({"kind": "กำเนิดทายาท", "tgt": True}, self.me, mate,
                                             self.sim.worlds[0], 0, self.sim.rng)
-        self.assertEqual(outcome, "กำเนิด", text)
+        self.assertEqual(outcome, "ตั้งครรภ์", text)               # คลอดเมื่อครบกำหนด (test_pregnancy)
         self.assertEqual(self.me.spouse, mate.cid)
+        self.assertEqual(mate.pregnancy.payload["father"], self.me.cid)
 
     def test_same_gender_still_fails_at_the_handler(self):
         same = next(c for c in self.others if c.gender == self.me.gender)
@@ -56,11 +57,12 @@ class TestPartnerChoice(Base):
     def test_children_keep_appearing_in_a_long_world(self):
         sim = quiet(S.Sim, seed=11, tiers=2)
         quiet(sim.run, 30000)
-        births = [e for e in sim.log if e.kind == "กำเนิดทายาท"]
-        got = [e for e in births if e.outcome == "กำเนิด"]
-        self.assertTrue(births)
-        self.assertGreater(len(got) / len(births), 0.8,
-                           f"การมีทายาทสำเร็จแค่ {len(got)}/{len(births)} — เลือกคู่ผิดคนอยู่")
+        tries = [e for e in sim.log if e.kind == "กำเนิดทายาท" and e.outcome != "กำเนิด"]   # "กำเนิด" คือการคลอด
+        wrong = [e for e in tries if e.outcome in ("ล้มเหลว", "ยังไม่ถึงวัย")]
+        self.assertTrue(any(e.outcome == "ตั้งครรภ์" for e in tries))
+        self.assertTrue(any(e.kind == "กำเนิดทายาท" and e.outcome == "กำเนิด" for e in sim.log))
+        self.assertLess(len(wrong) / len(tries), 0.2,
+                        f"เลือกคู่ที่มีทายาทไม่ได้ {len(wrong)}/{len(tries)} — เลือกคู่ผิดคนอยู่")
         alive = sim.living_in(0)
         self.assertTrue(alive, "โลกมนุษย์ต้องยังมีคน")
         self.assertTrue(any(c.age(sim.day) < 16 for c in alive), "ต้องยังมีเด็กเกิดใหม่ในโลก")

@@ -381,8 +381,11 @@ def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False, lethal
     if (plunder or margin >= lethal_margin(world, lethal_at)) and escape_with_talisman(sim, lose):
         return win, lose, margin, "หนีรอด"
     res = apply_defeat(sim, world, win, lose, margin, rng, lethal_at)
-    if lose.alive and getattr(lose, "process", None) is not None and not BODY.can_fight(lose)             and hasattr(sim, "interrupt_process"):
-        sim.interrupt_process(lose, "บาดเจ็บสาหัส")
+    if lose.alive and hasattr(sim, "interrupt_process") and not BODY.can_fight(lose):
+        if getattr(lose, "process", None) is not None:
+            sim.interrupt_process(lose, "บาดเจ็บสาหัส")
+        if getattr(lose, "pregnancy", None) is not None:
+            sim.end_pregnancy(lose, "บาดเจ็บสาหัส")
     if plunder and lose.alive and lose.items:
         win.items.extend(lose.items)
         lose.items = []

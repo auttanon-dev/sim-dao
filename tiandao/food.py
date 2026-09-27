@@ -77,8 +77,12 @@ def eats(ch) -> bool:
 
 
 def ration(ch, day) -> float:
-    """สำรับต่อวันที่คนนี้ต้องกิน"""
-    return C.FOOD_RATION_CHILD if ch.age(day) < 14 else C.FOOD_RATION_ADULT
+    """สำรับต่อวันที่คนนี้ต้องกิน — ผู้ตั้งครรภ์กินเพิ่ม PREGNANCY_FOOD_EXTRA"""
+    if ch.age(day) < 14:
+        return C.FOOD_RATION_CHILD
+    if getattr(ch, "pregnancy", None) is not None:
+        return C.FOOD_RATION_ADULT * (1.0 + C.PREGNANCY_FOOD_EXTRA)
+    return C.FOOD_RATION_ADULT
 
 
 def fed_share(ch) -> float:
