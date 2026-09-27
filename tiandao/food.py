@@ -481,6 +481,8 @@ def _respond(sim, ch):
         if ch.food <= _EPS:
             _end_seclusion(sim, ch, "เสบียงหมดก่อนครบกำหนด")
         return
+    if ch.process is not None and ch.process.kind == "cultivation":
+        sim.interrupt_process(ch, "หิว")      # หิวแล้วนั่งบำเพ็ญต่อไม่ได้ ได้ผลเท่าที่บำเพ็ญมา
     if ch.age(day) < 14:
         _child_hungry(sim, ch)
         return

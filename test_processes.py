@@ -13,6 +13,7 @@ from unittest import mock
 
 from tiandao import body as BODY
 from tiandao import config as C
+from tiandao import food as FOOD
 from tiandao import persist as PS
 from tiandao import rules as R
 from tiandao import sim as S
@@ -74,6 +75,61 @@ class ProcessTests(unittest.TestCase):
             quiet(self.sim.check_processes)
         self.assertEqual(monk.seclude_until, self.sim.day)
         self.assertEqual(monk.seclude_cut, "หมดสติ")
+
+    def test_cultivation_pays_by_the_day_and_an_attack_cuts_it_short(self):
+        ch, attacker = self.people[:2]
+        ch.decay = 0.0
+        insight, refine = ch.insight, ch.refine
+        self.sim.begin_cultivation(ch, 300)
+        self.assertEqual((ch.insight, ch.process.kind), (insight, "cultivation"), "ยังไม่ได้ผลล่วงหน้า")
+        self.sim.day += 100
+        quiet(R.fight, self.sim, self.sim.world(0), attacker, ch, self.sim.rng, lethal_at=1e9)   # เจตนาฆ่า แต่ไม่ถึงตาย
+        self.assertIsNone(ch.process)
+        self.assertAlmostEqual(ch.insight - insight, 0.45 * 100 / 365 * R.eff(ch, "human"))
+        self.assertAlmostEqual(ch.refine - refine, 0.10 * 100 / 365 * R.eff(ch, "spirit"))
+        self.assertEqual(self.sim.process_stats.get("cultivation:ถูกโจมตี"), 1)
+
+    def test_sparring_stops_cultivation_only_if_it_leaves_the_loser_unable_to_fight(self):
+        ch, partner = self.people[:2]
+        spar = lambda: quiet(R.fight, self.sim, self.sim.world(0), partner, ch, self.sim.rng,
+                             lethal_at=1e9, lethal=False)
+        self.sim.begin_cultivation(ch, 300)
+        with mock.patch.object(R, "resolve_clash", return_value=(partner, ch, 0.1)),                 mock.patch.object(BODY, "can_fight", return_value=True):
+            spar()
+        self.assertEqual(ch.process.kind, "cultivation", "ประลองแล้วนั่งบำเพ็ญต่อได้")
+        with mock.patch.object(R, "resolve_clash", return_value=(partner, ch, 0.1)),                 mock.patch.object(BODY, "can_fight", return_value=False):
+            spar()
+        self.assertIsNone(ch.process)
+        self.assertEqual(self.sim.process_stats.get("cultivation:บาดเจ็บสาหัส"), 1)
+
+    def test_an_uninterrupted_cultivation_pays_its_full_span_once(self):
+        ch = self.people[0]
+        ch.decay, ch.insight = 0.0, 0.0
+        self.sim.begin_cultivation(ch, 200, rate=1.5)
+        self.sim.day += 900                                     # เทิร์นถัดไปมาช้า ได้แค่ช่วงที่นัดไว้
+        self.sim.settle_cultivation(ch)
+        self.sim.settle_cultivation(ch)
+        self.assertIsNone(ch.process)
+        self.assertAlmostEqual(ch.insight, 0.45 * 300 / 365 * R.eff(ch, "human"))
+
+    def test_hunger_and_unconsciousness_stop_cultivation(self):
+        hungry, fainted = self.people[:2]
+        for c in (hungry, fainted):
+            self.sim.begin_cultivation(c, 300)
+        self.sim.day += 30
+        quiet(FOOD._respond, self.sim, hungry)
+        self.assertFalse(hungry.process is not None and hungry.process.kind == "cultivation")
+        with mock.patch.object(BODY, "conscious", return_value=False):
+            quiet(self.sim.check_processes)
+        self.assertIsNone(fainted.process)
+
+    def test_cultivating_on_the_road_pays_at_once_and_keeps_the_journey(self):
+        ch = self.people[0]
+        self.sim.start_process(ch, "travel", 40, {"dest": ch.place + 1, "origin": ch.place})
+        insight = ch.insight
+        self.sim.begin_cultivation(ch, 100)
+        self.assertEqual(ch.process.kind, "travel")
+        self.assertGreater(ch.insight, insight)
 
     def test_the_old_fields_read_and_write_through_the_process(self):
         ch = self.people[0]

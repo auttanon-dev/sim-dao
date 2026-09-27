@@ -359,7 +359,7 @@ def escape_with_talisman(sim, ch) -> bool:
     return False
 
 
-def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False):
+def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False, lethal=True):
     """การปะทะหนึ่งครั้งตัดสินที่นี่ที่เดียว — คืน (ผู้ชนะ, ผู้แพ้, margin, ผล)
 
     ใครชนะมาจาก resolve_clash ผลต่อร่าง (บาดเจ็บ ความล้า ความเสื่อม) และชีวิตของผู้แพ้มาจาก apply_defeat
@@ -367,14 +367,22 @@ def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False):
     (บัญชาสวรรค์ไม่เคยฆ่ามารได้สักครั้ง) ตอนนี้ทุกการปะทะผ่านที่นี่
     - ยันต์หนีตายใช้เมื่อมีอะไรต้องเสีย (ถึงตาย หรือจะถูกริบของ) หนีได้ก็ไม่บาดเจ็บและไม่เสียของ ผล "หนีรอด"
     - plunder=True ผู้ชนะริบของผู้แพ้ที่ยังไม่ตาย (ถ้าตาย Sim.kill ส่งของให้ผู้ฆ่าอยู่แล้ว)
+    - lethal=False คือการประลองวัดฝีมือ ไม่มีเจตนาฆ่า — ไม่ขัดการบำเพ็ญประจำวัน (ความตายยังคิดตาม lethal_at)
     """
     win, lose, margin = resolve_clash(a, b, world, sim.items, rng, day)
-    for x in (a, b):                                 # การปะทะขัดจังหวะกิจกรรมยาวของทั้งสองฝ่าย
-        if getattr(x, "process", None) is not None and hasattr(sim, "interrupt_process"):
+    # การปะทะขัดจังหวะปิดด่านและการเดินทางของทั้งสองฝ่ายเสมอ ส่วนการบำเพ็ญประจำวันหยุดเฉพาะเมื่อมีเจตนาฆ่า
+    # (lethal และ lethal_at ไม่ใช่ inf) — ประลองแล้วนั่งบำเพ็ญต่อได้ เดิมหยุดทุกการปะทะ ~1,950 ครั้งต่อโลกใน 30 ปี
+    # (ประลอง 1,540 ในนั้น) ความเข้าใจทั้งโลกหายไป ~9% ผู้แพ้ที่บาดเจ็บจนสู้ไม่ไหวหยุดข้างล่างหลังรับแผลจริง
+    deadly = lethal and lethal_at != float("inf")
+    for x in (a, b):
+        p = getattr(x, "process", None)
+        if p is not None and (deadly or p.kind != "cultivation") and hasattr(sim, "interrupt_process"):
             sim.interrupt_process(x, "ถูกโจมตี")
     if (plunder or margin >= lethal_margin(world, lethal_at)) and escape_with_talisman(sim, lose):
         return win, lose, margin, "หนีรอด"
     res = apply_defeat(sim, world, win, lose, margin, rng, lethal_at)
+    if lose.alive and getattr(lose, "process", None) is not None and not BODY.can_fight(lose)             and hasattr(sim, "interrupt_process"):
+        sim.interrupt_process(lose, "บาดเจ็บสาหัส")
     if plunder and lose.alive and lose.items:
         win.items.extend(lose.items)
         lose.items = []
@@ -978,8 +986,8 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
 def cultivate(ch: Character, gap_days: int, items=None):
     """บำเพ็ญ — `items` เป็นตัวเลือก ใส่มาเมื่อไหร่ประทีปดวงจิตพันภพถึงจะออกฤทธิ์
 
-    ทำเป็นพารามิเตอร์ที่ไม่ใส่ก็ได้ เพราะฟังก์ชันนี้ถูกเรียกจาก 13 จุดทั่ว sim.py และจากเทสต์เก่า
-    ที่ไม่มี items อยู่ในมือ — การบังคับให้ทุกที่ส่งมาจะพังของเดิมโดยไม่ได้อะไรเพิ่ม
+    ใน sim ถูกเรียกผ่าน ActionProcess แบบ "cultivation" (Sim.begin_cultivation / accrue_process) ด้วยจำนวนวันที่บำเพ็ญจริง
+    items ไม่ใส่ก็ได้ เพราะเทสต์เก่าเรียกตรงโดยไม่มี items อยู่ในมือ
     """
     yrs = min(4.0, gap_days / 365.0)
     ch.decay = max(0.0, ch.decay - C.CULTIVATE_HEAL)

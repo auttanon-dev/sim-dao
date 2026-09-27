@@ -244,13 +244,15 @@ class TestSeclusion(unittest.TestCase):
     def test_the_menu_share_across_a_live_world(self):
         """วัดทั้งโลกจริง ไม่ใช่ตัวละครที่เซ็ตค่าเอง — ต้องเห็นตัวเลือกนี้บ้าง แต่ไม่ใช่ทุกคน
 
-        รวมห้าโลก (seed 7–11) เพราะคน 120 คนจากโลกเดียวแกว่งตามเส้นทางของโลกมาก วัด 15 seed: 3–14% ต่อโลก
-        ค่าเฉลี่ย 7.4–7.7% โลกเดียวจึงหลุดเกณฑ์ 5% ได้ทุกครั้งที่อะไรในโลกเปลี่ยนเส้นทาง โดยที่สัดส่วนจริงไม่ได้เปลี่ยน
+        รวมสิบโลก (seed 7–16) เพราะคน 120 คนจากโลกเดียวแกว่งตามเส้นทางของโลกมาก เกณฑ์ตั้งจากการกระจายที่วัดได้:
+        หลังการบำเพ็ญเป็น ActionProcess (จ่ายตามวันที่บำเพ็ญจริง ไม่จ่ายล่วงหน้า) วัด 16 seed (7–22) ได้ 0–13 คนต่อ 120
+        รวม 4.5% (ก่อนเปลี่ยน 13 seed ได้ 4.6% — เกณฑ์ 5% เดิมอยู่ในสัญญาณรบกวนอยู่แล้ว) seed 7–16 รวม 4.2%
+        พื้น 2.5% ต่ำกว่าค่ารวมสิบโลกราวสองส่วนเบี่ยงเบน ยังจับกรณีที่ตัวเลือกนี้หายไปจากเมนูทั้งโลกได้
         """
         from tiandao.mind import actions as A
         from tiandao.mind import config as MC
         seen = total = 0
-        for seed in range(7, 12):
+        for seed in range(7, 17):
             sim = quiet(S.Sim, seed=seed)
             quiet(sim.run, 30000)
             pool = [c for c in sim.cast
@@ -262,8 +264,8 @@ class TestSeclusion(unittest.TestCase):
                         if "ปิดด่าน" in A.build_menu(
                             IN.weigh(c, sim, E.EVENT_TABLE, False),
                             E.EVENT_TABLE, MC.MENU_MAX_ACTIONS))
-        self.assertGreater(seen, total * 0.05,
-                           "น้อยเกินไป = ผู้มีจิตใจจะไม่มีวันเลือกปิดด่านเลย (ของเดิมวัดได้ 3%)")
+        self.assertGreater(seen, total * 0.025,
+                           "น้อยเกินไป = ผู้มีจิตใจจะไม่มีวันเลือกปิดด่านเลย")
         self.assertLess(seen, total * 0.8,
                         "มากเกินไป = ทั้งโลกเอาแต่ปิดด่าน เรื่องจะหยุดเดิน")
 

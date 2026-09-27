@@ -1267,7 +1267,8 @@ class Sim:
 
     # ------------------------------------------------------------ กิจกรรมยาว (models.ActionProcess, แบบ §5.2)
     def start_process(self, ch, kind, days, payload=None, yield_rate=0.0):
-        """เริ่มกิจกรรมยาววันนี้ ครบกำหนดอีก `days` วัน"""
+        """เริ่มกิจกรรมยาววันนี้ ครบกำหนดอีก `days` วัน — การบำเพ็ญที่ค้างอยู่ได้ผลถึงวันนี้ก่อนถูกแทน"""
+        self.settle_cultivation(ch)
         ch.process = ActionProcess(kind, self.day, self.day + max(0, int(days)), self.day, yield_rate,
                                    dict(payload or {}))
         return ch.process
@@ -1288,6 +1289,8 @@ class Sim:
             felt = days / 365.0 * (p.yield_rate or 1.0)
             ch.insight += C.SECLUDE_INSIGHT_PER_YEAR * felt
             ch.refine += C.SECLUDE_REFINE_PER_YEAR * felt
+        elif days and p.kind == "cultivation":
+            R.cultivate(ch, days * (p.yield_rate or 1.0), self.items)
         p.progress_day = max(p.progress_day, upto)
         return days
 
@@ -1304,12 +1307,30 @@ class Sim:
             self.accrue_process(ch)
             p.end_day = self.day
             ch.seclude_cut = reason
+        elif p.kind == "cultivation":
+            self.settle_cultivation(ch)              # เลิกบำเพ็ญ เทิร์นถัดไปยังเป็นวันเดิม
+            return True
         else:
             ch.process = None
             self.emit(self.world(ch.world_id), "หยุดเดินทาง", ch, None, ["เดินทาง"], "หยุดกลางทาง",
                       f"{ch.name}ต้องหยุดการเดินทาง — {reason}", 0, {"เหตุ": reason})
         self.requeue(ch, self.day)
         return True
+
+    def begin_cultivation(self, ch, days, rate=1.0):
+        """บำเพ็ญจากวันนี้ไปจนถึงเทิร์นถัดไป (`days` คือช่วงที่ _next_turn นัดไว้) ผลคิดตามวันที่ได้บำเพ็ญจริง
+        ตอนเทิร์นถัดไปหรือตอนถูกขัดจังหวะ — `rate` คูณวันที่นับ (อสูรในแดนสูง)
+        ระหว่างเดินทางหรือปิดด่านอยู่แล้ว (เช่นชนะโจรกลางทาง) ได้ผลทันทีแบบเดิม ไม่ทับกิจกรรมที่ทำอยู่"""
+        if ch.process is not None and ch.process.kind != "cultivation":
+            R.cultivate(ch, days * rate, self.items)
+            return None
+        return self.start_process(ch, "cultivation", days, None, rate)
+
+    def settle_cultivation(self, ch):
+        """ปิดการบำเพ็ญที่ค้างอยู่ ได้ผลถึงวันนี้ (ไม่เกินกำหนด)"""
+        if ch.process is not None and ch.process.kind == "cultivation":
+            self.accrue_process(ch)
+            ch.process = None
 
     def check_processes(self):
         """ทุกรอบของโลก: คนที่หมดสติหยุดทุกกิจกรรม คนที่ยืนไม่ได้หยุดเดินทาง (ยังนั่งบำเพ็ญในด่านต่อได้)"""
@@ -2600,6 +2621,7 @@ class Sim:
         # ความเสื่อม อายุขัย หรือจิตมารด้วยกฎของผู้ใหญ่ ก่อนหน้านี้เด็กอายุสิบปีจึงมี
         # เหตุการณ์ "สิ้นอายุขัย" ได้ทั้งที่ intent ของเด็กถูกกันไว้ด้านล่างแล้ว
         actor_gap = self.day - actor.last_day
+        self.settle_cultivation(actor)           # การบำเพ็ญตั้งแต่เทิร์นก่อนได้ผลก่อนแก่และก่อนเลือกทำอะไรต่อ
         if actor.age(self.day) < 14:
             BODY.tick(actor, actor_gap, day=self.day, fed=FOOD.fed_share(actor))
         else:
@@ -4008,7 +4030,7 @@ class Sim:
                             a.money[w.tier] = a.money.get(w.tier, 0) + 150
                             a.insight += 1.2
                             a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
-                            R.cultivate(a, gap, self.items)
+                            self.begin_cultivation(a, gap)
                             del a.nemeses[hunter]
                             return "อันตราย", pre_msg + msg, d
                         else:
@@ -4027,7 +4049,7 @@ class Sim:
                             a.money[w.tier] = a.money.get(w.tier, 0) + 100
                             a.insight += 0.5
                             a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
-                            R.cultivate(a, gap, self.items)
+                            self.begin_cultivation(a, gap)
                             
                             if "เถาตี้" not in a.nemeses:
                                 a.nemeses["เถาตี้"] = {"title": "จ้าวค่ายโจรเหล็ก", "power": 45, "hatred": 40}
@@ -4079,7 +4101,7 @@ class Sim:
                             if combat_power >= h_info["power"]:
                                 a.insight += 0.4
                                 a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
-                                R.cultivate(a, gap, self.items)
+                                self.begin_cultivation(a, gap)
                                 a.nemeses["คุณชายมู่"]["hatred"] = min(100, h_info["hatred"] + 35)
                                 msg += f" 🏆 [ชนะประลอง] เขาเสียหน้าและเกลียดท่านมากขึ้น! (Hatred: {a.nemeses['คุณชายมู่']['hatred']}/100)"
                             else:
@@ -4095,7 +4117,7 @@ class Sim:
                                 msg = f"🍻 [ความสัมพันธ์] ชวน {comp} ดื่มชา 💞 (+25 Affection)"
                             elif choice == "talk_martial":
                                 a.insight += 0.3
-                                R.cultivate(a, gap, self.items)
+                                self.begin_cultivation(a, gap)
                                 if type(a.companions[comp]) == int: a.companions[comp] = min(100, a.companions[comp] + 15)
                                 msg = f"🍻 [ความสัมพันธ์] แลกเปลี่ยนวิชากับ {comp} 💞 (+15 Affection)"
                             else:
@@ -4120,7 +4142,7 @@ class Sim:
                                 msg = "🍃 พ่อค้าเร่ขาย 'กระบี่เหล็กเย็น' (ราคา 150) แต่ไม่ได้ซื้อ"
                         elif sub == "train":
                             a.insight += 0.4
-                            R.cultivate(a, gap, self.items)
+                            self.begin_cultivation(a, gap)
                             msg = "🥋 นั่งสมาธิร่วมกันในหุบเขา ได้รับ EXP"
                         
                         return "วิถียุทธ", pre_msg + msg, d
@@ -4168,7 +4190,7 @@ class Sim:
             a.merit += rng.uniform(5.0, 15.0)
             a.moral = getattr(a, "moral", 0) + 2
             a.insight += rng.uniform(0.1, 0.5)
-            R.cultivate(a, gap, self.items)
+            self.begin_cultivation(a, gap)
             if hasattr(a, "update_title"): a.update_title()
             return "บุญบารมี", f"{a.name}ออกโปรดสัตว์ สะสมบุญบารมีเพิ่มขึ้น", d
             
@@ -4300,9 +4322,9 @@ class Sim:
                 boost = 1.0 + (w.tier * 0.5)
                 if pv and pv[2] >= 2:
                     boost += 1.0
-                R.cultivate(a, gap * boost, self.items)
+                self.begin_cultivation(a, gap, boost)
             else:
-                R.cultivate(a, gap, self.items)
+                self.begin_cultivation(a, gap)
             if pv and pv[3] == "ลานฝึก":
                 a.insight += 0.4
                 d["ลานฝึก"] = self.place_name(a)
@@ -4335,7 +4357,7 @@ class Sim:
         if k == "ข้ามขั้น":
             # ยังสะสมไม่พอไม่ควรกินยาเสียเปล่า
             if R.accumulation(a) < R.need(a, w):
-                R.cultivate(a, gap, self.items)
+                self.begin_cultivation(a, gap)
                 return "สะสมต่อ", f"{a.name}รู้ว่ายังไม่ถึงเวลา จึงบำเพ็ญต่อ", d
             pills = [i for i in a.items if self.items[i].kind == "ยาวิเศษ"]
             use, pname = 0.0, None
@@ -4347,7 +4369,7 @@ class Sim:
                 a.longevity_bonus += getattr(self.items[best], "lifespan_bonus", 0)
             res, txt = R.attempt_break(self, a, w, rng, pills=use)
             if res == "ยังไม่ถึง":
-                R.cultivate(a, gap, self.items)
+                self.begin_cultivation(a, gap)
                 return "สะสมต่อ", f"{a.name}รู้ว่ายังไม่ถึงเวลา จึงบำเพ็ญต่อ", d
                 
             # `attempt_break` คืนสตริง "ผ่าน" เมื่อสำเร็จ ไม่เคยคืน True เลย (ดู rules.py บรรทัดสุดท้าย
@@ -4419,11 +4441,11 @@ class Sim:
                 d["p"] = 1.0
                 return "ลึกขึ้น", f"{a.name}ฝึก{name}ซ้ำจนเข้าใจลึกกว่าเดิม", d
             if not pool:
-                R.cultivate(a, gap, self.items)
+                self.begin_cultivation(a, gap)
                 return "ไม่มีวิชาให้ฝึก", f"{a.name}หาวิชาใหม่ฝึกไม่ได้ จึงบำเพ็ญต่อ", d
             pv = self.place_of(a)
             if grade == 2 and not (pv and pv[3] in ("ลานฝึก", "สำนัก", "แดนต้องห้าม")):
-                R.cultivate(a, gap, self.items)
+                self.begin_cultivation(a, gap)
                 return "ไม่มีที่ฝึก", f"{a.name}หาที่ฝึกวิชาขั้นสูงไม่ได้ที่{self.place_name(a)}", d
             if grade == 2 and not self.route_to_building(a, ("dojo",)):
                 return "เดินไปลานฝึก", f"{a.name}มุ่งหน้าไปยังลานประลองยุทธ์กลาง{self.place_name(a)}", d
@@ -4891,7 +4913,7 @@ class Sim:
                 # กติกาที่ตัวละครควรรู้ตัวตั้งแต่ก้าวเข้าไป — แดนลับคือที่พัก ไม่ใช่ทางลัด
                 d["ราคาของการหายไป"] = "ในแดนลับตัดขาดจากฟ้าดิน สะสมได้แต่เลื่อนขั้นไม่ได้"
                 return "ซ่อนตัว", f"{a.name}หายไปจากโลก สร้างแดนลับผนึกสมบัติไว้", d
-            R.cultivate(a, gap, self.items)
+            self.begin_cultivation(a, gap)
             return "เก็บตัว", f"{a.name}เก็บตัวเงียบไปพักหนึ่ง", d
 
         if k == "สงครามเบิกฟ้า":
@@ -4915,7 +4937,7 @@ class Sim:
 
         if k == "ข้ามฟ้า":
             if a.realm < C.ASCEND_MIN_REALM or w.up is None:
-                R.cultivate(a, gap, self.items)
+                self.begin_cultivation(a, gap)
                 return "ยังไม่ถึง", f"{a.name}เพ่งมองฟ้า รู้ว่ายังไม่ถึงเวลา", d
             up = self.world(w.up)
             if up.is_closed and up.tier == 1:
@@ -5568,7 +5590,8 @@ class Sim:
         friendly = (k == "ประลอง" and grudge == 0)
         mult = (C.DUEL_FRIENDLY_LETHAL_MULT if friendly
                 else C.DUEL_LETHAL_MULT if k == "ประลอง" else 1.0)
-        win, lose, margin, res = R.fight(self, w, a, t, rng, lethal_at=C.DEATH_MARGIN * mult)
+        win, lose, margin, res = R.fight(self, w, a, t, rng, lethal_at=C.DEATH_MARGIN * mult,
+                                         lethal=(k != "ประลอง"))
         if k == "ล้างแค้น" and win is a:
             R.settle_debt(a, t.cid)
         dmg = 2 if k == "ล้างแค้น" else 1
