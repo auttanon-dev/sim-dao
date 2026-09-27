@@ -69,6 +69,28 @@ class ChronicleDecouplingTests(unittest.TestCase):
         self.assertEqual(outs[0], outs[1])
 
 
+    def test_legends_stay_when_the_rumour_list_is_full(self):
+        # ตำนานเป็นข่าวลือที่เก่าที่สุดในโลกเสมอ ถ้าทิ้งเก่าสุดก่อนแบบข่าวอื่น มันหายไปราวปีที่ 2
+        with mock.patch.object(CH, "all_legends", return_value=[legend(1), legend(2)]),                 contextlib.redirect_stdout(io.StringIO()):
+            sim = S.Sim(seed=SEED)
+        legends = [r for r in sim.rumors if r["kind"] == "ตำนาน"]
+        for i in range(C.RUMOR_MAX_ACTIVE + 20):
+            sim.rumors.append({"id": f"t{i}", "kind": "อุดมสมบูรณ์", "subject": i, "world_id": 0,
+                               "place": -1, "text": "", "day": i, "true": True, "heard": set()})
+            sim.trim_rumors()
+        self.assertEqual([r for r in sim.rumors if r["kind"] == "ตำนาน"], legends)
+        others = [r["subject"] for r in sim.rumors if r["kind"] != "ตำนาน"]
+        self.assertEqual(others, list(range(20, C.RUMOR_MAX_ACTIVE + 20)), "ข่าวอื่นยังทิ้งเก่าสุดก่อน เหลือเท่าเพดาน")
+
+    def test_legends_are_still_told_years_later_in_a_running_world(self):
+        with mock.patch.object(CH, "all_legends", return_value=[legend(1), legend(2)]),                 contextlib.redirect_stdout(io.StringIO()):
+            sim = S.Sim(seed=SEED)
+            while sim.day < 5 * 365:
+                sim.step()
+        self.assertEqual(sum(r["kind"] == "ตำนาน" for r in sim.rumors), C.RUMOR_ANCIENT_LEGENDS)
+        self.assertLessEqual(sum(r["kind"] != "ตำนาน" for r in sim.rumors), C.RUMOR_MAX_ACTIVE)
+
+
 def digest(sim):
     return hashlib.sha256(repr(fingerprint(sim)).encode("utf-8")).hexdigest()
 

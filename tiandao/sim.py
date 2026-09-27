@@ -1614,8 +1614,21 @@ class Sim:
             "place": place, "text": text, "day": self.day,
             "true": rng.random() > C.RUMOR_FALSE_P, "heard": set(),
         })
-        if len(self.rumors) > C.RUMOR_MAX_ACTIVE:
-            self.rumors.pop(0)
+        self.trim_rumors()
+
+    def trim_rumors(self):
+        """ข่าวลือค้างได้ RUMOR_MAX_ACTIVE เรื่อง ทิ้งเรื่องเก่าที่สุดก่อน — ยกเว้นตำนานยุคก่อน ซึ่งเล่าต่อกันไปทุกยุค
+        ไม่นับในเพดานและไม่ถูกทิ้ง (เดิมตำนานเป็นข่าวที่เก่าที่สุดในโลกเสมอ จึงถูกดันออกราวปีที่ 2)"""
+        extra = sum(1 for r in self.rumors if r["kind"] != "ตำนาน") - C.RUMOR_MAX_ACTIVE
+        if extra <= 0:
+            return
+        kept = []
+        for r in self.rumors:
+            if extra > 0 and r["kind"] != "ตำนาน":
+                extra -= 1
+                continue
+            kept.append(r)
+        self.rumors[:] = kept
 
     def seed_ancient_rumors(self):
         """ข่าวลือตำนานยุคก่อน RUMOR_ANCIENT_LEGENDS เรื่องในโลกมนุษย์ — จำนวนและผลต่อโลกเท่ากันทุกรัน
@@ -3042,8 +3055,7 @@ class Sim:
                 "world_id": world.wid, "place": taken.place, "text": text, "day": self.day,
                 "true": False, "heard": set(),
             })
-        if len(self.rumors) > C.RUMOR_MAX_ACTIVE:
-            del self.rumors[:len(self.rumors) - C.RUMOR_MAX_ACTIVE]
+        self.trim_rumors()
         return taken
 
     def coalition_strike(self, world, elapsed, rng):
