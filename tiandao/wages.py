@@ -126,8 +126,9 @@ def fiat_pay(amount):
 
 
 def total_gold(sim, tier) -> float:
-    """เหรียญทองทั้งหมดของชั้นนี้ ในมือคน (รวมผู้ตาย) ในลิ้นชักตลาด และลิ้นชักไร่ของแดนชั้นนี้"""
+    """เหรียญทองทั้งหมดของชั้นนี้ ในมือคน (รวมผู้ตาย) ในลิ้นชักตลาด ลิ้นชักไร่ของแดนชั้นนี้ และทองของผู้ตายที่ถูกย่อ
+    เป็นบันทึกแล้ว (Sim.prune_departed)"""
     held = sum(ch.money.get(tier, 0.0) for ch in sim.cast)
     tills = sum(v for till in (sim.market_till, sim.farm_till)
                 for (wid, _place), v in till.items() if sim.world(wid).tier == tier)
-    return held + tills
+    return held + tills + getattr(sim, "buried_gold", {}).get(tier, 0.0)

@@ -242,22 +242,29 @@ class TestSeclusion(unittest.TestCase):
                       "ถึงคอขวดแล้วตัวเลือกนี้ต้องอยู่ในสิ่งที่ตัวละคร 'เห็น' จริงๆ")
 
     def test_the_menu_share_across_a_live_world(self):
-        """วัดทั้งโลกจริง ไม่ใช่ตัวละครที่เซ็ตค่าเอง — ต้องเห็นตัวเลือกนี้บ้าง แต่ไม่ใช่ทุกคน"""
+        """วัดทั้งโลกจริง ไม่ใช่ตัวละครที่เซ็ตค่าเอง — ต้องเห็นตัวเลือกนี้บ้าง แต่ไม่ใช่ทุกคน
+
+        รวมห้าโลก (seed 7–11) เพราะคน 120 คนจากโลกเดียวแกว่งตามเส้นทางของโลกมาก วัด 15 seed: 3–14% ต่อโลก
+        ค่าเฉลี่ย 7.4–7.7% โลกเดียวจึงหลุดเกณฑ์ 5% ได้ทุกครั้งที่อะไรในโลกเปลี่ยนเส้นทาง โดยที่สัดส่วนจริงไม่ได้เปลี่ยน
+        """
         from tiandao.mind import actions as A
         from tiandao.mind import config as MC
-        sim = quiet(S.Sim, seed=7)
-        quiet(sim.run, 30000)
-        pool = [c for c in sim.cast
-                if c.alive and getattr(c, "sentient", True) and c.age(sim.day) > 20]
-        pool.sort(key=lambda c: -c.rank())
-        pool = pool[:120]
-        seen = sum(1 for c in pool
-                   if "ปิดด่าน" in A.build_menu(
-                       IN.weigh(c, sim, E.EVENT_TABLE, False),
-                       E.EVENT_TABLE, MC.MENU_MAX_ACTIONS))
-        self.assertGreater(seen, len(pool) * 0.05,
+        seen = total = 0
+        for seed in range(7, 12):
+            sim = quiet(S.Sim, seed=seed)
+            quiet(sim.run, 30000)
+            pool = [c for c in sim.cast
+                    if c.alive and getattr(c, "sentient", True) and c.age(sim.day) > 20]
+            pool.sort(key=lambda c: -c.rank())
+            pool = pool[:120]
+            total += len(pool)
+            seen += sum(1 for c in pool
+                        if "ปิดด่าน" in A.build_menu(
+                            IN.weigh(c, sim, E.EVENT_TABLE, False),
+                            E.EVENT_TABLE, MC.MENU_MAX_ACTIONS))
+        self.assertGreater(seen, total * 0.05,
                            "น้อยเกินไป = ผู้มีจิตใจจะไม่มีวันเลือกปิดด่านเลย (ของเดิมวัดได้ 3%)")
-        self.assertLess(seen, len(pool) * 0.8,
+        self.assertLess(seen, total * 0.8,
                         "มากเกินไป = ทั้งโลกเอาแต่ปิดด่าน เรื่องจะหยุดเดิน")
 
 

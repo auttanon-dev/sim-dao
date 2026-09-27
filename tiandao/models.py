@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from dataclasses import dataclass, field, asdict
+from dataclasses import MISSING, asdict, dataclass, field, fields
 from typing import Dict, List, Optional
 
 from . import config as C
@@ -547,6 +547,34 @@ class Character:
         self.__dict__.setdefault("decay_mark", 0.0)
         self.__dict__.setdefault("decay_rate", 0.0)
         self.__dict__.setdefault("seclude_snap", {})
+
+
+_CHARACTER_FIELDS = {f.name: f for f in fields(Character)}
+
+
+class Departed(Character):
+    """คนที่ตายไปนานแล้ว (Sim.prune_departed) — ช่องใน sim.cast ยังอยู่ที่ cid เดิม จึงไม่ต้องแก้ใครที่อ้างถึงเขา
+
+    เก็บแค่ชื่อ ครอบครัว ตระกูล สายเลือด ขั้น และการตาย field อื่นอ่านได้ค่าเริ่มต้นของ Character เหมือนคนที่ไม่มีอะไร
+    ติดตัว (ของที่เขียนลงไปก็เก็บได้ แต่ไม่มีใครควรเขียน) รายชื่อตัวละครเก็บคนตายทุกคนตลอดไป ในโลกที่เดิน 500 ปีคนตาย
+    เป็นเก้าในสิบของรายชื่อ และเป็นส่วนใหญ่ของ RAM และขนาดเซฟ
+    """
+    KEEP = ("cid", "name", "alive", "sentient", "is_beast", "gender", "born_day", "death_day", "death_cause",
+            "clan", "generation", "parents", "children", "spouse", "blood", "world_id", "realm", "tier",
+            "peak_realm", "peak_tier", "dao", "dao_tags")     # ทุก field ที่ Character ไม่มีค่าเริ่มต้นต้องอยู่ในนี้
+
+    def __init__(self, ch):
+        self.__dict__.update({k: ch.__dict__[k] for k in self.KEEP if k in ch.__dict__})
+
+    def __getattr__(self, name):
+        # เรียกเฉพาะ field ที่ไม่มีในตัวและไม่มีค่าเริ่มต้นเป็น attribute ของคลาส (field ที่ใช้ default_factory)
+        f = _CHARACTER_FIELDS.get(name)
+        if f is None or f.default_factory is MISSING:
+            raise AttributeError(name)
+        return f.default_factory()
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
 
 
 @dataclass

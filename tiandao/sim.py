@@ -11,7 +11,7 @@ from . import worldtree as WT
 from . import paths as PATHS
 from . import crises as CRISES
 from . import rules as R
-from .models import Cache, Character, Event, Item, Org, World
+from .models import Cache, Character, Departed, Event, Item, Org, World
 from .treasures import TREASURES, BURST_MULT
 from . import skills as SK
 from . import crafting as CR
@@ -723,6 +723,26 @@ class Sim:
         self.schedule(child, max(30, next_birthday - self.day + rng.randint(0, 30)))
         return event
 
+    def realm_target(self, world):
+        """ขนาดที่แดนนี้เติมคนเข้ามาจนถึง (repopulate) — ฐานของเพดานการเกิด POP_K_MULT เท่า"""
+        if world.kind == "chaos":
+            return C.CHAOS_POP
+        if getattr(world, "skill_line", None):
+            # แดนสาขาโตได้ไม่เกินขนาดของตัวเอง — ถ้าปล่อยให้เติมถึง CAST_SIZE เหมือนแดนหลัก
+            # 108 สาขาจะกลายเป็นประชากร 16,200 คน (วัดจริง: พุ่งจาก 3,944 เป็น 9,751 ใน 5 ปี
+            # แล้วยังไม่หยุด) ซึ่งกลบแดนหลักจนโลกทั้งใบเป็นเรื่องของสาขาไปหมด
+            return C.BRANCH_CAST
+        if world.wid == 0:
+            return C.HOME_CAST                       # เวทีหลัก — คนต้องแน่นพอจะมีเรื่องกัน
+        return C.CAST_SIZE if world.kind == "mortal" else C.CAST_SIZE // 3
+
+    def fertility(self, world):
+        """โอกาสตั้งครรภ์เมื่อคู่หนึ่งพยายามมีทายาทในแดนนี้ — เต็มที่จนถึงขนาดที่แดนเติมคนถึง แล้วลดเป็นเส้นตรง
+        จนเป็นศูนย์ที่เพดาน K = POP_K_MULT เท่าของขนาดนั้น แดนที่คนล้นจึงเกิดช้าลงเอง ไม่ใช่ตัดทิ้งทันที"""
+        target = self.realm_target(world)
+        cap = C.POP_K_MULT * target
+        return max(0.0, min(1.0, (cap - world.n_alive) / max(1.0, cap - target)))
+
     def repopulate(self, world, elapsed):
         if world.kind == "chaos":
             target = C.CHAOS_POP
@@ -734,15 +754,9 @@ class Sim:
                 ch.inner_none = True
                 ch.realm = C.REALM_CAP
             return
-        if getattr(world, "skill_line", None):
-            # แดนสาขาโตได้ไม่เกินขนาดของตัวเอง — ถ้าปล่อยให้เติมถึง CAST_SIZE เหมือนแดนหลัก
-            # 108 สาขาจะกลายเป็นประชากร 16,200 คน (วัดจริง: พุ่งจาก 3,944 เป็น 9,751 ใน 5 ปี
-            # แล้วยังไม่หยุด) ซึ่งกลบแดนหลักจนโลกทั้งใบเป็นเรื่องของสาขาไปหมด
-            target = C.BRANCH_CAST
-        elif world.wid == 0:
-            target = C.HOME_CAST                     # เวทีหลัก — คนต้องแน่นพอจะมีเรื่องกัน
-        else:
-            target = C.CAST_SIZE if world.kind == "mortal" else C.CAST_SIZE // 3
+        if len(self.alive_cids) >= C.POP_CEILING:
+            return          # ทั้งจักรวาลคนถึงเพดานแล้ว ไม่เติมคนจากภายนอกอีก (เจ้าโกลาหลข้างบนมีจำนวนตายตัวของตัวเอง)
+        target = self.realm_target(world)
         deficit = target - world.n_alive
         if deficit <= 0 or elapsed <= 0:
             return
@@ -1108,6 +1122,30 @@ class Sim:
                     or not (m.clan == clan or (org is not None and m.org == org))):
                 continue
             m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + C.GRUDGE_NEAR
+
+    def prune_departed(self):
+        """คนที่ตายเกิน PRUNE_DEAD_YEARS ปีกลายเป็นบันทึกย่อ (models.Departed) ที่ cid เดิม — ปีละครั้งจากนาฬิกาโลก
+
+        เว้นคนที่ยังมีลูกอายุไม่ถึง 14 ปีหรือเด็กในความดูแลที่ยังมีชีวิต ทองที่ติดตัวผู้ตายไม่มีใครรับช่วงอยู่แล้ว
+        ย้ายไปนับไว้ที่ buried_gold ยอดทองรวม (wages.total_gold) จึงไม่เปลี่ยน ส่วนเสบียงของผู้ตายเข้ายุ้งฉางไปตั้งแต่ตาย
+        """
+        cutoff = self.day - C.PRUNE_DEAD_YEARS * 365
+        cast = self.cast
+        buried = self.__dict__.setdefault("buried_gold", {})
+        pruned = 0
+        for i, ch in enumerate(cast):
+            if ch.alive or type(ch) is Departed or ch.death_day is None or ch.death_day > cutoff:
+                continue
+            if any(0 <= c < len(cast) and cast[c].alive and (cast[c].age(self.day) < 14 or c in ch.wards)
+                   for c in list(ch.children) + list(ch.wards)):
+                continue
+            for tier, gold in ch.money.items():
+                if gold:
+                    buried[tier] = buried.get(tier, 0.0) + gold
+            cast[i] = Departed(ch)
+            pruned += 1
+        self.pruned_total = getattr(self, "pruned_total", 0) + pruned
+        return pruned
 
     def fade_grudges(self, days):
         """ความแค้นจางลง GRUDGE_FADE_PER_YEAR ต่อปี จางหมดแล้วลบทิ้ง แค้นคนที่ตายไปแล้วลบทิ้งเลย
@@ -1727,6 +1765,9 @@ class Sim:
             WAGES.tick(self, self.day - self.food_day)
         self.fade_grudges(self.day - self.food_day)
         self.food_day = self.day
+        if self.day - getattr(self, "prune_day", 0) >= 365:
+            self.prune_day = self.day
+            self.prune_departed()
         WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
         # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
         # โปรไฟล์จริง: 5.0 วินาทีจาก 100 (5%) โดยได้ผลเท่ากันทุกประการถ้าสะสมเป็นก้อน
@@ -5043,7 +5084,11 @@ class Sim:
                 if "พัวพันกับมาร" not in a.traits: a.traits.append("พัวพันกับมาร")
             elif a.race() == "มาร" and t.race() == "มนุษย์":
                 if "พัวพันกับมาร" not in t.traits: t.traits.append("พัวพันกับมาร")
-                
+
+            fertile = self.fertility(w)
+            if fertile < 1.0 and rng.random() >= fertile:
+                d["คนในแดน"] = f"{w.n_alive}/{C.POP_K_MULT * self.realm_target(w):.0f}"
+                return "ยังไม่มีทายาท", f"{a.name}กับ{t.name}ยังไม่มีทายาท แดนนี้คนแน่นแล้ว", d
             child = self.spawn(w, age_years=0)
             if C.FOOD_ENABLED:
                 child.food = 0.0       # ทารกไม่ได้พกเสบียงมา กินจากยุ้งฉางของที่ที่เกิด
