@@ -9,6 +9,7 @@ tiandao/chronicle.json
 tiandao/world.save
 tiandao/world.save.events.jsonl
 tiandao/world.save.*
+tiandao/archive/
 merged/
 vendor_llama_cpp_convert/
 *.gguf
