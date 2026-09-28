@@ -10,7 +10,11 @@
 - 7–13 ช่วยงานบ้าน: แรงงาน CHILD_LABOUR_SHARE ของผู้ใหญ่ในการผลิตอาหารของที่ที่อยู่ (food.tick) ไม่มีค่าแรง
 - 7–13 เรียนกับผู้ปกครอง: ผู้ปกครองที่อยู่ด้วยและมีวิชาเกรด 0 ที่สอนได้ — โอกาสได้วิชาตามกฎเดียวกับ "ถ่ายทอดวิชา"
   (rules.teach_chance) คิดตามส่วนของปีที่เรียนจริง ความเข้าใจเพิ่มไม่เกิน CHILD_INSIGHT_CAP ตลอดวัยเด็ก
-  ผู้ปกครองที่กำลังสอนบำเพ็ญได้ GUARDIAN_TEACH_COST ของปกติ (Sim.begin_cultivation)
+- 7–13 ฝึกพื้นฐาน: ผู้ปกครองที่อยู่ด้วยเป็นผู้บำเพ็ญ (ขั้น 1 ขึ้นไป) หรืออยู่ในตระกูลหรือสำนัก — วันที่ฝึกจริงเป็นการฝึกต่อเนื่อง
+  (BODY.log_training ภาระ CHILD_TRAIN_WORK × CHILD_TRAIN_SESSIONS_PER_WEEK / 7 ต่อวัน ร่างกายปรับตัวตามคำตอบปิดใน BODY.tick
+  ครั้งถัดไป) การกลั่นกายตามวันที่ฝึกไม่เกิน CHILD_REFINE_CAP
+  และนับวันตามสายของผู้ปกครอง (กาย จิต สมดุล) ไว้ใน childhood_gain["path:..."] สำหรับตอนเติบใหญ่
+  ผู้ปกครองที่กำลังสอนหรือฝึกเด็กบำเพ็ญได้ GUARDIAN_TEACH_COST ของปกติ (Sim.begin_cultivation)
 
 ขอความช่วยเหลือ: เทิร์นของเด็กที่หิวหรืออยู่ที่ที่ไม่มีข้าวใกล้ๆ ขอให้คนที่อยู่ใกล้ข้าวรับไปเลี้ยง (guardians.refoster)
 ก่อนเลือกกิจวัตร — ไม่ต้องรอหิวจนระบบอาหารพาไป
@@ -21,11 +25,15 @@ import random
 
 from . import config as C
 from . import guardians as GUARD
+from . import body as BODY
+from . import paths as PATHS
 from . import rules as R
 
 CARE, PLAY, HOME, REST = "ได้รับการเลี้ยงดู", "เล่นกับเพื่อน", "เรียนรู้ที่บ้าน", "พักผ่อน"
 CHORES = "ช่วยงานบ้าน"
 STUDY = "เรียนกับผู้ปกครอง"
+TRAIN = "ฝึกพื้นฐาน"
+MENTORED = (STUDY, TRAIN)
 CHORE_AGE = 7
 BAND_OUTCOME = ((2, "ได้รับการเลี้ยงดู"), (6, "เรียนรู้โลก"), (10, "ช่วยครอบครัว"), (13, "เตรียมเติบใหญ่"))
 MAX_PLAYMATES = 3
@@ -75,6 +83,8 @@ def choose(sim, child, rng):
         options.append((CHORES, weight, together))
         if home is not None and home.place == child.place and R.teachable(home, child, max_grade=0):
             options.append((STUDY, 2.0, [home.cid]))
+        if home is not None and home.place == child.place and can_train(home):
+            options.append((TRAIN, 1.5, [home.cid]))
     roll = rng.random() * sum(w for _, w, _ in options)
     for routine, w, with_ in options:
         roll -= w
@@ -83,11 +93,16 @@ def choose(sim, child, rng):
     return options[-1][0], options[-1][2]
 
 
+def can_train(ch) -> bool:
+    """ฝึกพื้นฐานให้เด็กได้: เป็นผู้บำเพ็ญ หรืออยู่ในตระกูลหรือสำนัก"""
+    return ch.realm >= 1 or getattr(ch, "clan", -1) >= 0 or bool(getattr(ch, "sect_name", None))
+
+
 def teaching(sim, ch) -> bool:
-    """ผู้ใหญ่คนนี้กำลังสอนเด็กในความดูแลอยู่ไหม (เด็กที่เรียนกับเขาและกิจวัตรยังไม่จบ)"""
+    """ผู้ใหญ่คนนี้กำลังสอนหรือฝึกเด็กในความดูแลอยู่ไหม (เด็กที่เรียนหรือฝึกกับเขาและกิจวัตรยังไม่จบ)"""
     for cid in getattr(ch, "wards", ()):
         p = sim.cast[cid].process if 0 <= cid < len(sim.cast) else None
-        if (p is not None and p.kind == "upbringing" and p.payload.get("routine") == STUDY
+        if (p is not None and p.kind == "upbringing" and p.payload.get("routine") in MENTORED
                 and ch.cid in p.payload["with"] and p.end_day > sim.day):
             return True
     return False
@@ -152,6 +167,8 @@ def start(sim, child, end_day, rng):
     payload = {"routine": routine, "with": with_, "guardian": getattr(child, "guardian", -1), "carry": {}}
     if routine == STUDY:
         payload["skill"] = R.teachable(sim.cast[with_[0]], child, max_grade=0)[0]
+    if routine == TRAIN:
+        payload["path"] = PATHS.path_of(sim.cast[with_[0]])
     return sim.start_process(child, "upbringing", end_day - sim.day, payload, C.CHILD_BOND_PER_YEAR)
 
 
@@ -161,6 +178,11 @@ def accrue(sim, child, p, days):
         return
     if p.payload["routine"] == STUDY:
         _study(sim, child, p, days)
+    if p.payload["routine"] == TRAIN:
+        child.refine += _gain(child, "refine", days / 365.0 * C.CHILD_TRAIN_REFINE_PER_YEAR, C.CHILD_REFINE_CAP)
+        BODY.log_training(child, days, C.CHILD_TRAIN_WORK * C.CHILD_TRAIN_SESSIONS_PER_WEEK / 7.0)
+        key = "path:" + p.payload["path"]
+        child.childhood_gain[key] = child.childhood_gain.get(key, 0.0) + days
     carry = p.payload["carry"]
     gain = days / 365.0 * p.yield_rate
     for cid in p.payload["with"]:
@@ -202,7 +224,7 @@ def broken(sim, child, p):
     """เหตุที่กิจวัตรนี้ไปต่อไม่ได้ (None = ไปต่อได้) — ตรวจทุกรอบนาฬิกาโลก"""
     if getattr(child, "guardian", -1) != p.payload.get("guardian", -1):
         return "ผู้ปกครองเปลี่ยน"
-    if p.payload["routine"] in (CARE, HOME, STUDY) and any(not sim.cast[c].alive for c in p.payload["with"]):
+    if p.payload["routine"] in (CARE, HOME) + MENTORED and any(not sim.cast[c].alive for c in p.payload["with"]):
         return "ผู้ดูแลจากไป"
     return None
 
@@ -222,6 +244,8 @@ def turn(sim, child, world, elapsed, rng):
         text = f"{child.name}วัย {age} ปี เล่นซนกับ{names}จนสนิทกัน"
     elif routine == HOME:
         text = f"{child.name}วัย {age} ปี เรียนรู้ผู้คนและวิถีชีวิตจาก{names}"
+    elif routine == TRAIN:
+        text = f"{child.name}วัย {age} ปี ฝึกพื้นฐานกับ{names} ({p.payload['path']})"
     elif routine == STUDY:
         text = f"{child.name}วัย {age} ปี เรียน{p.payload['skill']}กับ{names}"
     elif routine == CHORES:

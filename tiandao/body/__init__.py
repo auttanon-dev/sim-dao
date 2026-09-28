@@ -219,6 +219,18 @@ def train(character, work: float = 1.0) -> float:
     return max(0.0, float(work))
 
 
+def log_training(character, days: float, load: float) -> None:
+    """บันทึกการฝึกต่อเนื่อง `days` วัน ภาระ `load` ต่อวัน ที่ทำไปตั้งแต่ร่างกายเดินครั้งก่อน — tick() ครั้งถัดไปคิดผล
+    (ฝึกหลายช่วงก่อน tick เดียวกัน รวมวันและเฉลี่ยภาระตามวัน)"""
+    days = max(0.0, float(days))
+    if days <= 0.0 or load <= 0.0:
+        return
+    before = float(getattr(character, "training_days_pending", 0.0))
+    character.training_load_pending = ((before * float(getattr(character, "training_load_pending", 0.0))
+                                        + days * load) / (before + days))
+    character.training_days_pending = before + days
+
+
 def tick(character, days: float, body_seed: int = 0, day: int = None,
          exertion: float = 0.0, lod_level=None, fed: float = 1.0) -> dict:
     """เดินสภาพร่างกายไปตามเวลาที่ผ่านไป — จุดเดียวที่ผู้เรียกต้องรู้จัก
@@ -244,7 +256,12 @@ def tick(character, days: float, body_seed: int = 0, day: int = None,
     if state:
         cond = Condition.of(character)
         injury.heal(state, days, cond.recovery_factor * organs.recovery_factor(state))
-    adaptation.tick(character, days)
+    trained = float(getattr(character, "training_days_pending", 0.0))
+    if trained > 0.0:
+        adaptation.tick(character, days, trained, float(getattr(character, "training_load_pending", 0.0)))
+        character.training_days_pending = character.training_load_pending = 0.0
+    else:
+        adaptation.tick(character, days)
     log["LOD"] = lod.NAMES.get(chosen_lod, "custom")
     return log
 

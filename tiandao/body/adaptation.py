@@ -7,6 +7,14 @@
     dA/dt = g S - kd A
 
 ระบบแก้สมการคู่นี้แบบปิด จึงให้ผลเดียวกันเมื่อเดิน 30 วันครั้งเดียวหรือแบ่งเป็น 30 ครั้ง
+
+การฝึกต่อเนื่องหลายวัน (เช่นฝึกพื้นฐานทั้งปีของเด็ก ซึ่งร่างกายเดินปีละครั้ง) เป็นแหล่งกระตุ้นคงที่ r ต่อวัน
+ช่วงที่ฝึก: dS/dt = r - ks S ยังเป็นระบบเชิงเส้น คำตอบปิดคือ
+
+    S(t) = S∞ + (S0 - S∞) e^{-ks t}                          S∞ = r / ks
+    A(t) = A∞ + c e^{-ks t} + (A0 - A∞ - c) e^{-kd t}         A∞ = g S∞ / kd,  c = g (S0 - S∞) / (kd - ks)
+
+r = 0 ได้สูตรเดิมพอดี ช่วงที่ไม่ได้ฝึก (ไม่มีการฝึกต่อเนื่อง) ใช้สูตรเดิมตรงตัว ผู้ใหญ่ที่ฝึกเป็นครั้งๆ จึงได้ผลเท่าเดิมทุกบิต
 ค่าที่เก็บบน Character เป็นประวัติของร่างและต้องอยู่ในเซฟ ส่วนกายวิภาคตั้งต้นยังสร้างใหม่
 จาก seed ได้เหมือนเดิม
 """
@@ -16,6 +24,7 @@ from . import constants as K
 
 
 SYSTEMS = ("muscle", "cardio", "bone")
+SHARES = {"muscle": 1.0, "cardio": 0.65, "bone": 0.35}      # สัดส่วนแรงกระตุ้นต่อระบบ เท่าค่าเริ่มต้นของ stimulate
 
 
 def age_factors(age_years: float) -> dict:
@@ -55,10 +64,30 @@ def stimulate(character, work: float, cardio_share: float = 0.65,
         setattr(character, name, min(1.0, old + K.STIMULUS_PER_WORK * dose * share * (1.0 - old)))
 
 
-def tick(character, days: float) -> None:
-    """เดิน stimulus/adaptation/อายุด้วยคำตอบ exact ของระบบสมการเชิงเส้น"""
+def _span(s0, a0, t, source, ks, kd, gain):
+    """เดินหนึ่งช่วงที่มีแหล่งกระตุ้นคงที่ `source` ต่อวัน — คำตอบปิดในหัวไฟล์"""
+    es, ed = math.exp(-ks * t), math.exp(-kd * t)
+    s_inf = source / ks
+    a_inf = gain * s_inf / kd
+    if ks != kd:
+        c = gain * (s0 - s_inf) / (kd - ks)
+        a = a_inf + c * es + (a0 - a_inf - c) * ed
+    else:
+        a = a_inf + (a0 - a_inf + gain * (s0 - s_inf) * t) * ed
+    return min(1.0, s_inf + (s0 - s_inf) * es), max(0.0, min(1.0, a))
+
+
+def tick(character, days: float, trained_days: float = 0.0, load: float = 0.0) -> None:
+    """เดิน stimulus/adaptation/อายุด้วยคำตอบ exact ของระบบสมการเชิงเส้น
+
+    `trained_days` วันแรกของช่วงเป็นการฝึกต่อเนื่องด้วยภาระ `load` ต่อวัน (หน่วยเดียวกับ work ของ stimulate)
+    ที่เหลือเป็นการพัก — ไม่มีการฝึกต่อเนื่องก็เดินสูตรเดิมตรงตัว"""
     t = max(0.0, float(days))
     if t <= 0.0:
+        return
+    train = min(t, max(0.0, float(trained_days))) if load > 0.0 else 0.0
+    if train > 0.0:
+        _tick_trained(character, t, train, load)
         return
     recovery = age_factors(getattr(character, "body_age", K.ADULT_AGE))["recovery"]
     ks = K.STIMULUS_DECAY_RATE
@@ -72,6 +101,22 @@ def tick(character, days: float) -> None:
         built = gain * s0 * ((ed - es) / (ks - kd) if ks != kd else t * ed)
         setattr(character, s_name, s0 * es)
         setattr(character, a_name, max(0.0, min(1.0, a0 * ed + built)))
+    character.body_age = max(0.0, float(getattr(character, "body_age", 0.0)) + t / 365.0)
+
+
+def _tick_trained(character, t, train, load):
+    recovery = age_factors(getattr(character, "body_age", K.ADULT_AGE))["recovery"]
+    ks, kd = K.STIMULUS_DECAY_RATE, K.ADAPTATION_DECAY_RATE
+    gain = K.ADAPTATION_GAIN_RATE * recovery
+    for system in SYSTEMS:
+        s_name, a_name = system + "_stimulus", system + "_adaptation"
+        s = max(0.0, min(1.0, float(getattr(character, s_name, 0.0))))
+        a = max(0.0, min(1.0, float(getattr(character, a_name, 0.0))))
+        s, a = _span(s, a, train, K.STIMULUS_PER_WORK * load * SHARES[system], ks, kd, gain)
+        if t - train > 0.0:
+            s, a = _span(s, a, t - train, 0.0, ks, kd, gain)
+        setattr(character, s_name, s)
+        setattr(character, a_name, a)
     character.body_age = max(0.0, float(getattr(character, "body_age", 0.0)) + t / 365.0)
 
 

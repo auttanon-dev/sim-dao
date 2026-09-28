@@ -47,6 +47,71 @@ class AdaptationTests(unittest.TestCase):
         self.assertGreater(cond.muscle_factor, 0.0)
 
 
+class SustainedTrainingTests(unittest.TestCase):
+    """การฝึกต่อเนื่องเป็นแหล่งกระตุ้นคงที่ — คำตอบปิดใน body/adaptation.py"""
+    LOAD = 0.75 / 7.0
+
+    @staticmethod
+    def old_tick(ch, days):
+        """สูตรก่อนมีการฝึกต่อเนื่อง ลอกตรงตัว — ผู้ใหญ่ที่ฝึกเป็นครั้งๆ ต้องได้ผลนี้ทุกบิต"""
+        import math
+        K = BODY.constants
+        recovery = BODY.adaptation.age_factors(ch.body_age)["recovery"]
+        ks, kd, gain = K.STIMULUS_DECAY_RATE, K.ADAPTATION_DECAY_RATE, K.ADAPTATION_GAIN_RATE * recovery
+        for system in BODY.adaptation.SYSTEMS:
+            s0, a0 = getattr(ch, system + "_stimulus"), getattr(ch, system + "_adaptation")
+            es, ed = math.exp(-ks * days), math.exp(-kd * days)
+            setattr(ch, system + "_stimulus", s0 * es)
+            setattr(ch, system + "_adaptation", max(0.0, min(1.0, a0 * ed + gain * s0 * (ed - es) / (ks - kd))))
+        ch.body_age += days / 365.0
+
+    def test_discrete_training_is_bit_for_bit_the_old_formula(self):
+        a, b = person(), person()
+        for ch in (a, b):
+            BODY.train(ch, 1.0)
+        BODY.adaptation.tick(a, 40.0)
+        self.old_tick(b, 40.0)
+        self.assertEqual(vars(a), vars(b))
+        BODY.tick(a, 30.0)                                  # ไม่มีการฝึกค้าง BODY.tick ใช้ทางเดิม
+        self.assertEqual(getattr(a, "training_days_pending", 0.0), 0.0)
+
+    def test_the_closed_form_matches_a_fine_numerical_integration(self):
+        K = BODY.constants
+        ch = person(body_age=10.0, muscle_stimulus=0.3, muscle_adaptation=0.1)
+        BODY.adaptation.tick(ch, 300.0, 200.0, self.LOAD)
+        s, a, dt = 0.3, 0.1, 0.01
+        gain = K.ADAPTATION_GAIN_RATE * BODY.adaptation.age_factors(10.0)["recovery"]
+        for i in range(int(300 / dt)):
+            r = K.STIMULUS_PER_WORK * self.LOAD if i * dt < 200.0 else 0.0
+            s, a = s + dt * (r - K.STIMULUS_DECAY_RATE * s), a + dt * (gain * s - K.ADAPTATION_DECAY_RATE * a)
+        self.assertAlmostEqual(ch.muscle_stimulus, s, places=3)
+        self.assertAlmostEqual(ch.muscle_adaptation, a, places=3)
+
+    def test_splitting_a_training_span_gives_the_same_body(self):
+        whole, split = person(body_age=10.0), person(body_age=10.0)
+        BODY.adaptation.tick(whole, 365.0, 365.0, self.LOAD)
+        BODY.adaptation.tick(split, 100.0, 100.0, self.LOAD)
+        BODY.adaptation.tick(split, 265.0, 265.0, self.LOAD)
+        for system in BODY.adaptation.SYSTEMS:
+            self.assertAlmostEqual(getattr(whole, system + "_adaptation"), getattr(split, system + "_adaptation"))
+
+    def test_a_year_of_weekly_sessions_builds_about_half_the_muscle_adaptation(self):
+        ch = person(body_age=10.0)
+        BODY.log_training(ch, 365.0, self.LOAD)
+        BODY.tick(ch, 365.0)
+        self.assertTrue(0.4 <= ch.muscle_adaptation <= 0.5, ch.muscle_adaptation)
+        self.assertEqual(ch.training_days_pending, 0.0, "tick ใช้การฝึกที่บันทึกไว้หมดแล้ว")
+
+    def test_only_the_days_actually_trained_count(self):
+        full, part = person(body_age=10.0), person(body_age=10.0)
+        BODY.log_training(full, 365.0, self.LOAD)
+        BODY.log_training(part, 120.0, self.LOAD)
+        BODY.tick(full, 365.0)
+        BODY.tick(part, 365.0)
+        self.assertLess(part.muscle_adaptation, full.muscle_adaptation)
+        self.assertGreater(part.muscle_adaptation, 0.0)
+
+
 class OrganAndLODTests(unittest.TestCase):
     def test_chest_organ_damage_reduces_oxygen_delivery(self):
         hurt = person(injuries={"chest": {"organ": 0.6}})

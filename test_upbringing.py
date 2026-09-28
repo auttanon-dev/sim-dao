@@ -270,6 +270,58 @@ class UpbringingTests(unittest.TestCase):
         self.sim.begin_cultivation(self.adult, 100)
         self.assertAlmostEqual(self.adult.process.yield_rate, C.GUARDIAN_TEACH_COST)
 
+    # ---------------------------------------------------------------- ขั้น C2: ฝึกพื้นฐาน
+    def options(self, kid):
+        seen = set()
+        for day in range(5000, 5060):
+            self.sim.day = day
+            seen.add(CHILD.choose(self.sim, kid, CHILD._rng(self.sim, kid))[0])
+        return seen
+
+    def test_training_needs_a_guardian_here_who_cultivates_or_has_a_clan_or_sect(self):
+        kid = self.child(9)
+        self.adult.realm, self.adult.clan, self.adult.sect_name = 0, -1, None
+        self.assertNotIn(CHILD.TRAIN, self.options(kid))
+        for setup in ({"realm": 1}, {"clan": 0}, {"sect_name": "สำนักทดสอบ"}):
+            self.adult.realm, self.adult.clan, self.adult.sect_name = 0, -1, None
+            for k, v in setup.items():
+                setattr(self.adult, k, v)
+            self.assertIn(CHILD.TRAIN, self.options(kid), setup)
+        self.adult.place = kid.place + 1
+        self.assertNotIn(CHILD.TRAIN, self.options(kid), "ผู้ปกครองต้องอยู่ที่เดียวกัน")
+        self.assertNotIn(CHILD.TRAIN, self.options(self.child(6)), "อายุ 7 ขึ้นไป")
+
+    def test_training_loads_the_body_pays_refinement_up_to_the_cap_and_tallies_the_guardian_path(self):
+        from tiandao import paths as PATHS
+        kid = self.child(9)
+        self.adult.realm = 2
+        kid.muscle_stimulus = 0.0
+        with mock.patch.object(CHILD, "choose", return_value=(CHILD.TRAIN, [self.adult.cid])):
+            self.turn(kid)
+        self.assertEqual(kid.muscle_stimulus, 0.0, "ไม่มีแรงกระตุ้นก้อนเดียวตอนเริ่มอีกแล้ว")
+        path = PATHS.path_of(self.adult)
+        self.assertEqual(kid.process.payload["path"], path)
+        kid.childhood_gain["refine"] = C.CHILD_REFINE_CAP - 0.01
+        refine = kid.refine
+        self.sim.day += 200
+        self.sim.settle_routine(kid)
+        self.assertAlmostEqual(kid.refine - refine, 0.01)
+        self.assertEqual(kid.childhood_gain["path:" + path], 200)
+        self.assertEqual(kid.training_days_pending, 200, "วันที่ฝึกจริงรอร่างกายเดินครั้งถัดไป")
+        muscle = getattr(kid, "muscle_adaptation", 0.0)
+        from tiandao import body as BODY
+        BODY.tick(kid, 200)
+        self.assertGreater(kid.muscle_adaptation - muscle, 0.2)
+
+    def test_a_guardian_who_is_training_a_ward_also_pays_the_time_cost(self):
+        kid = self.child(9)
+        self.adult.realm = 2
+        self.sim.start_process(kid, "upbringing", 365, {"routine": CHILD.TRAIN, "with": [self.adult.cid],
+                                                        "guardian": kid.guardian, "carry": {}, "path": "กายบำเพ็ญ"},
+                               C.CHILD_BOND_PER_YEAR)
+        self.sim.begin_cultivation(self.adult, 100)
+        self.assertAlmostEqual(self.adult.process.yield_rate, C.GUARDIAN_TEACH_COST)
+
     def test_a_running_world_uses_the_routines(self):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 20000)
