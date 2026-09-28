@@ -57,7 +57,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  19 — บ้านที่ตายตัว (Household.home) และข้าวในครัว (Household.larder) เริ่มว่าง
 #  20 — คลังตระกูล (Sim.clan_treasury) เริ่มว่าง
 #  21 — บัญชีสาเหตุทองเกิด/หาย (Sim.gold_flows) เปิดด้วยยอดทองที่มีอยู่ตอนโหลด (สาเหตุ "opening")
-SAVE_VERSION = 21
+#  22 — ตระกูลสืบผ่านครัวเรือน: คู่ครองและเด็กในครัวเรือนที่หัวหน้ามีตระกูลรับตระกูลนั้น (household.backfill_clans)
+SAVE_VERSION = 22
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -313,6 +314,9 @@ def _migrate(sim, version):
         sim.gold_flows = {}
         for tier in sorted({w.tier for w in sim.worlds}):
             WAGES.record(sim, "opening", tier, WAGES.total_gold(sim, tier))
+    if version < 22:
+        from . import household as HH
+        HH.backfill_clans(sim)          # ไม่แตะ RNG
 
 
 def _cities_into_save(sim):

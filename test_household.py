@@ -419,6 +419,53 @@ class SuccessionTests(unittest.TestCase):
         self.assertEqual(back.rng.getstate(), state)
 
 
+class ClanTests(unittest.TestCase):
+    """ตระกูลสืบผ่านครัวเรือน (ขั้น A3)"""
+    setUp = PurseTests.setUp
+
+    def ward_of_other(self):
+        kid = quiet(self.sim.spawn, self.sim.world(0), age_years=0)
+        kid.born_day = self.sim.day - 5 * 365
+        GUARD.assign(self.sim, kid, self.other, "รับเลี้ยง")
+        kid.clan = -1
+        return kid
+
+    def test_the_spouse_joining_a_clan_household_takes_the_heads_clan_with_clanless_wards(self):
+        self.parent.clan, self.other.clan = 2, 5
+        kid = self.ward_of_other()
+        self.sim.marry(self.parent, self.other)
+        self.assertEqual((self.other.clan, kid.clan), (2, 2))
+
+    def test_a_head_without_a_clan_leaves_the_joining_spouse_in_theirs(self):
+        self.parent.clan, self.other.clan = -1, 5
+        self.sim.marry(self.parent, self.other)
+        self.assertEqual((self.parent.clan, self.other.clan), (-1, 5))
+
+    def test_a_clanless_ward_takes_the_guardians_clan_but_a_blood_clan_stays(self):
+        self.other.clan = 4
+        kid = quiet(self.sim.spawn, self.sim.world(0), age_years=0)
+        kid.clan = -1
+        GUARD.assign(self.sim, kid, self.other, "รับเลี้ยง")
+        self.assertEqual(kid.clan, 4)
+        blood = quiet(self.sim.spawn, self.sim.world(0), age_years=0)
+        blood.clan = 1
+        GUARD.assign(self.sim, blood, self.other, "รับเลี้ยง")
+        self.assertEqual(blood.clan, 1)
+
+    def test_a_version_21_save_backfills_spouses_and_minors_without_moving_the_rng(self):
+        self.sim.marry(self.parent, self.other)
+        self.parent.clan, self.other.clan, self.child.clan = 3, -1, -1
+        self.assertEqual(self.hh.head, self.parent.cid)
+        state = self.sim.rng.getstate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "old.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 21, "sim": self.sim}, f)
+            back = PS.load_sim(path)
+        self.assertEqual((back.cast[self.other.cid].clan, back.cast[self.child.cid].clan), (3, 3))
+        self.assertEqual(back.rng.getstate(), state)
+
+
 class RunningWorldTests(unittest.TestCase):
     def test_a_running_world_keeps_its_food_ledger_with_larders(self):
         from tiandao import food as FOOD

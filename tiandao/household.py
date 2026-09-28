@@ -30,6 +30,11 @@
 สืบทอด (ขั้น H4): หัวหน้าตาย ครัวเรือนอยู่ต่อพร้อมกระเป๋าและข้าวในครัวครบ ผู้รับช่วงตาม `_next_head`
 (คู่ครอง → สมาชิกที่เติบใหญ่แล้วอายุมากสุด → สมาชิกอายุมากสุด) คนสุดท้ายตายโดยไม่มีทายาท (Sim.heirs_of) และอยู่ในตระกูล
 กระเป๋าเข้าคลังตระกูล (`sim.clan_treasury[clan]` นับใน wages.total_gold) ไม่งั้นตามกฎมรดกเดิม ข้าวในครัวคืนยุ้งฉางของบ้านเสมอ
+
+ตระกูลสืบผ่านครัวเรือน (§7.4 ขั้น A3) — เดิมได้ตระกูลแค่คนรุ่นแรกที่สุ่มตอนสร้างและลูกทางสายเลือด คนในตระกูลจึงเหลือราว 6–9%:
+- แต่งงาน: คู่ที่ย้ายเข้าครัวเรือนรับตระกูลของหัวหน้าครัวเรือน (ถ้าหัวหน้ามีตระกูล) เด็กที่ย้ายตามมาไม่มีตระกูลก็รับด้วย
+- รับเลี้ยง: เด็กที่ไม่มีตระกูลรับตระกูลของผู้ปกครอง ไม่มีก็ของหัวหน้าครัวเรือน (`adopt_clan`) เด็กที่มีตระกูลสายเลือดอยู่แล้วคงไว้
+- ลูกที่เกิดยังได้ตระกูลจากพ่อแม่ตามเดิม (ส่วนคลอดใน Sim ตั้งชื่อตามตระกูลด้วย) คู่ที่แต่งแล้วอยู่ตระกูลเดียวกัน ลูกจึงได้ตามไปด้วย
 """
 from . import config as C
 from . import travel as TR
@@ -300,11 +305,44 @@ def dependants(sim, ch):
 
 
 def marry(sim, a, b):
-    """รวมครัวเรือนตอนแต่งงาน: `b` และเด็กในความดูแลของ `b` ย้ายเข้าครัวเรือนของ `a`"""
+    """รวมครัวเรือนตอนแต่งงาน: `b` และเด็กในความดูแลของ `b` ย้ายเข้าครัวเรือนของ `a` และรับตระกูลของหัวหน้า"""
     hh = of(sim, a) or found(sim, a)
-    for kid in dependants(sim, b):
+    kids = dependants(sim, b)
+    for kid in kids:
         join(sim, kid, hh)
     join(sim, b, hh)
+    clan = getattr(sim.cast[hh.head], "clan", -1)
+    if clan >= 0:
+        b.clan = clan
+        for kid in kids:
+            adopt_clan(sim, kid)
+
+
+def adopt_clan(sim, child, guardian=None):
+    """เด็กที่ยังไม่มีตระกูลรับตระกูลของผู้ปกครอง ไม่มีก็ของหัวหน้าครัวเรือน — คืน True ถ้าได้ตระกูลใหม่"""
+    if getattr(child, "clan", -1) >= 0:
+        return False
+    hh = of(sim, child)
+    for giver in (guardian, sim.cast[hh.head] if hh is not None else None):
+        if giver is not None and getattr(giver, "clan", -1) >= 0:
+            child.clan = giver.clan
+            return True
+    return False
+
+
+def backfill_clans(sim):
+    """เซฟก่อนรุ่น 22: ครัวเรือนที่หัวหน้ามีตระกูล คู่ครองของหัวหน้ารับตระกูล และคนที่ยังไม่ถึง ADULT_AGE ที่ไม่มีตระกูลรับด้วย
+    — กฎเดียวกับการแต่งงานและรับเลี้ยง ไม่แตะ RNG เรียงด้วย hid"""
+    cast, day = sim.cast, sim.day
+    for hid in sorted(_table(sim)):
+        hh = _table(sim)[hid]
+        head = cast[hh.head]
+        if getattr(head, "clan", -1) < 0:
+            continue
+        for cid in sorted(hh.members):
+            ch = cast[cid]
+            if cid == head.spouse or (ch.age(day) < C.ADULT_AGE and getattr(ch, "clan", -1) < 0):
+                ch.clan = head.clan
 
 
 def tick(sim):

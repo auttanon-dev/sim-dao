@@ -182,6 +182,7 @@ def assign(sim, child, guardian, reason):
     child.guardian = guardian.cid
     guardian.wards.append(child.cid)
     HH.join(sim, child, HH.of(sim, guardian))      # เด็กอยู่ครัวเรือนเดียวกับผู้ปกครอง
+    HH.adopt_clan(sim, child, guardian)            # ไม่มีตระกูลก็รับตระกูลของผู้ปกครอง (§7.4 A3)
     is_parent = guardian.cid in (child.parents or ())
     stat, why = _REASONS[reason]
     sim.guardian_stats[stat] += 1
