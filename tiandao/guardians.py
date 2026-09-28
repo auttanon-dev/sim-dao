@@ -31,6 +31,7 @@
 - ค่าข้าวของเด็ก (tiandao/food.py) ผู้ปกครองที่อยู่ที่เดียวกันจ่าย หมู่บ้านเลี้ยงเฉพาะเด็กที่ไม่มีใครอยู่ด้วย
 """
 from . import config as C
+from . import household as HH
 from . import travel as TR
 from . import wages as WAGES
 
@@ -180,6 +181,7 @@ def assign(sim, child, guardian, reason):
     _release(sim, child)
     child.guardian = guardian.cid
     guardian.wards.append(child.cid)
+    HH.join(sim, child, HH.of(sim, guardian))      # เด็กอยู่ครัวเรือนเดียวกับผู้ปกครอง
     is_parent = guardian.cid in (child.parents or ())
     stat, why = _REASONS[reason]
     sim.guardian_stats[stat] += 1

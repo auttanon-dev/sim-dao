@@ -32,6 +32,7 @@ from . import seasons as SEASONS
 from . import emotions as EM
 from . import body as BODY
 from . import childhood as CHILD
+from . import household as HH
 from . import food as FOOD
 from . import wages as WAGES
 from . import guardians as GUARD
@@ -97,6 +98,7 @@ class Sim:
         self.farm_till = {}       # (wid, place) -> ค่าข้าวที่รอจ่ายให้คนผลิตของที่นั้น
         self.wage_stats = WAGES.new_stats()
         self.guardian_stats = GUARD.new_stats()
+        self.households, self.household_seq = {}, 0   # tiandao/household.py
         self.cities = copy.deepcopy(C.CITIES)   # เมืองของโลกนี้ — เจ้าเมืองอยู่ในเซฟ (เดิมแก้ config.CITIES ของ module)
         self.seq = 0
         self.cast = []
@@ -688,6 +690,7 @@ class Sim:
             world.n_mortal += 1
         self.apply_bloodline_buff(ch)
         ch.came_of_age = age_years >= 14       # ผู้ใหญ่ที่เติมเข้ามาไม่มีวัยเด็กในโลกนี้ให้สรุป
+        HH.found(self, ch)                     # ทารกย้ายเข้าครัวเรือนของผู้ปกครองตอน guardians.assign
         self.schedule(ch, rng.randint(30, 900))
         return ch
 
@@ -903,6 +906,10 @@ class Sim:
             w.n_mortal -= 1
         R.death_return(w, ch, natural)
         self.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
+        HH.on_death(self, ch)
+        mate = self.cast[ch.spouse] if ch.spouse is not None and 0 <= ch.spouse < len(self.cast) else None
+        if mate is not None and mate.spouse == ch.cid:
+            mate.spouse = None               # เป็นหม้ายแล้วแต่งงานใหม่ได้ (ch.spouse ของผู้ตายคงไว้เป็นประวัติ)
         if killer:
             killer.kills += 1
             if ch.is_unique_beast:
@@ -933,6 +940,14 @@ class Sim:
             self.reincarnate(ch)
 
     # ------------------------------------------------------------ มรดกและตำแหน่งของผู้ตาย
+    def marry(self, a, b):
+        """แต่งงาน — ทางเดียวของการผูกคู่ครอง: ทั้งคู่ต้องยังโสด (หม้ายแต่งใหม่ได้) แล้วรวมครัวเรือน คืน True ถ้าแต่งจริง"""
+        if a is b or a.spouse is not None or b.spouse is not None:
+            return False
+        a.spouse, b.spouse = b.cid, a.cid
+        HH.marry(self, a, b)
+        return True
+
     def heirs_of(self, ch):
         """ทายาทตามกฎหมาย — คู่ครองที่ยังมีชีวิต ไม่มีก็ลูกที่โตแล้วทุกคน"""
         cast = self.cast
@@ -2057,6 +2072,7 @@ class Sim:
         self._advance_eco()
         if C.GUARDIANS_ENABLED:
             GUARD.tick(self)
+        HH.tick(self)
         if C.FOOD_ENABLED:
             FOOD.tick(self, self.day - self.food_day)
         if C.WAGES_ENABLED:
@@ -4063,6 +4079,7 @@ class Sim:
                                 if getattr(a, "moral", 0) * getattr(b, "moral", 0) >= 0: # ธรรมะเจอธรรมะ
                                     a.companions[b.name] = 80
                                     b.companions[a.name] = 80
+                                    self.marry(a, b)
                                     msg = f"💖 [แต่งงาน] [{a.name}] และ [{b.name}] พบกันที่ {city['name_th']} และเข้าพิธีวิวาห์!"
                                     
                                     # 👶 ตั้งครรภ์ (คลอดเมื่อครบกำหนด — Sim.conceive)
@@ -5343,10 +5360,7 @@ class Sim:
             if a.gender == "ไม่มีเพศ" or t.gender == "ไม่มีเพศ" or a.gender == t.gender:
                 return "ล้มเหลว", f"{a.name}และ{t.name}ไม่สามารถมีทายาทร่วมกันได้", d
                 
-            # ผูกพันธะคู่ครอง
-            if a.spouse is None and t.spouse is None:
-                a.spouse = t.cid
-                t.spouse = a.cid
+            self.marry(a, t)                     # ผูกพันธะคู่ครองถ้ายังโสดทั้งคู่
                 
             # เช็คเผ่าพันธุ์ต้องห้าม (มนุษย์กับมาร)
             if a.race() == "มนุษย์" and t.race() == "มาร":

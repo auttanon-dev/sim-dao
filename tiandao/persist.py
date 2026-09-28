@@ -52,7 +52,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  14 — ปิดด่านและการเดินทางเป็น Character.process (ActionProcess) แทนช่อง seclude_*/travel_*
 #  15 — เมืองและเจ้าเมืองอยู่ในเซฟ (Sim.cities) แทนการแก้ config.CITIES ของ module; ตั้งครรภ์เป็น Character.pregnancy
 #  16 — เติบใหญ่ตอนอายุ 14 (Character.came_of_age, upbringing_days, body_bias): ผู้ใหญ่เดิมถือว่าผ่านแล้ว
-SAVE_VERSION = 16
+#  17 — ครัวเรือน (sim.households, Character.household) สร้างจากคู่ครอง ผู้ปกครอง และพ่อแม่
+SAVE_VERSION = 17
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -290,6 +291,9 @@ def _migrate(sim, version):
         for ch in sim.cast:
             if ch.alive and ch.age(sim.day) < 14:
                 ch.came_of_age = False
+    if version < 17:
+        from . import household as HH
+        HH.build(sim)                   # ไม่แตะ RNG
 
 
 def _cities_into_save(sim):

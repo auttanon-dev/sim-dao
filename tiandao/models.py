@@ -114,6 +114,19 @@ class World:
 
 
 @dataclass
+class Household:
+    """ครัวเรือน (แบบ §7.1) — กฎสมาชิกภาพอยู่ที่ tiandao/household.py
+    - hid: เลขประจำครัวเรือน
+    - head: cid ของหัวหน้า (บ้านคือที่อยู่ของหัวหน้า)
+    - members: cid ของทุกคนในครัวเรือน รวมหัวหน้า
+    - founded_day: วันที่ตั้ง"""
+    hid: int
+    head: int
+    members: List[int]
+    founded_day: int = 0
+
+
+@dataclass
 class ActionProcess:
     """กิจกรรมยาวหนึ่งอย่างที่ใช้เวลาจริงและถูกขัดจังหวะได้ (แบบ §5.2) — ผลคิดตามวันที่ทำไปจริง (Sim.accrue_process)
 
@@ -240,6 +253,7 @@ class Character:
                                  # จุดออกเดินทางเดิม จะเปลี่ยนเป็นปลายทางตอนถึงจริงเท่านั้น
     # กิจกรรมยาวที่กำลังทำอยู่ (ปิดด่าน เดินทาง) — ดู ActionProcess และ property travel_dest ฯลฯ ท้ายคลาส
     process: Optional["ActionProcess"] = None
+    household: int = -1          # ครัวเรือนที่อยู่ (tiandao/household.py) คนที่ยังมีชีวิตอยู่ครัวเรือนเดียวเสมอ
     pregnancy: Optional["ActionProcess"] = None    # ครรภ์ แยกช่องเพราะตั้งครรภ์ไปพร้อมกิจกรรมอื่นได้ (Sim.conceive)
     postpartum_until: int = 0
     building: int = -1          # อาคารที่อยู่ตอนนี้ภายใน place ปัจจุบัน (ดัชนีใน settlement ของ place นั้น)
@@ -596,6 +610,7 @@ class Character:
         self.__dict__.setdefault("jailer", -1)
         self.__dict__.setdefault("birth_wid", self.__dict__.get("world_id", -1))
         self.__dict__.setdefault("childhood_gain", {})
+        self.__dict__.setdefault("household", -1)
         self.__dict__.setdefault("upbringing_days", {})
         self.__dict__.setdefault("system_foresight", False)
         self.__dict__.setdefault("visions", [])
