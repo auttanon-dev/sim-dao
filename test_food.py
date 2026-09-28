@@ -354,7 +354,7 @@ class FoodInTheRunningWorldTests(unittest.TestCase):
             sim.queue = [(d if cid != victim.cid else sim.day + 10 * 365, cid) for d, cid in sim.queue]
             heapq.heapify(sim.queue)
             start = sim.day
-            with mock.patch.object(FOOD, "_working", return_value=False):
+            with mock.patch.object(FOOD, "_working", return_value=False),                     mock.patch.object(FOOD.CHILD, "labour", return_value=0.0):   # ไม่มีใครผลิต รวมเด็กที่ช่วยงาน
                 while victim.alive and sim.day < start + 365:
                     quiet(sim.step)
         self.assertFalse(victim.alive)

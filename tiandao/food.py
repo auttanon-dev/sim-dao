@@ -50,6 +50,7 @@ from . import seasons as SEASONS
 from . import travel as TR
 from . import wages as WAGES
 from . import guardians as GUARD
+from . import childhood as CHILD
 
 STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
              "starved", "migrated", "seclusion_cut", "took_up_farming", "left_farming",
@@ -132,8 +133,9 @@ def season_mean(start, days) -> float:
     return sum(SEASONS.regen_multiplier(int(start + i * days // n)) for i in range(n)) / n
 
 
-def land_output_per_day(workers: int) -> float:
-    """สำรับต่อวันจากที่ดินหนึ่งแห่ง — คนแรกๆ ได้เกือบเต็มแรง คนหลังๆ ได้น้อยลงเมื่อที่ดินเริ่มเต็ม"""
+def land_output_per_day(workers: float) -> float:
+    """สำรับต่อวันจากที่ดินหนึ่งแห่ง — คนแรกๆ ได้เกือบเต็มแรง คนหลังๆ ได้น้อยลงเมื่อที่ดินเริ่มเต็ม
+    `workers` เป็นแรงงานเทียบผู้ใหญ่ เด็กที่ช่วยงานนับ CHILD_LABOUR_SHARE คน (ยังไม่เกิน FOOD_LAND_CAP_DAY)"""
     cap = C.FOOD_LAND_CAP_DAY
     return cap * (1.0 - math.exp(-workers * C.FOOD_PER_WORKER_DAY / cap))
 
@@ -191,10 +193,15 @@ def tick(sim, days) -> None:
     eaters_at = collections.defaultdict(list)
     away = []
     workers_at = collections.defaultdict(list)
+    helpers_at = collections.defaultdict(float)     # แรงเด็กที่ช่วยงาน (เทียบผู้ใหญ่) — ไม่อยู่ใน workers_at จึงไม่ได้ค่าข้าว
     for cid in sorted(sim.alive_cids):
         ch = sim.cast[cid]
         if _working(ch, day):
             workers_at[_spot(ch)].append(ch)
+        elif ch.age(day) < 14 and not ch.hidden and not _away(ch, day):
+            share = CHILD.labour(ch, day)
+            if share:
+                helpers_at[_spot(ch)] += share
         if not eats(ch):
             continue
         if ch.food is None:
@@ -202,10 +209,15 @@ def tick(sim, days) -> None:
         (away.append(ch) if _away(ch, day) else eaters_at[_spot(ch)].append(ch))
 
     season = season_mean(day - days, days)
-    for spot in sorted(workers_at):
-        made = land_output_per_day(len(workers_at[spot])) * days * season
+    for spot in sorted(set(workers_at) | set(helpers_at)):
+        labour = len(workers_at.get(spot, ())) + helpers_at.get(spot, 0.0)
+        made = land_output_per_day(labour) * days * season
         sim.granary[spot] = sim.granary.get(spot, 0.0) + made
         stats["produced"] += made
+        if spot in helpers_at:
+            # ส่วนที่เกิดจากแรงเด็ก = ผลผลิตทั้งหมด − ผลผลิตถ้าไม่มีเด็ก (ที่ดินใกล้เต็ม แรงเด็กได้น้อยลงตามจริง)
+            stats["child_produced"] = stats.get("child_produced", 0.0) + made - (
+                land_output_per_day(len(workers_at.get(spot, ()))) * days * season)
 
     sources, short = {}, {}
     for spot in sorted(eaters_at):
