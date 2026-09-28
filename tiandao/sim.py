@@ -960,14 +960,16 @@ class Sim:
                 if 0 <= c < len(cast) and cast[c].alive and cast[c].age(self.day) >= C.ADULT_AGE]
 
     def settle_estate(self, ch, items_to_heirs):
-        """ทองของผู้ตายไปที่ทายาท (แบ่งเท่ากัน) ไม่มีทายาทเข้าคลังทองของสำนัก ไม่มีสำนักก็ค้างอยู่กับศพ (แดนลับหรือ
-        buried_gold ภายหลัง) ของธรรมดาไปที่ทายาทเมื่อไม่มีผู้ฆ่าริบ ของที่มีชื่อยังตามกฎเดิม (ผนึกในแดนลับ)
+        """ทองของผู้ตายไปที่ทายาท (แบ่งเท่ากัน) ไม่มีทายาทเข้าคลังทองของสำนัก ไม่มีสำนักแต่อยู่ในตระกูลเข้าคลังตระกูล
+        (ศาลบรรพชน §7.4 ข้อ 5) นอกนั้นค้างอยู่กับศพ (แดนลับหรือ buried_gold ภายหลัง) ของธรรมดาไปที่ทายาทเมื่อไม่มีผู้ฆ่าริบ ของที่มีชื่อยังตามกฎเดิม (ผนึกในแดนลับ)
         เดิมทองอยู่บนศพตลอดไป ไม่มีใครได้ใช้"""
         heirs = self.heirs_of(ch)
         org = (self.orgs[ch.org] if ch.org is not None and 0 <= ch.org < len(self.orgs)
                and self.orgs[ch.org].alive else None)
         stats = self.__dict__.setdefault("estate_stats", {"to_heirs": 0.0, "to_sect": 0.0, "unclaimed": 0.0,
                                                           "items_to_heirs": 0})
+        stats.setdefault("to_clan", 0.0)
+        clan = getattr(ch, "clan", -1)
         for tier, gold in list(ch.money.items()):
             if gold <= 0:
                 continue
@@ -979,6 +981,10 @@ class Sim:
                 purse = org.__dict__.setdefault("treasury_gold", {})
                 purse[tier] = purse.get(tier, 0.0) + gold
                 stats["to_sect"] += gold
+            elif clan >= 0:
+                hall = HH.clan_purse(self, clan)
+                hall[tier] = hall.get(tier, 0.0) + gold
+                stats["to_clan"] += gold
             else:
                 stats["unclaimed"] += gold
                 continue

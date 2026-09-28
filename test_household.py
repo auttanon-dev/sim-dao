@@ -353,7 +353,7 @@ class SuccessionTests(unittest.TestCase):
         self.assertAlmostEqual(self.totals()[1], before[1])
 
     def heirless_last_member(self):
-        self.parent.spouse, self.parent.children = None, []
+        self.parent.spouse, self.parent.children, self.parent.org = None, [], None
         HH.found(self.sim, self.child)                       # เด็กแยกไป ผู้ปกครองเหลือคนเดียวพร้อมกระเป๋าและครัว
         self.fund()
         self.assertEqual(self.sim.heirs_of(self.parent), [])
@@ -362,10 +362,13 @@ class SuccessionTests(unittest.TestCase):
         self.heirless_last_member()
         self.parent.clan = 2
         granary = self.sim.granary.get((0, 3), 0.0) + self.parent.food     # เสบียงติดตัวของผู้ตายเข้ายุ้งฉางด้วย (food.on_death)
-        before = self.totals()
+        own = self.parent.money[self.tier]
+        before, flows = self.totals(), repr(getattr(self.sim, "gold_flows", {}))
         quiet(self.sim.kill, self.parent, "ทดสอบ")
         self.assertNotIn(self.hh.hid, self.sim.households)
-        self.assertAlmostEqual(self.sim.clan_treasury[2][self.tier], 5.0)
+        self.assertAlmostEqual(self.sim.clan_treasury[2][self.tier], own + 5.0, msg="กระเป๋าและทองส่วนตัว (A1) เข้าศาลบรรพชน")
+        self.assertAlmostEqual(self.parent.money.get(self.tier, 0.0), 0.0)
+        self.assertEqual(repr(self.sim.gold_flows), flows, "ย้ายจากคนเข้าคลัง ไม่ใช่ทองเกิดหรือหาย")
         self.assertAlmostEqual(self.sim.granary[(0, 3)], granary + 20.0)
         self.assertAlmostEqual(self.totals()[0], before[0])
         self.assertAlmostEqual(self.totals()[1], before[1])
@@ -378,6 +381,20 @@ class SuccessionTests(unittest.TestCase):
         self.assertEqual(self.sim.clan_treasury, {})
         self.assertAlmostEqual(self.totals()[0], before[0])
         self.assertAlmostEqual(self.totals()[1], before[1])
+
+    def test_a_sect_still_takes_an_heirless_members_estate_before_the_clan(self):
+        from tiandao.models import Org
+        self.heirless_last_member()
+        self.parent.clan = 2
+        org = Org(len(self.sim.orgs), "สำนัก", "สำนักทดสอบ", 0, self.other.cid, 0)
+        self.sim.orgs.append(org)
+        self.parent.org = org.oid if hasattr(org, "oid") else len(self.sim.orgs) - 1
+        own = self.parent.money[self.tier]
+        before = self.totals()
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertAlmostEqual(org.treasury_gold[self.tier], own)
+        self.assertAlmostEqual(self.sim.clan_treasury[2][self.tier], 5.0, msg="กระเป๋าไร้ทายาทยังเข้าตระกูล (H4)")
+        self.assertAlmostEqual(self.totals()[0], before[0])
 
     def test_a_living_heir_outside_the_household_inherits_the_purse_not_the_clan(self):
         self.heirless_last_member()
