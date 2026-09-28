@@ -18,10 +18,13 @@ from tiandao import sim as S
 
 STEPS = 220000
 SEED = 2027
+# ชนะเดี่ยว/รวมกำลังนับรวมหลายโลก: โลกเดียวแกว่งตามเส้นทางมาก (ขั้น C3 เปลี่ยนแค่เส้นทาง seed 2027 จากเดี่ยว 1 เป็น 4
+# ทั้งที่ผู้ชนะเดี่ยวทุกคนไม่เกี่ยวกับสิ่งที่เปลี่ยน) จึงรวม seed 2027–2031 แบบเดียวกับ test_deaths และ test_timescale
+POOL_SEEDS = (2027, 2028, 2029, 2030, 2031)
 
 
-def run():
-    sim = S.Sim(seed=SEED, tiers=3)
+def run(seed=SEED):
+    sim = S.Sim(seed=seed, tiers=3)
     with contextlib.redirect_stdout(io.StringIO()):
         for _ in range(STEPS):
             if sim.step() is None:
@@ -29,7 +32,26 @@ def run():
     return sim
 
 
-def test_no_solo_win(sim):
+def lord_wins(sim):
+    """(ชนะเดี่ยว, ชนะด้วยการรวมกำลัง) เหนือเจ้าโกลาหล จาก log จริง"""
+    lords = {c.cid for c in sim.cast if getattr(c, "is_lord", False) or c.lord_returns}
+    solo, team_win = [], []
+    for e in sim.log:
+        if e.actor not in lords and e.target not in lords:
+            continue
+        w = (e.deltas or {}).get("winner")
+        if w is None or int(w) in lords:
+            continue
+        (team_win if e.kind == "พันธมิตรปราบเจ้าโกลาหล" else solo).append(e)
+    return solo, team_win
+
+
+def _count_wins(seed):
+    solo, team_win = lord_wins(run(seed))
+    return len(solo), len(team_win)
+
+
+def test_no_solo_win(sim, others=()):
     """ชัยชนะเหนือเจ้าโกลาหลทุกครั้งต้องมาจากการรวมกำลัง ไม่ใช่จากใครคนเดียวบังเอิญเก่งพอ
 
     เกณฑ์นี้วัดจาก **log จริง** ไม่ใช่จากการเทียบตัวเลขพลัง ณ ตอนจบ — เคยเขียนแบบเทียบพลังก่อน
@@ -41,25 +63,20 @@ def test_no_solo_win(sim):
     lord = sim.cast[sim.lord_cid]
     cw = sim.world(sim.chaos_wid)
     lp = R.power(lord, cw, sim.items, sim.day)
-    lords = {c.cid for c in sim.cast if getattr(c, "is_lord", False) or c.lord_returns}
-
-    solo, team_win = [], []
-    for e in sim.log:
-        if e.actor not in lords and e.target not in lords:
-            continue
-        w = (e.deltas or {}).get("winner")
-        if w is None or int(w) in lords:
-            continue
-        (team_win if e.kind == "พันธมิตรปราบเจ้าโกลาหล" else solo).append(e)
-    print(f"  ชนะมันได้ทั้งหมด {len(solo) + len(team_win)} ครั้ง — "
+    solo, team_win = lord_wins(sim)
+    print(f"  seed {SEED}: ชนะมันได้ทั้งหมด {len(solo) + len(team_win)} ครั้ง — "
           f"จากการรวมกำลัง {len(team_win)} / ตัวคนเดียว {len(solo)}")
     for e in solo[:3]:
         print(f"    เดี่ยว: ปีที่ {e.day//365} — {e.kind}: {e.text[:66]}")
     # ชนะเดี่ยวได้บ้าง "ไม่ใช่บั๊ก" — ถ้ามันลงมาบุกถึงแดนที่มีผู้แกร่งจริงอยู่ ก็ควรมีสิทธิ์แพ้
     # (เจอจริง: ปีที่ 188 กู่อวี๋สวนกลับได้ตอนมันบุกสวรรค์นอกชั้นฟ้า) แต่ต้องเป็นของหายาก
     # ไม่ใช่ทางหลัก — ทางหลักที่การออกแบบนี้เพิ่มเข้ามาคือการรวมกำลัง
-    assert len(solo) <= max(1, len(team_win)), (
-        f"ชนะเดี่ยว {len(solo)} ครั้ง เทียบกับรวมกำลัง {len(team_win)} ครั้ง — "
+    n_solo = len(solo) + sum(s for s, _t in others)
+    n_team = len(team_win) + sum(t for _s, t in others)
+    print(f"  รวม {1 + len(others)} โลก: รวมกำลัง {n_team} / ตัวคนเดียว {n_solo}  "
+          f"(ต่อโลก: {[(len(solo), len(team_win))] + list(others)})")
+    assert n_solo <= max(1, n_team), (
+        f"ชนะเดี่ยว {n_solo} ครั้ง เทียบกับรวมกำลัง {n_team} ครั้ง — "
         "การรวมกำลังควรเป็นทางหลัก ไม่ใช่ของแถม")
     print(f"  (พลังมันตอนนี้ {lp:.1f} — เทียบเป็นข้อมูลเฉยๆ ไม่ใช่เกณฑ์ผ่าน)")
     return lord, lp
@@ -158,10 +175,14 @@ def test_costly(sim, strikes, won, lost):
 
 
 def main():
-    print(f"รันซิม {STEPS:,} เหตุการณ์...")
-    sim = run()
+    import multiprocessing
+    print(f"รันซิม {STEPS:,} เหตุการณ์ seed {POOL_SEEDS} (โลกอื่นรันขนานกัน)...")
+    with multiprocessing.Pool(len(POOL_SEEDS) - 1) as pool:
+        pending = pool.map_async(_count_wins, POOL_SEEDS[1:])
+        sim = run(SEED)
+        others = pending.get()
     print(f"  ถึงปีที่ {sim.day//365:,} | {len(sim.log):,} เหตุการณ์ | มีชีวิต {len(sim.alive_cids):,}")
-    lord, lp = test_no_solo_win(sim)
+    lord, lp = test_no_solo_win(sim, others)
     test_weak_crowd_cannot_win(sim, lp)
     strikes, won, lost = test_strike_happens(sim)
     test_costly(sim, strikes, won, lost)

@@ -3598,7 +3598,9 @@ class Sim:
 
     def chaos_raid(self, world, elapsed, rng):
         """เผ่าโกลาหลบุกมาทำลายทุกอย่างให้กลับเป็นความว่างก่อนกำเนิดจักรวาล"""
-        raiders = [c for c in self.living_in(self.chaos_wid) if c.age(self.day) >= 14]
+        # เจ้าโกลาหลไม่ออกปล้นหมู่บ้านเอง — การบุกเป็นงานของบริวาร เดิมมันถูกสุ่มเป็นผู้บุกได้ แล้วสู้ในแดนชั้นต่ำที่พลังมันถูกกด
+        # จนแพ้ชาวบ้านขั้น 0 (seed 2027 ปีที่ 5: ขั้น 9 พลัง 91 แพ้ขั้น 0 พลัง 58 ห่าง 7.5) นับเป็นชัยชนะเดี่ยวเหนือเจ้าโกลาหล
+        raiders = [c for c in self.living_in(self.chaos_wid) if c.age(self.day) >= 14 and not c.is_lord]
         prey = [c for c in self.living_in(world.wid) if c.age(self.day) >= 14]
         if not raiders or not prey:
             return
