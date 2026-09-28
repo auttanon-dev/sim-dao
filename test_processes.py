@@ -107,8 +107,8 @@ class ProcessTests(unittest.TestCase):
         ch.decay, ch.insight = 0.0, 0.0
         self.sim.begin_cultivation(ch, 200, rate=1.5)
         self.sim.day += 900                                     # เทิร์นถัดไปมาช้า ได้แค่ช่วงที่นัดไว้
-        self.sim.settle_cultivation(ch)
-        self.sim.settle_cultivation(ch)
+        self.sim.settle_routine(ch)
+        self.sim.settle_routine(ch)
         self.assertIsNone(ch.process)
         self.assertAlmostEqual(ch.insight, 0.45 * 300 / 365 * R.eff(ch, "human"))
 

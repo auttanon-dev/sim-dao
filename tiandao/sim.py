@@ -31,6 +31,7 @@ from . import chronicle as CH
 from . import seasons as SEASONS
 from . import emotions as EM
 from . import body as BODY
+from . import childhood as CHILD
 from . import food as FOOD
 from . import wages as WAGES
 from . import guardians as GUARD
@@ -693,51 +694,8 @@ class Sim:
         heapq.heappush(self.queue, (self.day + max(1, gap), ch.cid))
 
     def _childhood_turn(self, child, world, elapsed, rng):
-        """เดินหนึ่งปีวัยเด็กโดยไม่เปิดการกระทำของผู้ใหญ่.
-
-        เด็กยังปรากฏในโลกและอาจได้รับผลจากภัยระดับโลก แต่เทิร์นส่วนตัวมีเพียงการเติบโต
-        การเรียนรู้ และครอบครัว บันทึกย่อถูกเก็บกับตัวละครเพื่อนำไปสร้างชีวประวัติภายหลัง
-        โดยไม่ต้องรักษา ``sim.log`` ทั้งก้อนตลอดอายุโลก
-        """
-        age = max(0, child.age(self.day))
-        parents = [self.cast[cid] for cid in getattr(child, "parents", ())
-                   if 0 <= cid < len(self.cast)]
-        living_parents = [p for p in parents if p.alive]
-        if living_parents:
-            home = "และ".join(p.name for p in living_parents[:2])
-            if age <= 2:
-                outcome = "ได้รับการเลี้ยงดู"
-                text = f"{child.name}เติบโตในอ้อมอกของ{home}"
-            elif age <= 6:
-                outcome = "เรียนรู้โลก"
-                text = f"{child.name}วัย {age} ปี เรียนรู้ผู้คนและสถานที่รอบตัวโดยมี{home}คอยดูแล"
-            elif age <= 10:
-                outcome = "ช่วยครอบครัว"
-                text = f"{child.name}วัย {age} ปี เริ่มช่วยงานและเรียนรู้วิถีชีวิตจาก{home}"
-            else:
-                outcome = "เตรียมเติบใหญ่"
-                text = f"{child.name}วัย {age} ปี ฝึกความรับผิดชอบและค้นหาวิถีของตนภายใต้การดูแลของ{home}"
-        else:
-            if parents:
-                outcome = "เติบโตโดยไร้ผู้ปกครอง"
-                text = f"{child.name}วัย {age} ปี เติบโตต่อมาโดยไม่มีบิดามารดาอยู่เคียงข้าง"
-            else:
-                outcome = "เติบโต"
-                text = f"{child.name}วัย {age} ปี เรียนรู้การใช้ชีวิตจากผู้คนรอบตัว"
-
-        event = self.emit(world, "เติบโต", child, None, ["วัยเด็ก"], outcome,
-                          text, elapsed, {"อายุ": f"{age} ปี"})
-        history = getattr(child, "childhood", None)
-        if not isinstance(history, list):
-            history = child.childhood = []
-        if not any(h.get("age") == age for h in history if isinstance(h, dict)):
-            history.append({"day": self.day, "age": age, "text": text,
-                            "place": child.place, "outcome": outcome, "seq": event.seq})
-            del history[:-14]
-        # กลับมาอีกครั้งใกล้วันเกิดถัดไป จึงมีประวัติพออ่านแต่ไม่ท่วมคิวโลก
-        next_birthday = child.born_day + (age + 1) * 365
-        self.schedule(child, max(30, next_birthday - self.day + rng.randint(0, 30)))
-        return event
+        """เทิร์นของเด็กอายุต่ำกว่า 14 — กิจวัตรตามวัยอยู่ที่ tiandao/childhood.py ไม่เข้าเมนูของผู้ใหญ่"""
+        return CHILD.turn(self, child, world, elapsed, rng)
 
     def realm_target(self, world):
         """ขนาดที่แดนนี้เติมคนเข้ามาจนถึง (repopulate) — ฐานของเพดานการเกิด POP_K_MULT เท่า"""
@@ -1285,7 +1243,7 @@ class Sim:
     # ------------------------------------------------------------ กิจกรรมยาว (models.ActionProcess, แบบ §5.2)
     def start_process(self, ch, kind, days, payload=None, yield_rate=0.0):
         """เริ่มกิจกรรมยาววันนี้ ครบกำหนดอีก `days` วัน — การบำเพ็ญที่ค้างอยู่ได้ผลถึงวันนี้ก่อนถูกแทน"""
-        self.settle_cultivation(ch)
+        self.settle_routine(ch)
         ch.process = ActionProcess(kind, self.day, self.day + max(0, int(days)), self.day, yield_rate,
                                    dict(payload or {}))
         return ch.process
@@ -1308,6 +1266,8 @@ class Sim:
             ch.refine += C.SECLUDE_REFINE_PER_YEAR * felt
         elif days and p.kind == "cultivation":
             R.cultivate(ch, days * (p.yield_rate or 1.0), self.items)
+        elif days and p.kind == "upbringing":
+            CHILD.accrue(self, ch, p, days)
         p.progress_day = max(p.progress_day, upto)
         return days
 
@@ -1325,8 +1285,10 @@ class Sim:
             p.end_day = self.day
             ch.seclude_cut = reason
         elif p.kind == "cultivation":
-            self.settle_cultivation(ch)              # เลิกบำเพ็ญ เทิร์นถัดไปยังเป็นวันเดิม
+            self.settle_routine(ch)                  # เลิกบำเพ็ญ เทิร์นถัดไปยังเป็นวันเดิม
             return True
+        elif p.kind == "upbringing":
+            self.settle_routine(ch)                  # เด็กเลือกกิจวัตรใหม่วันนี้ (requeue ข้างล่าง)
         else:
             ch.process = None
             self.emit(self.world(ch.world_id), "หยุดเดินทาง", ch, None, ["เดินทาง"], "หยุดกลางทาง",
@@ -1441,9 +1403,9 @@ class Sim:
             return None
         return self.start_process(ch, "cultivation", days, None, rate)
 
-    def settle_cultivation(self, ch):
-        """ปิดการบำเพ็ญที่ค้างอยู่ ได้ผลถึงวันนี้ (ไม่เกินกำหนด)"""
-        if ch.process is not None and ch.process.kind == "cultivation":
+    def settle_routine(self, ch):
+        """ปิดกิจวัตรที่จ่ายผลตามวันและค้างอยู่ (บำเพ็ญ หรือกิจวัตรวัยเด็ก) ได้ผลถึงวันนี้ ไม่เกินกำหนด"""
+        if ch.process is not None and ch.process.kind in ("cultivation", "upbringing"):
             self.accrue_process(ch)
             ch.process = None
 
@@ -1461,7 +1423,10 @@ class Sim:
             p = ch.process
             if p is None or p.end_day <= self.day:
                 continue
-            if not BODY.conscious(ch):
+            why = CHILD.broken(self, ch, p) if p.kind == "upbringing" else None
+            if why:
+                self.interrupt_process(ch, why)
+            elif not BODY.conscious(ch):
                 self.interrupt_process(ch, "หมดสติ")
             elif p.kind == "travel" and not BODY.can_stand(ch):
                 self.interrupt_process(ch, "บาดเจ็บจนเดินต่อไม่ได้")
@@ -2714,7 +2679,7 @@ class Sim:
         # ความเสื่อม อายุขัย หรือจิตมารด้วยกฎของผู้ใหญ่ ก่อนหน้านี้เด็กอายุสิบปีจึงมี
         # เหตุการณ์ "สิ้นอายุขัย" ได้ทั้งที่ intent ของเด็กถูกกันไว้ด้านล่างแล้ว
         actor_gap = self.day - actor.last_day
-        self.settle_cultivation(actor)           # การบำเพ็ญตั้งแต่เทิร์นก่อนได้ผลก่อนแก่และก่อนเลือกทำอะไรต่อ
+        self.settle_routine(actor)           # การบำเพ็ญตั้งแต่เทิร์นก่อนได้ผลก่อนแก่และก่อนเลือกทำอะไรต่อ
         if actor.age(self.day) < 14:
             BODY.tick(actor, actor_gap, day=self.day, fed=FOOD.fed_share(actor))
         else:
