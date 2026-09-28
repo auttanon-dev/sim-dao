@@ -322,6 +322,102 @@ class UpbringingTests(unittest.TestCase):
         self.sim.begin_cultivation(self.adult, 100)
         self.assertAlmostEqual(self.adult.process.yield_rate, C.GUARDIAN_TEACH_COST)
 
+    # ---------------------------------------------------------------- ขั้น C3: เติบใหญ่
+    def test_coming_of_age_fires_once_on_the_first_adult_turn(self):
+        kid = self.child(13)
+        self.assertFalse(kid.came_of_age)
+        kid.upbringing_days = {CHILD.CHORES: 800.0, CHILD.PLAY: 300.0}
+        self.sim.day = kid.born_day + 14 * 365 + 3
+        for _ in range(2):
+            self.sim.queue = [(self.sim.day, kid.cid)]
+            quiet(self.sim.step)
+            self.sim.day += 400
+        grown = [e for e in self.sim.log if e.kind == "เติบใหญ่" and e.actor == kid.cid]
+        self.assertEqual(len(grown), 1)
+        self.assertTrue(kid.came_of_age)
+        self.assertIn("ขยันงานไร่", kid.traits)
+        self.assertEqual(kid.childhood[-1]["outcome"], "เติบใหญ่")
+
+    def test_spawned_adults_have_already_come_of_age_and_newborns_have_not(self):
+        adult = quiet(self.sim.spawn, self.world, age_years=30)
+        baby = quiet(self.sim.spawn, self.world, age_years=0)
+        self.assertEqual((adult.came_of_age, baby.came_of_age), (True, False))
+
+    def test_the_main_routine_sets_the_trait_with_a_fixed_tie_order(self):
+        kid = self.child(13)
+        kid.upbringing_days = {CHILD.STUDY: 500.0, CHILD.TRAIN: 500.0, CHILD.PLAY: 100.0}
+        self.assertEqual(CHILD.main_routine(kid), CHILD.TRAIN)
+        kid.upbringing_days = {}
+        kid.childhood = [{"age": a, "routine": CHILD.STUDY} for a in (8, 9)] + [{"age": 10, "routine": CHILD.PLAY}]
+        self.assertEqual(CHILD.main_routine(kid), CHILD.STUDY, "เด็กจากเซฟเก่าใช้ประวัติรายปี")
+        quiet(CHILD.come_of_age, self.sim, kid, self.world)
+        self.assertIn("ศิษย์ติดตาม", kid.traits)
+
+    def test_training_days_by_path_become_a_personal_body_lean_blended_with_the_realm(self):
+        from tiandao import paths as PATHS
+        kid = self.child(13)
+        kid.childhood_gain = {"path:กายบำเพ็ญ": 300.0, "path:สมดุลกายจิต": 100.0}
+        quiet(CHILD.come_of_age, self.sim, kid, self.world)
+        self.assertAlmostEqual(kid.body_bias, (300 * 1.0 + 100 * 0.5) / 400)
+        pool = [("กาย", "หมัดเหล็ก"), ("จิต", "จิตสงบ")]
+        with mock.patch.object(PATHS, "line_path", side_effect=lambda line: "กาย" if line == "หมัดเหล็ก" else "จิต"), \
+                mock.patch.object(PATHS, "body_bias", return_value=0.5):
+            roll = mock.Mock(random=mock.Mock(return_value=0.6))
+            self.assertEqual(PATHS.prefer_pool(pool, "x", roll), [pool[1]], "ของแดนอย่างเดียว 0.5")
+            self.assertEqual(PATHS.prefer_pool(pool, "x", roll, personal=kid.body_bias), [pool[0]],
+                             "ผสมครึ่งต่อครึ่ง (0.5 + 0.875) / 2 = 0.6875")
+
+    def test_a_ward_joins_the_living_mentor_sect_only_with_a_strong_bond(self):
+        def grow(bond, sect="สำนักทดสอบ", alive=True, own=None):
+            kid = self.child(13)
+            kid.upbringing_days = {CHILD.STUDY: 700.0, f"mentor:{self.adult.cid}": 700.0}
+            kid.bonds[self.adult.cid] = bond
+            kid.sect_name = own
+            self.adult.sect_name, self.adult.alive = sect, alive
+            quiet(CHILD.come_of_age, self.sim, kid, self.world)
+            self.adult.alive = True
+            return kid.sect_name, getattr(kid, "sect_role", None)
+        self.assertEqual(grow(C.SECT_ENTRY_BOND), ("สำนักทดสอบ", "ศิษย์ในสำนัก"))
+        self.assertEqual(grow(C.SECT_ENTRY_BOND - 1)[0], None, "ผูกพันไม่ถึง")
+        self.assertEqual(grow(C.SECT_ENTRY_BOND, sect=None)[0], None, "ครูไม่มีสำนัก")
+        self.assertEqual(grow(C.SECT_ENTRY_BOND, alive=False)[0], None, "ครูตายแล้ว")
+        self.assertEqual(grow(C.SECT_ENTRY_BOND, own="สำนักอื่น")[0], "สำนักอื่น", "มีสำนักอยู่แล้ว")
+
+    def test_root_traits_nudge_practice_and_send_the_hardworking_to_the_fields_first(self):
+        from tiandao import events as E, intent as IN, wages as WAGES
+        from test_food import setup_person
+        ch = self.adult
+        base = IN.weigh(ch, self.sim, E.EVENT_TABLE, False).get("ฝึกวิชา", 0)
+        ch.traits.append("ฝึกกายแต่เด็ก")
+        self.assertAlmostEqual(IN.weigh(ch, self.sim, E.EVENT_TABLE, False).get("ฝึกวิชา", 0) - base,
+                               C.ROOT_PRACTICE_BOOST)
+        poor, keen = [c for c in self.sim.living_in(0) if c.cid != ch.cid and c.sentient][:2]
+        for c in (poor, keen):
+            setup_person(self.sim, c, 4, food=10.0)
+            c.traits = [t for t in c.traits if t != "ขยันงานไร่"]
+            c.fieldwork = False
+        keen.traits.append("ขยันงานไร่")
+        WAGES.move_gold(self.sim, keen, 500.0 - WAGES.gold(self.sim, keen))
+        WAGES.move_gold(self.sim, poor, -WAGES.gold(self.sim, poor))
+        FOOD._adapt_labour(self.sim, {(0, 4): [poor, keen]}, {}, {(0, 4): 30.0}, 30, 1.0)
+        self.assertEqual((keen.fieldwork, poor.fieldwork), (True, False), "คนขยันงานไร่ลงก่อนแม้มีเงินมากกว่า")
+
+    def test_a_version_15_save_marks_adults_as_grown_and_children_not_without_moving_the_rng(self):
+        import os, pickle, tempfile
+        from tiandao import persist as PS
+        kid = self.child(10)
+        for c in (kid, self.adult):
+            c.__dict__.pop("came_of_age", None)             # เซฟก่อนรุ่น 16 ไม่มีช่องนี้
+        state = self.sim.rng.getstate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "old.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 15, "sim": self.sim}, f)
+            back = PS.load_sim(path)
+        self.assertEqual((back.cast[self.adult.cid].came_of_age, back.cast[kid.cid].came_of_age), (True, False))
+        self.assertEqual(back.cast[kid.cid].upbringing_days, {})
+        self.assertEqual(back.rng.getstate(), state)
+
     def test_a_running_world_uses_the_routines(self):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 20000)

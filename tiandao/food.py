@@ -418,7 +418,7 @@ def _adapt_labour(sim, eaters_at, workers_at, deficit, days, season):
         n = len(workers_at.get(spot, ()))
         target = land_output_per_day(n) * season + short_per_day
         idle = sorted((ch for ch in eaters_at[spot] if not ch.produces_food() and _able_to_farm(ch, day)),
-                      key=lambda c: (WAGES.gold(sim, c), c.cid))
+                      key=lambda c: ("ขยันงานไร่" not in c.traits, WAGES.gold(sim, c), c.cid))   # คนที่โตมากับงานไร่ลงก่อน
         for ch in idle:
             output = land_output_per_day(n) * season
             if output >= target or (land_output_per_day(n + 1) * season - output) < C.FOOD_RATION_ADULT:

@@ -435,6 +435,8 @@ def weigh(ch, sim, table, has_others, loot_nearby=None,
     if "โลภมาก" in ch.traits:
         w["ชิงสมบัติ"] = w.get("ชิงสมบัติ", 0) + 10
         w["ทรยศ"] = w.get("ทรยศ", 0) + 5
+    if "ศิษย์ติดตาม" in ch.traits or "ฝึกกายแต่เด็ก" in ch.traits:
+        w["ฝึกวิชา"] = w.get("ฝึกวิชา", 0) + C.ROOT_PRACTICE_BOOST     # รากวัยเด็ก (childhood.ROOT_TRAITS)
     if "ใจโอบอ้อม" in ch.traits:
         w["ถ่ายทอดวิชา"] = w.get("ถ่ายทอดวิชา", 0) + 8
         w["ให้สัญญา"] = w.get("ให้สัญญา", 0) + 6

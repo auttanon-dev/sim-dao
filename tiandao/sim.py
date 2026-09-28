@@ -687,6 +687,7 @@ class Sim:
         if ch.realm == 0:
             world.n_mortal += 1
         self.apply_bloodline_buff(ch)
+        ch.came_of_age = age_years >= 14       # ผู้ใหญ่ที่เติมเข้ามาไม่มีวัยเด็กในโลกนี้ให้สรุป
         self.schedule(ch, rng.randint(30, 900))
         return ch
 
@@ -2686,6 +2687,8 @@ class Sim:
             BODY.tick(actor, actor_gap, day=self.day, fed=FOOD.fed_share(actor))
         else:
             R.age_and_decay(self, actor, world, actor_gap, rng)
+            if actor.alive and not actor.came_of_age:
+                CHILD.come_of_age(self, actor, world)   # หลังร่างกายเดิน การฝึกปีสุดท้ายจึงนับแล้ว
         actor.last_day = self.day
 
 
@@ -4534,7 +4537,7 @@ class Sim:
                 # สายประจำแดนไม่มีวิชาที่เขาเรียนได้ตอนนี้ ก็ต้องปล่อยให้ไปทางอื่น ไม่ใช่ติดตาย
                 choice_pool = same_line
             else:
-                choice_pool = PATHS.prefer_pool(pool, w.place_key, rng)
+                choice_pool = PATHS.prefer_pool(pool, w.place_key, rng, personal=a.body_bias)
                 same_line = []          # รอบนี้ไม่ได้เลือกด้วยสายประจำแดน
             sk = rng.choice(choice_pool)
             # ห้าธาตุ: คนไม่ได้หยิบวิชามั่วๆ เขามองหาวิชาที่ "ถูกกับธาตุของตัวเอง" ก่อน

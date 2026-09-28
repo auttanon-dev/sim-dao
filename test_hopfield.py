@@ -235,8 +235,9 @@ class TestTheSituationVector(unittest.TestCase):
         """ถ้าน้ำหนักของใจต่ำเกินไป ทุกคนในที่เดียวกันจะกลายเป็นคนเดียวกัน"""
         sim = self.a_world()
         here = [c for c in sim.cast if c.alive and c.place is not None]
-        a = here[0]
-        b = next(c for c in here[1:] if c.place == a.place and c.realm == a.realm)
+        # คู่แรกที่อยู่ที่เดียวกันและขั้นเดียวกัน — ไม่ผูกกับคนแรกของรายชื่อซึ่งอาจไม่มีใครตรงกันเมื่อเส้นทางของโลกเปลี่ยน
+        a, b = next((x, y) for i, x in enumerate(here) for y in here[i + 1:]
+                    if y.place == x.place and y.realm == x.realm)
         va, vb = SIT.encode(sim, a, []), SIT.encode(sim, b, [])
         self.assertLess(HF.dot(HF.normalize(va), HF.normalize(vb)), 0.9999)
 

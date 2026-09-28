@@ -132,11 +132,15 @@ def body_bias(place_key) -> float:
     return REALM_BODY_BIAS.get(place_key, DEFAULT_BODY_BIAS)
 
 
-def prefer_pool(pool, place_key, rng):
+def prefer_pool(pool, place_key, rng, personal=None):
     """คัดวิชาในกองให้เหลือเฉพาะทางที่แดนนั้นถนัด — คืนกองเดิมถ้าทางนั้นไม่มีวิชาให้เลือกเลย
 
     `pool` เป็นรายการทูเพิลของ skills.py (ชื่อ, สาย, tier, เกรด, ผล, แก้ทางโกลาหล)
+    `personal` ความเอนทางกายของตัวเอง (0–1) ผสมกับของแดนครึ่งต่อครึ่ง None = ของแดนอย่างเดียว
     """
-    want = "กาย" if rng.random() < body_bias(place_key) else "จิต"
+    bias = body_bias(place_key)
+    if personal is not None:
+        bias = 0.5 * bias + 0.5 * personal       # ความเอนจากการฝึกวัยเด็ก (childhood.come_of_age) ครึ่งหนึ่ง
+    want = "กาย" if rng.random() < bias else "จิต"
     narrowed = [x for x in pool if line_path(x[1]) == want]
     return narrowed or pool

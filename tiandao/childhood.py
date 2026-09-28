@@ -16,6 +16,9 @@
   และนับวันตามสายของผู้ปกครอง (กาย จิต สมดุล) ไว้ใน childhood_gain["path:..."] สำหรับตอนเติบใหญ่
   ผู้ปกครองที่กำลังสอนหรือฝึกเด็กบำเพ็ญได้ GUARDIAN_TEACH_COST ของปกติ (Sim.begin_cultivation)
 
+เติบใหญ่ (`come_of_age`, เทิร์นผู้ใหญ่เทิร์นแรกหลังอายุ 14 ครั้งเดียว): กิจวัตรที่ทำนานที่สุดให้ลักษณะติดตัวถาวร
+(ROOT_TRAITS) ความเอนทางกายจากการนับวันตามสายตอนฝึก และเข้าสำนักของครูที่ยังมีชีวิตถ้าผูกพันถึง SECT_ENTRY_BOND
+
 ขอความช่วยเหลือ: เทิร์นของเด็กที่หิวหรืออยู่ที่ที่ไม่มีข้าวใกล้ๆ ขอให้คนที่อยู่ใกล้ข้าวรับไปเลี้ยง (guardians.refoster)
 ก่อนเลือกกิจวัตร — ไม่ต้องรอหิวจนระบบอาหารพาไป
 
@@ -34,6 +37,10 @@ CHORES = "ช่วยงานบ้าน"
 STUDY = "เรียนกับผู้ปกครอง"
 TRAIN = "ฝึกพื้นฐาน"
 MENTORED = (STUDY, TRAIN)
+# กิจวัตรหลักตอนเติบใหญ่ -> ลักษณะติดตัว; เท่ากันใช้ลำดับนี้
+ROUTINE_ORDER = (TRAIN, STUDY, CHORES, PLAY, HOME, CARE, REST)
+ROOT_TRAITS = {CHORES: "ขยันงานไร่", STUDY: "ศิษย์ติดตาม", TRAIN: "ฝึกกายแต่เด็ก", PLAY: "เพื่อนมาก"}
+PATH_LEAN = {"กายบำเพ็ญ": 1.0, "จิตบำเพ็ญ": 0.0}              # สายอื่น (สมดุล ยังไม่แน่ชัด) = 0.5
 CHORE_AGE = 7
 BAND_OUTCOME = ((2, "ได้รับการเลี้ยงดู"), (6, "เรียนรู้โลก"), (10, "ช่วยครอบครัว"), (13, "เตรียมเติบใหญ่"))
 MAX_PLAYMATES = 3
@@ -174,6 +181,12 @@ def start(sim, child, end_day, rng):
 
 def accrue(sim, child, p, days):
     """ผูกพันตามวันที่ทำจริง — สะสมเศษไว้ใน payload แล้วเพิ่มเป็นจำนวนเต็ม (bonds เป็นจำนวนเต็มทั้งเอนจิน)"""
+    tally = child.upbringing_days
+    routine = p.payload["routine"]
+    tally[routine] = tally.get(routine, 0.0) + days
+    if routine in MENTORED:
+        key = f"mentor:{p.payload['with'][0]}"
+        tally[key] = tally.get(key, 0.0) + days
     if p.payload["routine"] == REST:
         return
     if p.payload["routine"] == STUDY:
@@ -266,4 +279,77 @@ def turn(sim, child, world, elapsed, rng):
         del history[:-14]
     # กลับมาอีกครั้งใกล้วันเกิดถัดไป (ตัวคลาดเคลื่อนจาก rng ของโลกเหมือนเดิม) — ถูกขัดจังหวะก็ได้เทิร์นเร็วกว่านี้
     sim.schedule(child, max(30, next_birthday - sim.day + rng.randint(0, 30)))
+    return event
+
+
+def main_routine(ch):
+    """กิจวัตรที่ทำนานที่สุดในวัยเด็ก — เด็กจากเซฟก่อนรุ่น 16 ไม่มีการนับวัน ใช้ประวัติรายปีใน `childhood` แทน"""
+    tally = {r: d for r, d in ch.upbringing_days.items() if r in ROUTINE_ORDER}
+    if not tally:
+        for h in ch.childhood:
+            if isinstance(h, dict) and h.get("routine") in ROUTINE_ORDER:
+                tally[h["routine"]] = tally.get(h["routine"], 0.0) + 365.0
+    if not tally:
+        return None
+    return max(ROUTINE_ORDER, key=lambda r: (tally.get(r, 0.0), -ROUTINE_ORDER.index(r)))
+
+
+def _personal_lean(ch):
+    """ความเอนทางกายจากวันที่ฝึกตามสายของครู (กาย 1 จิต 0 อื่นๆ 0.5) — None ถ้าไม่เคยฝึกพื้นฐาน"""
+    days = {k[5:]: v for k, v in ch.childhood_gain.items() if k.startswith("path:") and v > 0}
+    total = sum(days.values())
+    if total <= 0:
+        return None
+    return sum(PATH_LEAN.get(path, 0.5) * d for path, d in days.items()) / total
+
+
+def _mentor(sim, ch):
+    """ครูที่เรียนหรือฝึกด้วยนานที่สุด (None ถ้าไม่เคย)"""
+    mentors = {int(k[7:]): v for k, v in ch.upbringing_days.items() if k.startswith("mentor:")}
+    if not mentors:
+        return None
+    cid = max(mentors, key=lambda c: (mentors[c], -c))
+    return sim.cast[cid] if 0 <= cid < len(sim.cast) else None
+
+
+def come_of_age(sim, ch, world):
+    """เติบใหญ่ครั้งเดียวตอนเทิร์นผู้ใหญ่เทิร์นแรก: ลักษณะติดตัวจากกิจวัตรหลัก ความเอนทางกาย และเข้าสำนักของครู
+    ไม่ใช้การสุ่ม — ผลเป็นของสิ่งที่เด็กทำมาจริงเท่านั้น"""
+    ch.came_of_age = True
+    d = {}
+    routine = main_routine(ch)
+    trait = ROOT_TRAITS.get(routine)
+    if routine:
+        d["กิจวัตรหลัก"] = routine
+    if trait and trait not in ch.traits:
+        ch.traits.append(trait)
+        d["ลักษณะติดตัว"] = trait
+    lean = _personal_lean(ch)
+    if lean is not None:
+        ch.body_bias = lean
+        d["ความเอนทางกาย"] = f"{lean:.2f}"
+    mentor = _mentor(sim, ch)
+    if (mentor is not None and mentor.alive and getattr(mentor, "sect_name", None)
+            and not getattr(ch, "sect_name", None) and ch.bonds.get(mentor.cid, 0) >= C.SECT_ENTRY_BOND):
+        ch.sect_name, ch.sect_role = mentor.sect_name, "ศิษย์ในสำนัก"
+        d["เข้าสำนัก"] = f"{mentor.sect_name} (ครู {mentor.name})"
+        sim.emit(world, "เข้าสำนัก", ch, mentor, ["สำนัก", "วัยเด็ก"], "ศิษย์ในสำนัก",
+                 f"{ch.name}เติบใหญ่แล้วเข้า{mentor.sect_name}ตามครู{mentor.name}", 0, {"สำนัก": mentor.sect_name})
+    gain = ch.childhood_gain
+    if gain.get("skills"):
+        d["วิชาที่ได้ตอนเด็ก"] = f"{gain['skills']:.0f}"
+    if gain.get("insight") or gain.get("refine"):
+        d["ผลจากวัยเด็ก"] = f"ความเข้าใจ +{gain.get('insight', 0.0):.1f} · กาย +{gain.get('refine', 0.0):.2f}"
+    close = sorted(((v, c) for c, v in ch.bonds.items() if 0 <= c < len(sim.cast) and sim.cast[c].alive),
+                   reverse=True)[:3]
+    if close:
+        d["คนใกล้ชิด"] = "、".join(sim.cast[c].name for _, c in close)
+    text = f"{ch.name}อายุ 14 เติบใหญ่" + (f" ผ่านวัยเด็กด้วยการ{routine}" if routine else "") + (
+        f" ติดตัวมาเป็นคน{trait}" if trait else "")
+    event = sim.emit(world, "เติบใหญ่", ch, None, ["วัยเด็ก"], "เติบใหญ่", text, 0, d)
+    history = ch.childhood if isinstance(ch.childhood, list) else []
+    history.append({"day": sim.day, "age": 14, "text": text, "place": ch.place, "outcome": "เติบใหญ่",
+                    "routine": routine, "seq": event.seq})
+    del history[:-15]
+    ch.childhood = history
     return event

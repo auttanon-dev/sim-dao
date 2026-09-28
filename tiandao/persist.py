@@ -51,7 +51,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  13 — สำนักที่ไม่เหลือสมาชิกที่ยังมีชีวิตสลายไป (Org.alive = False)
 #  14 — ปิดด่านและการเดินทางเป็น Character.process (ActionProcess) แทนช่อง seclude_*/travel_*
 #  15 — เมืองและเจ้าเมืองอยู่ในเซฟ (Sim.cities) แทนการแก้ config.CITIES ของ module; ตั้งครรภ์เป็น Character.pregnancy
-SAVE_VERSION = 15
+#  16 — เติบใหญ่ตอนอายุ 14 (Character.came_of_age, upbringing_days, body_bias): ผู้ใหญ่เดิมถือว่าผ่านแล้ว
+SAVE_VERSION = 16
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -284,6 +285,11 @@ def _migrate(sim, version):
     if version < 15:
         _cities_into_save(sim)
         _add_new_counters(sim)          # guardian_stats["born"]
+    if version < 16:
+        # __setstate__ ให้ came_of_age = True (ค่าเริ่มต้นของคลาส) — เด็กที่ยังไม่ถึง 14 ต้องได้เติบใหญ่ตอนถึงวัย ไม่แตะ RNG
+        for ch in sim.cast:
+            if ch.alive and ch.age(sim.day) < 14:
+                ch.came_of_age = False
 
 
 def _cities_into_save(sim):
