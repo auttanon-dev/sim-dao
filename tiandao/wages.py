@@ -54,6 +54,32 @@ def gold(sim, ch) -> float:
     return ch.money.get(tier_of(sim, ch), 0.0)
 
 
+def record(sim, cause, tier, amount) -> None:
+    """บันทึกทองที่เกิด (บวก) หรือหาย (ลบ) จากโลกด้วยสาเหตุ `cause` — ผลรวมทุกสาเหตุต่อชั้นเท่ากับ total_gold เสมอ
+    (§6.1: ห้ามสร้างหรือทำลายทองโดยไม่มีบัญชีเหตุผล ดู gold_gap และ test_ledger.py)"""
+    if amount:
+        flows = sim.__dict__.setdefault("gold_flows", {}).setdefault(cause, {})
+        flows[tier] = flows.get(tier, 0.0) + amount
+
+
+def set_gold(sim, ch, tier, value, cause) -> None:
+    """ตั้งทองชั้น `tier` ของคนนี้เป็น `value` เมื่อทองส่วนต่างเกิดหรือหายจากโลก (ไม่ได้ย้ายจากใคร) — บันทึกส่วนต่างเป็น `cause`"""
+    record(sim, cause, tier, value - ch.money.get(tier, 0.0))
+    ch.money[tier] = value
+
+
+def clear_gold(sim, ch, cause) -> None:
+    """ทองทุกชั้นของคนนี้ออกจากโลก (เช่น ผนึกเข้าแดนลับซึ่งไม่นับในบัญชีทอง) — บันทึกเป็น `cause`"""
+    for tier, amount in ch.money.items():
+        record(sim, cause, tier, -amount)
+    ch.money = {}
+
+
+def gold_gap(sim, tier) -> float:
+    """ทองที่มีจริงลบทองตามบัญชีสาเหตุ — ต้องเป็นศูนย์ (ต่างแค่ทศนิยม)"""
+    return total_gold(sim, tier) - sum(f.get(tier, 0.0) for f in getattr(sim, "gold_flows", {}).values())
+
+
 def move_gold(sim, ch, amount) -> None:
     """เพิ่ม (หรือลดเมื่อติดลบ) เหรียญทองของคนนี้ในสกุลของแดนที่เขาอยู่"""
     tier = tier_of(sim, ch)
@@ -91,6 +117,7 @@ def tick(sim, days) -> None:
             ch.gold_endowed = True
             move_gold(sim, ch, C.WAGE_START_GOLD)
             stats["issued"] += C.WAGE_START_GOLD
+            record(sim, "start_gold", tier_of(sim, ch), C.WAGE_START_GOLD)
         if not _present(ch, day):
             continue
         spare = gold(sim, ch) - C.WAGE_KEEP_GOLD

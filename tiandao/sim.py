@@ -100,6 +100,7 @@ class Sim:
         self.guardian_stats = GUARD.new_stats()
         self.households, self.household_seq = {}, 0   # tiandao/household.py
         self.clan_treasury = {}   # clan -> {tier: ทอง} กระเป๋าของครัวเรือนที่สลายโดยไม่มีทายาท (household.on_death)
+        self.gold_flows = {}      # สาเหตุ -> {tier: ทอง} ทุกทางที่ทองเกิดหรือหาย (wages.record) ยอดรวม = wages.total_gold
         self.cities = copy.deepcopy(C.CITIES)   # เมืองของโลกนี้ — เจ้าเมืองอยู่ในเซฟ (เดิมแก้ config.CITIES ของ module)
         self.seq = 0
         self.cast = []
@@ -929,6 +930,7 @@ class Sim:
                 self.items[i].legend for i in ch.items):
             # สมบัติฟ้าดินที่มีชื่อไม่มีวันสูญหาย เจ้าของตายก็ถูกผนึกรอผู้มีวาสนาคนต่อไป
             self.make_cache(ch, faked=False)
+            WAGES.clear_gold(self, ch, "sealed_in_cache")
             ch.money = {}           # ทองที่ไม่มีทายาทรับไปอยู่ในแดนลับแล้ว (เดิมถูกนับทั้งในแดนลับและบนศพ)
         self.succeed(ch, killer)
         for cid in self.alive_cids:                  # แค้นคนตายชำระไม่ได้ (เหมือน fade_grudges แต่ทันที)
@@ -1758,7 +1760,7 @@ class Sim:
 
         coins = int(rng.randint(*C.RUIN_MONEY) * luck)
         if coins > 0:
-            ch.money[w.tier] = ch.money.get(w.tier, 0) + coins
+            WAGES.set_gold(self, ch, w.tier, ch.money.get(w.tier, 0) + coins, "ruin_coins")
             d["เหรียญทองที่ร่วงอยู่"] = f"{coins:,}"
         # หินวิญญาณที่คนก่อนหน้าทำหล่นไว้ — **ไม่หักจากคลังฟ้า** เพราะปราณก้อนนี้ถูกขุด
         # ออกจากโลกไปแล้วตั้งแต่รุ่นก่อน มันแค่เปลี่ยนมือ ถ้าหักซ้ำคือทำบัญชีพัง
@@ -1838,7 +1840,7 @@ class Sim:
         k.items = []                          # ของออกจากแดนลับแล้ว ห้ามค้างชื่อไว้ซ้ำ
         k.currency = 0.0
         tier = self.world(k.world_id).tier
-        ch.money[tier] = ch.money.get(tier, 0.0) + k.currency * rot
+        WAGES.set_gold(self, ch, tier, ch.money.get(tier, 0.0) + k.currency * rot, "cache_opened")
         d["แดนลับ"] = f"มรดกของ{k.owner_name}จากยุคที่ {k.era_sealed} — ได้ของ {got} ชิ้น"
         if rotted:
             d["ผุสูญสลาย"] = f"{rotted} ชิ้น"
@@ -2467,7 +2469,7 @@ class Sim:
                         ch.energy -= 20
                         # Earn money based on realm
                         earned = WAGES.fiat_pay(rng.randint(10, 50) * max(1, ch.realm))
-                        ch.money[self.world(ch.world_id).tier] = ch.money.get(self.world(ch.world_id).tier, 0.0) + earned
+                        WAGES.set_gold(self, ch, self.world(ch.world_id).tier, ch.money.get(self.world(ch.world_id).tier, 0.0) + earned, "fiat_work")
                         # Send cut to master
                         if ch.master_cid != -1 and 0 <= ch.master_cid < len(self.cast):
                             master = self.cast[ch.master_cid]
@@ -3771,7 +3773,7 @@ class Sim:
         if len(bidders) < 2:
             # ไม่มีคนพอจะสู้ราคา กลายเป็นการเร่ขายธรรมดา
             earn = rng.randint(30, 120)
-            host.money[w.tier] = host.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, host, w.tier, host.money.get(w.tier, 0) + earn, "street_sale")
             return "ค้าขาย", f"{host.name}ตั้งแผงขายของ แต่ไม่มีคนมากพอจะเปิดประมูล ได้ {earn} เหรียญ", d
 
         lot_item = None
@@ -4111,7 +4113,7 @@ class Sim:
                         msg = f"🚨 [เผชิญหน้าคู่แค้น] {hunter} ({h_info.get('title', '')}) ปรากฏตัวขวางหน้าหมายเอาชีวิต!"
                         if combat_power >= h_info.get("power", 0):
                             msg += f" 🦅 [ล้างแค้นสำเร็จ] ท่านโค่น {hunter} ลงได้สะใจ! (+150 เงิน, ได้ EXP)"
-                            a.money[w.tier] = a.money.get(w.tier, 0) + 150
+                            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + 150, "nemesis_spoils")
                             a.insight += 1.2
                             a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
                             self.begin_cultivation(a, gap)
@@ -4120,7 +4122,7 @@ class Sim:
                         else:
                             msg += f" 💥 [พ่ายแพ้คู่แค้น] ท่านพลาดท่าบาดเจ็บสาหัส เสีย -50 HP และถูกชิงทรัพย์ -100 เงิน"
                             a.hp -= 50
-                            a.money[w.tier] = max(0, a.money.get(w.tier, 0) - 100)
+                            WAGES.set_gold(self, a, w.tier, max(0, a.money.get(w.tier, 0) - 100), "robbed")
                             a.nemeses[hunter]["hatred"] = 60
                             msg = check_hp(msg)
                             return "อันตราย", msg, d
@@ -4130,7 +4132,7 @@ class Sim:
                         enemy_power = rng.randint(40, max(90, int(w.tier*40)))
                         
                         if combat_power >= enemy_power:
-                            a.money[w.tier] = a.money.get(w.tier, 0) + 100
+                            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + 100, "bandit_spoils")
                             a.insight += 0.5
                             a.enemies_defeated = getattr(a, "enemies_defeated", 0) + 1
                             self.begin_cultivation(a, gap)
@@ -4166,7 +4168,7 @@ class Sim:
                                 dmg = dmg // 2
                                 msg_add = " 🛡️ จ้าวเถี่ยซานรับแรงกระแทก!"
                             a.hp -= dmg
-                            a.money[w.tier] = max(0, a.money.get(w.tier, 0) - 40)
+                            WAGES.set_gold(self, a, w.tier, max(0, a.money.get(w.tier, 0) - 40), "robbed")
                             msg = f"💥 [พ่ายแพ้] เสีย -{dmg} HP และเสีย -40 เงิน{msg_add}"
                             msg = check_hp(msg)
                             return "อันตราย", msg, d
@@ -4196,7 +4198,7 @@ class Sim:
                             comp = rng.choice(list(a.companions.keys()))
                             choice = rng.choice(["share_gold", "talk_martial", "ignore"])
                             if choice == "share_gold" and a.money.get(w.tier, 0) >= 50:
-                                a.money[w.tier] -= 50
+                                WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) - 50, "event_spend")
                                 if type(a.companions[comp]) == int: a.companions[comp] = min(100, a.companions[comp] + 25)
                                 msg = f"🍻 [ความสัมพันธ์] ชวน {comp} ดื่มชา 💞 (+25 Affection)"
                             elif choice == "talk_martial":
@@ -4219,7 +4221,7 @@ class Sim:
                                 msg = "🎒 คณะเดินทางเต็มแล้ว จึงได้เพียงพูดคุยแลกเปลี่ยนสุรา"
                         elif sub == "buy_weapon":
                             if a.money.get(w.tier, 0) >= 150 and a.inventory.get("อาวุธ") is None:
-                                a.money[w.tier] -= 150
+                                WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) - 150, "event_spend")
                                 a.inventory["อาวุธ"] = "กระบี่เหล็กเย็น"
                                 msg = "🛍️ สวมใส่ 'กระบี่เหล็กเย็น' สำเร็จ"
                             else:
@@ -4235,7 +4237,7 @@ class Sim:
                         if a.companions and rng.random() > 0.5:
                             comp = rng.choice(list(a.companions.keys()))
                             if a.money.get(w.tier, 0) >= 40:
-                                a.money[w.tier] -= 40
+                                WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) - 40, "event_spend")
                                 if type(a.companions[comp]) == int: a.companions[comp] = min(100, a.companions[comp] + 20)
                                 msg = f"🛍️ [ความสัมพันธ์] ซื้อสมุนไพรให้ {comp} 💞 (+20 Affection)"
                             else:
@@ -4248,7 +4250,7 @@ class Sim:
                             msg_add = " 📜 ศิษย์พี่ใหญ่เซี่ยต่อราคาเหลือ 20 เงิน!"
                             
                         if a.money.get(w.tier, 0) >= potion_cost and a.inventory.get("ยาสมานแผล", 0) < 2:
-                            a.money[w.tier] -= potion_cost
+                            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) - potion_cost, "event_spend")
                             a.inventory["ยาสมานแผล"] += 1
                             msg = f"🎒 ซื้อยาสมานแผลสำเร็จ (จ่าย {potion_cost} เงิน){msg_add}"
                         else:
@@ -4279,7 +4281,7 @@ class Sim:
             return "บุญบารมี", f"{a.name}ออกโปรดสัตว์ สะสมบุญบารมีเพิ่มขึ้น", d
             
         if k == "ลาดตระเวน":
-            a.money[w.tier] = a.money.get(w.tier, 0) + WAGES.fiat_pay(10)
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + WAGES.fiat_pay(10), "fiat_work")
             return "ลาดตระเวน", f"{a.name}ออกลาดตระเวนรักษาความสงบ ได้รับเบี้ยหวัด", d
             
         if k == "เปิดประมูล":
@@ -4301,8 +4303,8 @@ class Sim:
             # ค่าหัวมาจากของกลางที่ยึดได้ ไม่ใช่เงินที่เกิดจากอากาศ (เดิม randint(20,100) ลอยๆ)
             loot = int(t.money.get(w.tier, 0) * 0.5)
             bounty = max(20, min(loot, 300)) if loot > 0 else rng.randint(20, 60)
-            t.money[w.tier] = max(0, t.money.get(w.tier, 0) - loot)
-            a.money[w.tier] = a.money.get(w.tier, 0) + bounty
+            WAGES.set_gold(self, t, w.tier, max(0, t.money.get(w.tier, 0) - loot), "seized_from_criminal")
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + bounty, "bounty")
             d["ของกลางที่ยึดได้"] = bounty
             if weight >= C.EXECUTE_KILLS:
                 # ฆ่าคนมาแล้วหลายศพ — โทษประหาร ยังเป็นความตายที่มีเหตุให้เล่าได้
@@ -4609,31 +4611,31 @@ class Sim:
             return "สำเร็จ", f"{a.name}ฝึก{sk[0]}สำเร็จ", d
         if k == "ทำนา":
             earn = WAGES.fiat_pay(rng.randint(5, 15))
-            a.money[w.tier] = a.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + earn, "fiat_work")
             return "สำเร็จ", f"{a.name}ทำนาได้ผลผลิต", {"เงินที่ได้": earn}
         if k == "ค้าขายทั่วไป":
             earn = WAGES.fiat_pay(rng.randint(20, 50))
-            a.money[w.tier] = a.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + earn, "fiat_work")
             return "สำเร็จ", f"{a.name}ค้าขายทั่วไปได้กำไร", {"เงินที่ได้": earn}
         if k == "ตีเหล็กชาวบ้าน":
             earn = WAGES.fiat_pay(rng.randint(10, 30))
-            a.money[w.tier] = a.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + earn, "fiat_work")
             a.mats += 1
             return "สำเร็จ", f"{a.name}ตีเหล็กชาวบ้านขาย", {"เงินที่ได้": earn}
         if k == "รักษาชาวบ้าน":
             earn = WAGES.fiat_pay(rng.randint(10, 40))
-            a.money[w.tier] = a.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + earn, "fiat_work")
             a.decay = max(0.0, a.decay - 0.1)
             return "สำเร็จ", f"{a.name}รักษาชาวบ้าน", {"เงินที่ได้": earn}
         if k == "ปกป้องชาวบ้าน":
             earn = WAGES.fiat_pay(rng.randint(30, 80))
-            a.money[w.tier] = a.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + earn, "fiat_work")
             if rng.random() < 0.2:
                 a.mat_stock["ศิลาปราณห้าธาตุ"] = a.mat_stock.get("ศิลาปราณห้าธาตุ", 0) + 1
             return "สำเร็จ", f"{a.name}ปกป้องชาวบ้านจากภัยร้าย", {"เงินที่ได้": earn, "ผลลัพธ์": "ชาวบ้านซาบซึ้ง"}
         if k == "ขูดรีดชาวบ้าน":
             earn = WAGES.fiat_pay(rng.randint(50, 150))
-            a.money[w.tier] = a.money.get(w.tier, 0) + earn
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0) + earn, "fiat_work")
             a.decay += 0.2
             if "มารในใจ" not in a.traits:
                 a.traits.append("มารในใจ")
@@ -4740,7 +4742,7 @@ class Sim:
                         else:
                             a.wants.pop(pick, None)
                         d["ของที่ตามหา"] = pick
-            a.money[w.tier] = a.money.get(w.tier, 0.0) + n * 2.0
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0.0) + n * 2.0, "hunt_cores")
             if rng.random() < 0.10 and a.fate <= 0:
                 self.kill(a, "ตายในการล่าอสูร")
                 return "ตาย", f"{a.name}ตายในการล่าอสูร", d
@@ -4992,7 +4994,7 @@ class Sim:
                 self.make_cache(a, faked=faked)
                 a.hidden = True
                 a.hide_day = self.day
-                a.money = {}
+                WAGES.clear_gold(self, a, "sealed_in_cache")
                 d["แดนลับ"] = "แกล้งตายวางกับดัก" if faked else "ผนึกสมบัติทิ้งไว้"
                 # กติกาที่ตัวละครควรรู้ตัวตั้งแต่ก้าวเข้าไป — แดนลับคือที่พัก ไม่ใช่ทางลัด
                 d["ราคาของการหายไป"] = "ในแดนลับตัดขาดจากฟ้าดิน สะสมได้แต่เลื่อนขั้นไม่ได้"
@@ -5082,7 +5084,7 @@ class Sim:
             if fee and a.money.get(w.tier, 0.0) < fee / 1000.0:
                 return "ค่าผ่านทางไม่พอ", f"{a.name}จ่ายค่าเปิด{pv[0]}ไม่ไหว", d
             if fee:
-                a.money[w.tier] = a.money.get(w.tier, 0.0) - fee / 1000.0
+                WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0.0) - fee / 1000.0, "gate_fee")
             key = gate["to"]
             dest = next((x for x in self.worlds
                          if x.place_key == key and x.kind != "chaos"), None)
@@ -5302,7 +5304,7 @@ class Sim:
                 d["ตลาดรับไม่ไหว"] = (f"ขายได้แค่ {depth:,.0f} จากมูลค่า {gain:,.0f} "
                                        f"— ที่นี่ไม่มีเงินพอ ต้องไปตลาดใหญ่กว่าหรือเข้าประมูล")
                 gain = depth
-            a.money[w.tier] = a.money.get(w.tier, 0.0) + gain
+            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0.0) + gain, "market_sale")
 
             # ซื้อของที่ "ตัวเองต้องการจริง" ไม่ใช่ของสุ่มที่ไม่มีสูตรไหนใช้
             # ตลาดมีของตามระดับโลกที่ตลาดนั้นตั้งอยู่ ของสูงกว่านั้นต้องขึ้นไปซื้อเอง
@@ -5326,7 +5328,7 @@ class Sim:
                         else:
                             a.wants.pop(name, None)
                         bought.append(f"{name} x{qty}")
-                a.money[w.tier] = budget
+                WAGES.set_gold(self, a, w.tier, budget, "market_purchase")
             if bought:
                 d["ซื้อ"] = ", ".join(bought[:3])
             if a.wants:
@@ -5558,7 +5560,7 @@ class Sim:
             for m in lose_mems:
                 m_money = m.money.get(w.tier, 0)
                 loot = int(m_money * 0.5)
-                m.money[w.tier] = m_money - loot
+                WAGES.set_gold(self, m, w.tier, m_money - loot, "war_loot_taken")
                 loot_money += loot
 
                 # ฝ่ายแพ้ถูกตีแตก — อัตราตายมาจาก C.WAR_ROUT_RATE ไม่ใช่เลขที่ตั้งเอาเอง
@@ -5592,7 +5594,7 @@ class Sim:
             if loot_money > 0 and win_mems:
                 share = loot_money // len(win_mems)
                 for m in win_mems:
-                    m.money[w.tier] = m.money.get(w.tier, 0) + share
+                    WAGES.set_gold(self, m, w.tier, m.money.get(w.tier, 0) + share, "war_loot_shared")
                     
             d["ผู้ชนะ"] = win_org.name
             d["ผู้แพ้"] = lose_org.name

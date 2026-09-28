@@ -952,7 +952,10 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     if ch.alive and ch.core_temp >= BODY.constants.HYPERTHERMIA_DEATH + _margin:
         sim.kill(ch, "ร่างร้อนจนอวัยวะภายในล้มเหลว")
         return
-    upkeep(ch, world, years)
+    paid = upkeep(ch, world, years)
+    if paid:
+        from . import wages as WAGES
+        WAGES.record(sim, "upkeep", world.tier, -paid)
     # งบปราณของผู้ฝึก — ดูดฟรีจากที่ยืน แล้วเผาหินเติมส่วนที่ขาด (ดู sustain)
     qi_year, _drawn = sustain(sim, ch, world, years)
     fell = hold_realm(ch, qi_year, gap_days)
