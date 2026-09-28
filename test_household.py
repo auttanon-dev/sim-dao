@@ -407,6 +407,53 @@ class SuccessionTests(unittest.TestCase):
         self.assertEqual(self.sim.clan_treasury.get(2, {}), {})
         self.assertAlmostEqual(self.other.money[self.tier], heir_gold + own + 5.0)
 
+    def test_living_parents_then_grown_siblings_inherit_before_any_treasury(self):
+        self.heirless_last_member()
+        self.parent.clan = 2
+        mother = self.other
+        self.parent.parents = [mother.cid]
+        self.assertEqual(self.sim.heirs_of(self.parent), [mother], "พ่อแม่ที่ยังมีชีวิต")
+        sib = next(c for c in self.sim.living() if c.cid not in (self.parent.cid, mother.cid, self.child.cid)
+                   and c.age(self.sim.day) >= C.ADULT_AGE and c.spouse is None)
+        quiet(self.sim.kill, mother, "ทดสอบ")
+        mother.children = [self.parent.cid, sib.cid, self.child.cid]           # เด็กยังไม่โต ไม่ได้รับ
+        self.assertEqual(self.sim.heirs_of(self.parent), [sib], "พี่น้องที่โตแล้ว")
+        own, before = self.parent.money[self.tier], self.totals()[0]
+        sib_gold = sib.money.get(self.tier, 0.0)
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertAlmostEqual(sib.money[self.tier], sib_gold + own + 5.0, msg="ทองส่วนตัวและกระเป๋า")
+        self.assertEqual(self.sim.clan_treasury.get(2, {}), {})
+        self.assertAlmostEqual(self.totals()[0], before)
+
+    def test_an_estate_nobody_claims_escheats_to_the_settlement_where_they_died(self):
+        self.heirless_last_member()
+        self.parent.clan = -1
+        own = self.parent.money[self.tier]
+        before, flows = self.totals()[0], repr(self.sim.gold_flows)
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertAlmostEqual(self.sim.settlement_treasury[(0, 3)][self.tier], own + 5.0)
+        self.assertAlmostEqual(self.parent.money.get(self.tier, 0.0), 0.0)
+        self.assertEqual(repr(self.sim.gold_flows), flows, "ย้ายจากคนเข้าคลัง ไม่ใช่ทองเกิดหรือหาย")
+        self.assertAlmostEqual(self.totals()[0], before)
+
+    def test_dying_on_the_road_escheats_to_the_destination(self):
+        self.other.org, self.other.clan, self.other.spouse, self.other.children, self.other.parents = None, -1, None, [], []
+        self.other.money = {self.tier: 12.0}
+        self.other.place, self.other.travel_dest = -1, 8
+        quiet(self.sim.kill, self.other, "ทดสอบ")
+        self.assertAlmostEqual(self.sim.settlement_treasury[(0, 8)][self.tier], 12.0)
+
+    def test_a_version_22_save_gets_empty_settlement_treasuries(self):
+        del self.sim.settlement_treasury
+        state = self.sim.rng.getstate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "old.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 22, "sim": self.sim}, f)
+            back = PS.load_sim(path)
+        self.assertEqual(back.settlement_treasury, {})
+        self.assertEqual(back.rng.getstate(), state)
+
     def test_a_version_19_save_gets_an_empty_clan_treasury_without_moving_the_rng(self):
         del self.sim.clan_treasury
         state = self.sim.rng.getstate()

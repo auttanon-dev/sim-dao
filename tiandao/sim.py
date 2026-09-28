@@ -100,6 +100,7 @@ class Sim:
         self.guardian_stats = GUARD.new_stats()
         self.households, self.household_seq = {}, 0   # tiandao/household.py
         self.clan_treasury = {}   # clan -> {tier: ทอง} กระเป๋าของครัวเรือนที่สลายโดยไม่มีทายาท (household.on_death)
+        self.settlement_treasury = {}   # (wid, place) -> {tier: ทอง} มรดกที่ไม่มีผู้รับตกเป็นของชุมชน (settle_estate)
         self.gold_flows = {}      # สาเหตุ -> {tier: ทอง} ทุกทางที่ทองเกิดหรือหาย (wages.record) ยอดรวม = wages.total_gold
         self.cities = copy.deepcopy(C.CITIES)   # เมืองของโลกนี้ — เจ้าเมืองอยู่ในเซฟ (เดิมแก้ config.CITIES ของ module)
         self.seq = 0
@@ -952,16 +953,35 @@ class Sim:
         return True
 
     def heirs_of(self, ch):
-        """ทายาทตามกฎหมาย — คู่ครองที่ยังมีชีวิต ไม่มีก็ลูกที่โตแล้วทุกคน"""
+        """ทายาทตามกฎหมาย (§7.4 ขั้น A4) ลำดับแรกที่มีคนรับ: คู่ครองที่ยังมีชีวิต → ลูกที่โตแล้วทุกคน → พ่อแม่ที่ยังมีชีวิต
+        → พี่น้องที่โตแล้วทุกคน (พ่อหรือแม่เดียวกันอย่างน้อยหนึ่งคน) เรียงด้วย cid"""
         cast = self.cast
-        if ch.spouse is not None and 0 <= ch.spouse < len(cast) and cast[ch.spouse].alive:
+        living = lambda c: 0 <= c < len(cast) and cast[c].alive                       # noqa: E731
+        grown = lambda c: living(c) and cast[c].age(self.day) >= C.ADULT_AGE           # noqa: E731
+        if ch.spouse is not None and living(ch.spouse):
             return [cast[ch.spouse]]
-        return [cast[c] for c in ch.children
-                if 0 <= c < len(cast) and cast[c].alive and cast[c].age(self.day) >= C.ADULT_AGE]
+        kids = [cast[c] for c in ch.children if grown(c)]
+        if kids:
+            return kids
+        parents = [cast[c] for c in sorted(set(ch.parents or ())) if living(c)]
+        if parents:
+            return parents
+        siblings = {s for p in ch.parents or () if 0 <= p < len(cast)
+                    for s in getattr(cast[p], "children", ()) if s != ch.cid and grown(s)}
+        return [cast[c] for c in sorted(siblings)]
+
+    def estate_spot(self, ch):
+        """ที่ที่มรดกไร้ผู้รับตกเป็นของ (แดน, สถานที่): ที่ที่ตาย กลางทางก็ที่ที่กำลังไป ไม่มีทั้งคู่ก็สถานที่แรกของแดน"""
+        if ch.place is not None and ch.place >= 0:
+            return ch.world_id, ch.place
+        if ch.travel_dest >= 0:
+            return ch.world_id, ch.travel_dest
+        places = PL.places_in(self.world(ch.world_id).place_key)
+        return ch.world_id, (places[0] if places else -1)
 
     def settle_estate(self, ch, items_to_heirs):
         """ทองของผู้ตายไปที่ทายาท (แบ่งเท่ากัน) ไม่มีทายาทเข้าคลังทองของสำนัก ไม่มีสำนักแต่อยู่ในตระกูลเข้าคลังตระกูล
-        (ศาลบรรพชน §7.4 ข้อ 5) นอกนั้นค้างอยู่กับศพ (แดนลับหรือ buried_gold ภายหลัง) ของธรรมดาไปที่ทายาทเมื่อไม่มีผู้ฆ่าริบ ของที่มีชื่อยังตามกฎเดิม (ผนึกในแดนลับ)
+        (ศาลบรรพชน §7.4 ข้อ 5) นอกนั้นตกเป็นของคลังชุมชนที่ที่ตาย (`settlement_treasury`, ขั้น A4) ของธรรมดาไปที่ทายาทเมื่อไม่มีผู้ฆ่าริบ ของที่มีชื่อยังตามกฎเดิม (ผนึกในแดนลับ)
         เดิมทองอยู่บนศพตลอดไป ไม่มีใครได้ใช้"""
         heirs = self.heirs_of(ch)
         org = (self.orgs[ch.org] if ch.org is not None and 0 <= ch.org < len(self.orgs)
@@ -969,6 +989,7 @@ class Sim:
         stats = self.__dict__.setdefault("estate_stats", {"to_heirs": 0.0, "to_sect": 0.0, "unclaimed": 0.0,
                                                           "items_to_heirs": 0})
         stats.setdefault("to_clan", 0.0)
+        stats.setdefault("to_settlement", 0.0)
         clan = getattr(ch, "clan", -1)
         for tier, gold in list(ch.money.items()):
             if gold <= 0:
@@ -986,8 +1007,9 @@ class Sim:
                 hall[tier] = hall.get(tier, 0.0) + gold
                 stats["to_clan"] += gold
             else:
-                stats["unclaimed"] += gold
-                continue
+                town = WAGES.settlement_purse(self, self.estate_spot(ch))
+                town[tier] = town.get(tier, 0.0) + gold
+                stats["to_settlement"] += gold
             ch.money[tier] = 0.0
         if items_to_heirs and heirs:
             regular = [i for i in ch.items if i in self.items and not self.items[i].legend]

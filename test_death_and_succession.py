@@ -59,17 +59,21 @@ class InheritanceTests(World):
         self.assertAlmostEqual(b.money.get(0, 0), 45.0)
         self.assertEqual(kid.money.get(0, 0), 0)
 
-    def test_no_heirs_goes_to_the_sect_then_stays_unclaimed(self):
+    def test_no_heirs_goes_to_the_sect_then_escheats_to_the_settlement(self):
         dead, loner = self.people[:2]
         org = Org(oid=len(self.sim.orgs), kind="สำนัก", name="สำนักทดสอบ", world_id=0, founder=self.people[5].cid,
                   founded_day=0, members=[dead.cid])
         self.sim.orgs.append(org)
         dead.org, dead.money, loner.money = org.oid, {0: 40.0}, {0: 30.0}
+        loner.clan = -1                                  # ไม่มีตระกูลรับ (§7.4 A1)
+        spot = self.sim.estate_spot(loner)
         before = self.gold()
         self.die(dead)
         self.die(loner)
         self.assertAlmostEqual(org.treasury_gold.get(0, 0), 40.0)
-        self.assertAlmostEqual(loner.money.get(0, 0), 30.0, msg="ไม่มีใครรับ ค้างอยู่กับศพ")
+        self.assertAlmostEqual(loner.money.get(0, 0), 0.0)
+        self.assertAlmostEqual(self.sim.settlement_treasury[spot].get(0, 0), 30.0,
+                               msg="ไม่มีใครรับ ตกเป็นของชุมชนที่ที่ตาย (§7.4 A4) — เดิมค้างอยู่กับศพ")
         for t, v in self.gold().items():
             self.assertAlmostEqual(v, before[t], places=6)
 

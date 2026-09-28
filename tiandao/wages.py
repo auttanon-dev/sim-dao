@@ -75,6 +75,11 @@ def clear_gold(sim, ch, cause) -> None:
     ch.money = {}
 
 
+def settlement_purse(sim, spot):
+    """คลังของชุมชนที่ (แดน, สถานที่) {tier: ทอง} — รับมรดกที่ไม่มีทายาท สำนัก หรือตระกูลรับ (Sim.settle_estate)"""
+    return sim.__dict__.setdefault("settlement_treasury", {}).setdefault(spot, {})
+
+
 def gold_gap(sim, tier) -> float:
     """ทองที่มีจริงลบทองตามบัญชีสาเหตุ — ต้องเป็นศูนย์ (ต่างแค่ทศนิยม)"""
     return total_gold(sim, tier) - sum(f.get(tier, 0.0) for f in getattr(sim, "gold_flows", {}).values())
@@ -156,10 +161,12 @@ def fiat_pay(amount):
 
 def total_gold(sim, tier) -> float:
     """เหรียญทองทั้งหมดของชั้นนี้ ในมือคน (รวมผู้ตาย) ในลิ้นชักตลาด ลิ้นชักไร่ของแดนชั้นนี้ และทองของผู้ตายที่ถูกย่อ
-    เป็นบันทึกแล้ว (Sim.prune_departed) คลังทองของสำนัก (มรดกของสมาชิกที่ไม่มีทายาท) กระเป๋ากลางของครัวเรือน และคลังตระกูล"""
+    เป็นบันทึกแล้ว (Sim.prune_departed) คลังทองของสำนัก (มรดกของสมาชิกที่ไม่มีทายาท) กระเป๋ากลางของครัวเรือน คลังตระกูล
+    และคลังชุมชน"""
     held = sum(ch.money.get(tier, 0.0) for ch in sim.cast)
     tills = sum(v for till in (sim.market_till, sim.farm_till)
                 for (wid, _place), v in till.items() if sim.world(wid).tier == tier)
     sects = sum(getattr(o, "treasury_gold", {}).get(tier, 0.0) for o in getattr(sim, "orgs", ()))
     return (held + tills + sects + HH.purse_gold(sim, tier) + HH.clan_gold(sim, tier)
-            + getattr(sim, "buried_gold", {}).get(tier, 0.0))
+            + getattr(sim, "buried_gold", {}).get(tier, 0.0)
+            + sum(t.get(tier, 0.0) for t in getattr(sim, "settlement_treasury", {}).values()))
