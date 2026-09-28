@@ -30,6 +30,13 @@ def quiet(fn, *a, **kw):
         return fn(*a, **kw)
 
 
+def _as_old_save(sim):
+    """เซฟรุ่น 4 ไม่มีครัวเรือน — ลบทิ้งก่อนเขียน (โหลดแล้วขั้นรุ่น 17 สร้างใหม่ ถ้ามีกระเป๋าค้างอยู่จะถูกรวมเข้าเงินหัวหน้า)"""
+    sim.__dict__.pop("households", None)
+    for c in sim.cast:
+        c.__dict__.pop("household", None)
+
+
 class MoneyKeyTests(unittest.TestCase):
     def test_a_running_world_only_ever_stores_gold_under_tiers(self):
         sim = quiet(S.Sim, seed=11)
@@ -80,6 +87,7 @@ class MoneyKeyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "world.save")
             with open(path, "wb") as f:
+                _as_old_save(sim)
                 pickle.dump({"save_version": 4, "sim": sim}, f)
             loaded = PS.load_sim(path)
         moved = loaded.cast[0].money
@@ -103,6 +111,7 @@ class MoneyKeyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "world.save")
             with open(path, "wb") as f:
+                _as_old_save(sim)
                 pickle.dump({"save_version": 4, "sim": sim}, f)
             loaded = PS.load_sim(path)
         self.assertEqual(loaded.cast[0].money, {0: 30.0}, "คนในแดน wid 1 เอง: คีย์ 1 คือ wid ย้ายไปชั้นของแดน")

@@ -905,8 +905,8 @@ class Sim:
         if ch.realm == 0:
             w.n_mortal -= 1
         R.death_return(w, ch, natural)
+        HH.on_death(self, ch)                    # คนสุดท้ายของครัวเรือน: กระเป๋ากลางเข้าเงินของเขาก่อนแบ่งมรดก
         self.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
-        HH.on_death(self, ch)
         mate = self.cast[ch.spouse] if ch.spouse is not None and 0 <= ch.spouse < len(self.cast) else None
         if mate is not None and mate.spouse == ch.cid:
             mate.spouse = None               # เป็นหม้ายแล้วแต่งงานใหม่ได้ (ch.spouse ของผู้ตายคงไว้เป็นประวัติ)

@@ -51,6 +51,7 @@ from . import travel as TR
 from . import wages as WAGES
 from . import guardians as GUARD
 from . import childhood as CHILD
+from . import household as HH
 
 STAT_KEYS = ("endowed", "produced", "eaten", "spoiled", "carried_lost", "lost", "charity",
              "starved", "migrated", "seclusion_cut", "took_up_farming", "left_farming",
@@ -281,7 +282,8 @@ def _buy(sim, ch, amount):
     if amount <= _EPS or not C.WAGES_ENABLED:
         return amount, 0.0
     cost = amount * C.FOOD_PRICE
-    paid = 0.0
+    # เด็ก: กระเป๋ากลางของครัวเรือนก่อน (ขั้น H2) แล้วผู้ปกครอง (_payers) แล้วหมู่บ้าน (charity ข้างล่าง)
+    paid = HH.pay_for(sim, ch, cost) if ch.age(sim.day) < 14 and C.GUARDIANS_ENABLED else 0.0
     for payer in _payers(sim, ch):
         part = min(max(0.0, WAGES.gold(sim, payer)), cost - paid)
         if part > 0:
@@ -385,6 +387,7 @@ def _pay_farmers(sim, workers_at):
             continue
         for ch in farmers:
             WAGES.move_gold(sim, ch, till / len(farmers))
+            HH.contribute(sim, ch, till / len(farmers))
         sim.farm_till[spot] = 0.0
         sim.wage_stats["farm_paid"] += till
 

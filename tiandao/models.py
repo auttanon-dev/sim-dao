@@ -119,11 +119,13 @@ class Household:
     - hid: เลขประจำครัวเรือน
     - head: cid ของหัวหน้า (บ้านคือที่อยู่ของหัวหน้า)
     - members: cid ของทุกคนในครัวเรือน รวมหัวหน้า
-    - founded_day: วันที่ตั้ง"""
+    - founded_day: วันที่ตั้ง
+    - purse: ทองกองกลางต่อชั้น {tier: ทอง} เข้าออกผ่าน household.transfer ทางเดียว"""
     hid: int
     head: int
     members: List[int]
     founded_day: int = 0
+    purse: Dict[int, float] = field(default_factory=dict)
 
 
 @dataclass

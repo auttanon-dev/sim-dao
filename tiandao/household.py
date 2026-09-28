@@ -10,8 +10,16 @@
 - ตาย: ออกจากครัวเรือน หัวหน้าตายแล้วคู่ครอง → สมาชิกที่เติบใหญ่แล้วอายุมากที่สุด → สมาชิกอายุมากที่สุด รับเป็นหัวหน้า
   ไม่เหลือใครแล้วครัวเรือนสลาย
 บ้าน (`home`) คือที่อยู่ของหัวหน้า คำนวณทุกครั้ง ไม่เก็บซ้ำ
+
+กระเป๋ากลาง (ขั้น H2): ทองเข้าออกผ่าน `transfer` ทางเดียว ไม่มีทองเกิดหรือหาย (wages.total_gold นับรวม)
+- ครัวเรือนที่มีเด็ก: สมาชิกที่มีรายได้และอยู่ในระยะส่งถึงบ้าน (FOOD_REACH_HOPS แดนเดียวกัน) ใส่ HOUSEHOLD_TITHE ของรายได้
+  (`contribute`) จนกระเป๋ามีค่าข้าวของเด็กครบ HOUSEHOLD_PURSE_DAYS วัน
+- ค่าข้าวของเด็กที่อยู่ในระยะส่งถึงบ้านจ่ายจากกระเป๋าก่อน (`pay_for`) แล้วผู้ปกครอง แล้วหมู่บ้าน (food._buy)
+- ย้ายออก: กระเป๋าอยู่กับครัวเรือน คนสุดท้ายย้ายออกก็ถือกระเป๋าไปครัวเรือนใหม่ คนสุดท้ายตายแล้วกระเป๋าเข้าเงินของเขา
+  ก่อนแบ่งมรดก (Sim.kill เรียก on_death ก่อน settle_estate)
 """
 from . import config as C
+from . import travel as TR
 from .models import Household
 
 
@@ -28,39 +36,49 @@ def home(sim, hh):
     return head.world_id, head.place
 
 
+def _merge(purse, into):
+    for tier, gold in purse.items():
+        if gold:
+            into[tier] = into.get(tier, 0.0) + gold
+
+
 def found(sim, ch):
-    """ตั้งครัวเรือนใหม่ที่มี `ch` คนเดียวเป็นหัวหน้า (ออกจากครัวเรือนเดิมก่อน)"""
-    _leave(sim, ch)
+    """ตั้งครัวเรือนใหม่ที่มี `ch` คนเดียวเป็นหัวหน้า (ออกจากครัวเรือนเดิมก่อน กระเป๋าของครัวเรือนที่เขาทิ้งว่างตามมาด้วย)"""
+    left = _leave(sim, ch)
     sim.household_seq = getattr(sim, "household_seq", 0) + 1
     hh = Household(sim.household_seq, ch.cid, [ch.cid], sim.day)
+    _merge(left, hh.purse)
     _table(sim)[hh.hid] = hh
     ch.household = hh.hid
     return hh
 
 
 def join(sim, ch, hh):
-    """ย้าย `ch` เข้าครัวเรือน `hh`"""
+    """ย้าย `ch` เข้าครัวเรือน `hh` (กระเป๋าของครัวเรือนที่เขาทิ้งว่างรวมเข้า `hh`)"""
     if getattr(ch, "household", -1) == hh.hid:
         return hh
-    _leave(sim, ch)
+    _merge(_leave(sim, ch), hh.purse)
     hh.members.append(ch.cid)
     ch.household = hh.hid
     return hh
 
 
 def _leave(sim, ch):
-    """ถอน `ch` ออกจากครัวเรือนปัจจุบัน — หัวหน้าออกแล้วมีผู้รับช่วงตาม `_next_head` ไม่เหลือใครแล้วครัวเรือนสลาย"""
+    """ถอน `ch` ออกจากครัวเรือนปัจจุบัน — หัวหน้าออกแล้วมีผู้รับช่วงตาม `_next_head` ไม่เหลือใครแล้วครัวเรือนสลาย
+    คืนกระเป๋าของครัวเรือนที่สลาย (ว่างถ้ายังมีคนอยู่) ให้ผู้เรียกส่งต่อ — ไม่มีทองหาย"""
     table = _table(sim)
     hh = table.get(getattr(ch, "household", -1))
     ch.household = -1
     if hh is None:
-        return
+        return {}
     if ch.cid in hh.members:
         hh.members.remove(ch.cid)
     if not hh.members:
         del table[hh.hid]
-    elif hh.head == ch.cid:
+        return hh.purse
+    if hh.head == ch.cid:
         hh.head = _next_head(sim, hh, ch)
+    return {}
 
 
 def _next_head(sim, hh, old):
@@ -73,7 +91,75 @@ def _next_head(sim, hh, old):
 
 
 def on_death(sim, ch):
-    _leave(sim, ch)
+    """ออกจากครัวเรือนตอนตาย — เป็นคนสุดท้ายแล้วกระเป๋าเข้าเงินของเขา (Sim.kill เรียกก่อน settle_estate จึงตกทอดตามกฎมรดก)"""
+    _merge(_leave(sim, ch), ch.money)
+
+
+# ---------------------------------------------------------------- กระเป๋ากลาง (ขั้น H2)
+def _tier(sim, ch):
+    return sim.world(ch.world_id).tier
+
+
+def transfer(sim, hh, ch, amount, tier):
+    """ย้ายทอง `amount` จากเงินของ `ch` เข้ากระเป๋า `hh` (ติดลบ = ออกจากกระเป๋าเข้าเงินของ `ch`) — ทางเดียวของกระเป๋า"""
+    ch.money[tier] = ch.money.get(tier, 0.0) - amount
+    hh.purse[tier] = hh.purse.get(tier, 0.0) + amount
+
+
+def in_reach(sim, hh, ch):
+    """อยู่ในระยะส่งถึงบ้าน: แดนเดียวกัน อยู่กับที่ (ไม่เดินทาง ซ่อนตัว หรือติดคุก) และไม่เกิน FOOD_REACH_HOPS จากบ้าน"""
+    wid, place = home(sim, hh)
+    if (ch.world_id != wid or place is None or place < 0 or ch.place is None or ch.place < 0
+            or ch.hidden or ch.travel_dest >= 0 or getattr(ch, "jail_until", 0) > sim.day):
+        return False
+    return ch.place == place or any(p == ch.place for p, _hops in TR.places_within(sim, place, C.FOOD_REACH_HOPS))
+
+
+def children_of(sim, hh):
+    return [sim.cast[c] for c in hh.members if sim.cast[c].age(sim.day) < 14]
+
+
+def purse_cap(sim, hh):
+    """ทองที่กระเป๋ารับได้: ค่าข้าวของเด็กในครัวเรือน HOUSEHOLD_PURSE_DAYS วัน"""
+    return len(children_of(sim, hh)) * C.FOOD_RATION_CHILD * C.FOOD_PRICE * C.HOUSEHOLD_PURSE_DAYS
+
+
+def _stats(sim):
+    return sim.__dict__.setdefault("household_stats", {})
+
+
+def contribute(sim, ch, income):
+    """สมาชิกที่เพิ่งได้รายได้ `income` ใส่ส่วน HOUSEHOLD_TITHE เข้ากระเป๋า ถ้าครัวเรือนมีเด็ก เขาอยู่ในระยะส่งถึงบ้าน
+    และกระเป๋ายังไม่เต็มเพดาน"""
+    hh = of(sim, ch)
+    if hh is None or income <= 0 or ch.age(sim.day) < 14 or not children_of(sim, hh) or not in_reach(sim, hh, ch):
+        return 0.0
+    tier = _tier(sim, ch)
+    amount = min(income * C.HOUSEHOLD_TITHE, purse_cap(sim, hh) - hh.purse.get(tier, 0.0), ch.money.get(tier, 0.0))
+    if amount <= 0:
+        return 0.0
+    transfer(sim, hh, ch, amount, tier)
+    stats = _stats(sim)
+    stats["tithe"] = stats.get("tithe", 0.0) + amount
+    return amount
+
+
+def pay_for(sim, child, cost):
+    """จ่ายค่าข้าวของเด็กจากกระเป๋ากลาง (เด็กต้องอยู่ในระยะส่งถึงบ้าน) — คืนทองที่จ่ายได้ ทองออกจากกระเป๋าไปตามทางของผู้เรียก"""
+    hh = of(sim, child)
+    if hh is None or cost <= 0 or not in_reach(sim, hh, child):
+        return 0.0
+    tier = _tier(sim, child)
+    paid = min(cost, hh.purse.get(tier, 0.0))
+    if paid > 0:
+        hh.purse[tier] -= paid
+        stats = _stats(sim)
+        stats["purse_paid"] = stats.get("purse_paid", 0.0) + paid
+    return paid
+
+
+def purse_gold(sim, tier):
+    return sum(hh.purse.get(tier, 0.0) for hh in _table(sim).values())
 
 
 def dependants(sim, ch):
@@ -139,8 +225,10 @@ def build(sim):
     """สร้างครัวเรือนจากความสัมพันธ์ที่มีอยู่ (เซฟก่อนรุ่น 17) — ไม่แตะ RNG เรียงด้วย cid
     คู่ครองที่ยังมีชีวิตอยู่ด้วยกัน, เด็กอายุต่ำกว่า 14 อยู่กับผู้ปกครอง (ไม่มีก็พ่อแม่), วัยรุ่นต่ำกว่า ADULT_AGE อยู่กับพ่อแม่ที่ยังมีชีวิต
     นอกนั้นครัวเรือนคนเดียว"""
-    sim.households, sim.household_seq = {}, 0
     cast, day = sim.cast, sim.day
+    for hh in _table(sim).values():                    # สร้างใหม่ทั้งหมด — กระเป๋าเดิม (ถ้ามี) เข้าเงินของหัวหน้า ไม่มีทองหาย
+        _merge(getattr(hh, "purse", {}), cast[hh.head].money)
+    sim.households, sim.household_seq = {}, 0
     living = [cast[c] for c in sorted(sim.alive_cids)]
     for ch in living:
         ch.household = -1

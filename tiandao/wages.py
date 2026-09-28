@@ -35,6 +35,7 @@ import collections
 import math
 
 from . import config as C
+from . import household as HH
 from . import travel as TR
 
 STAT_KEYS = ("issued", "spent", "paid", "food_bought", "farm_paid")
@@ -115,6 +116,7 @@ def tick(sim, days) -> None:
         total_w = sum(weight for _ch, weight in payees)
         for ch, weight in payees:                  # ทุกคนทำงานเต็มรอบเท่ากัน ต่างกันแค่ระยะทาง
             move_gold(sim, ch, till * weight / total_w)
+            HH.contribute(sim, ch, till * weight / total_w)
         sim.market_till[spot] = 0.0
         stats["paid"] += till
 
@@ -127,9 +129,9 @@ def fiat_pay(amount):
 
 def total_gold(sim, tier) -> float:
     """เหรียญทองทั้งหมดของชั้นนี้ ในมือคน (รวมผู้ตาย) ในลิ้นชักตลาด ลิ้นชักไร่ของแดนชั้นนี้ และทองของผู้ตายที่ถูกย่อ
-    เป็นบันทึกแล้ว (Sim.prune_departed) และคลังทองของสำนัก (มรดกของสมาชิกที่ไม่มีทายาท)"""
+    เป็นบันทึกแล้ว (Sim.prune_departed) คลังทองของสำนัก (มรดกของสมาชิกที่ไม่มีทายาท) และกระเป๋ากลางของครัวเรือน"""
     held = sum(ch.money.get(tier, 0.0) for ch in sim.cast)
     tills = sum(v for till in (sim.market_till, sim.farm_till)
                 for (wid, _place), v in till.items() if sim.world(wid).tier == tier)
     sects = sum(getattr(o, "treasury_gold", {}).get(tier, 0.0) for o in getattr(sim, "orgs", ()))
-    return held + tills + sects + getattr(sim, "buried_gold", {}).get(tier, 0.0)
+    return held + tills + sects + HH.purse_gold(sim, tier) + getattr(sim, "buried_gold", {}).get(tier, 0.0)
