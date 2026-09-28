@@ -54,7 +54,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  16 — เติบใหญ่ตอนอายุ 14 (Character.came_of_age, upbringing_days, body_bias): ผู้ใหญ่เดิมถือว่าผ่านแล้ว
 #  17 — ครัวเรือน (sim.households, Character.household) สร้างจากคู่ครอง ผู้ปกครอง และพ่อแม่
 #  18 — กระเป๋ากลางของครัวเรือน (Household.purse) เริ่มว่าง
-SAVE_VERSION = 18
+#  19 — บ้านที่ตายตัว (Household.home) และข้าวในครัว (Household.larder) เริ่มว่าง
+SAVE_VERSION = 19
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -298,6 +299,11 @@ def _migrate(sim, version):
     if version < 18:
         for hh in getattr(sim, "households", {}).values():
             hh.__dict__.setdefault("purse", {})
+    if version < 19:
+        from . import household as HH
+        for hh in getattr(sim, "households", {}).values():
+            hh.larder = 0.0             # บ้านตั้งจากที่อยู่ของหัวหน้าตอนนี้ (None ถ้าเดินทางอยู่ ย้ายเข้าที่ตอน tick) ไม่แตะ RNG
+            hh.home = HH._settled_at(sim, sim.cast[hh.head])
 
 
 def _cities_into_save(sim):

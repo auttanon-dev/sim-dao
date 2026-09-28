@@ -248,6 +248,7 @@ class WagesInTheRunningWorldTests(unittest.TestCase):
         place = PL.places_in(sim.worlds[0].place_key)[0]
         sim.granary = {place: 50.0}
         del sim.market_till, sim.farm_till, sim.wage_stats
+        sim.households = {}                          # เซฟรุ่น 3 ยังไม่มีครัวเรือน (สร้างใหม่ตอนย้ายรุ่น 17)
         rng_state = sim.rng.getstate()
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "world.save")

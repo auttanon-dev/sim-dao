@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from dataclasses import MISSING, asdict, dataclass, field, fields
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from . import config as C
 
@@ -117,15 +117,19 @@ class World:
 class Household:
     """ครัวเรือน (แบบ §7.1) — กฎสมาชิกภาพอยู่ที่ tiandao/household.py
     - hid: เลขประจำครัวเรือน
-    - head: cid ของหัวหน้า (บ้านคือที่อยู่ของหัวหน้า)
+    - head: cid ของหัวหน้า
     - members: cid ของทุกคนในครัวเรือน รวมหัวหน้า
     - founded_day: วันที่ตั้ง
-    - purse: ทองกองกลางต่อชั้น {tier: ทอง} เข้าออกผ่าน household.transfer ทางเดียว"""
+    - purse: ทองกองกลางต่อชั้น {tier: ทอง} เข้าออกผ่าน household.transfer ทางเดียว
+    - home: (แดน, สถานที่) ของบ้าน — ตั้งตอนตั้งครัวเรือน ย้ายเมื่อหัวหน้าไปอยู่ประจำที่อื่น (household.tick) None = ยังไม่มีบ้าน
+    - larder: ข้าวในครัว (สำรับ) อยู่ที่บ้าน นับใน food.total_held"""
     hid: int
     head: int
     members: List[int]
     founded_day: int = 0
     purse: Dict[int, float] = field(default_factory=dict)
+    home: Optional[Tuple[int, int]] = None
+    larder: float = 0.0
 
 
 @dataclass

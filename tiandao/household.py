@@ -9,7 +9,8 @@
 - ถึง ADULT_AGE (16) แล้วไม่มีพ่อแม่หรือคู่ครองอยู่ในครัวเรือนเดียวกัน แยกไปตั้งครัวเรือนของตัวเอง (`tick`)
 - ตาย: ออกจากครัวเรือน หัวหน้าตายแล้วคู่ครอง → สมาชิกที่เติบใหญ่แล้วอายุมากที่สุด → สมาชิกอายุมากที่สุด รับเป็นหัวหน้า
   ไม่เหลือใครแล้วครัวเรือนสลาย
-บ้าน (`home`) คือที่อยู่ของหัวหน้า คำนวณทุกครั้ง ไม่เก็บซ้ำ
+บ้าน (`Household.home`) เป็นที่ตายตัว (แดน, สถานที่) ตั้งจากที่อยู่ของหัวหน้าตอนตั้งครัวเรือน ย้ายเมื่อหัวหน้าไปอยู่ประจำที่อื่น
+(`tick`: อยู่กับที่ ไม่เดินทาง ซ่อนตัว หรือติดคุก) — ข้าวในครัวไม่ย้ายตามคน
 
 กระเป๋ากลาง (ขั้น H2): ทองเข้าออกผ่าน `transfer` ทางเดียว ไม่มีทองเกิดหรือหาย (wages.total_gold นับรวม)
 - ครัวเรือนที่มีเด็ก: สมาชิกที่มีรายได้และอยู่ในระยะส่งถึงบ้าน (FOOD_REACH_HOPS แดนเดียวกัน) ใส่ HOUSEHOLD_TITHE ของรายได้
@@ -17,6 +18,14 @@
 - ค่าข้าวของเด็กที่อยู่ในระยะส่งถึงบ้านจ่ายจากกระเป๋าก่อน (`pay_for`) แล้วผู้ปกครอง แล้วหมู่บ้าน (food._buy)
 - ย้ายออก: กระเป๋าอยู่กับครัวเรือน คนสุดท้ายย้ายออกก็ถือกระเป๋าไปครัวเรือนใหม่ คนสุดท้ายตายแล้วกระเป๋าเข้าเงินของเขา
   ก่อนแบ่งมรดก (Sim.kill เรียก on_death ก่อน settle_estate)
+
+ครัว (ขั้น H3): ข้าวในครัว (`Household.larder`) อยู่ที่บ้าน นับใน food.total_held และเน่าอัตราเดียวกับยุ้งฉาง
+- เด็กในครัวเรือนที่อยู่ในระยะส่งถึงบ้านกินจากครัวก่อน (`draw`) ส่วนที่ขาดซื้อจากยุ้งฉางตามลำดับเดิม
+  (กระเป๋ากลาง → ผู้ปกครอง → หมู่บ้าน) คนที่เดินทาง ซ่อนตัว ติดคุก หรืออยู่แดนอื่นกินจากครัวไม่ได้
+- กระเป๋ากลางซื้อข้าวจากยุ้งฉางของที่บ้านเข้าครัว (`stock`) ถึง LARDER_DAYS วันของเด็กในระยะ
+  เฉพาะส่วนที่ยุ้งฉางมีเกินระดับที่ต้องเก็บไว้เลี้ยงคนที่นั่น (FOOD_GRANARY_KEEP_DAYS)
+- ข้าวไม่ย้ายข้ามที่: บ้านย้าย ครัวเรือนสลาย หรือย้ายเข้าครัวเรือนที่บ้านอยู่ที่อื่น ข้าวในครัวคืนยุ้งฉางของบ้านเดิม
+  (`_empty_larder`) ครัวเรือนที่สลายรวมเข้าครัวเรือนที่บ้านอยู่ที่เดียวกัน ข้าวรวมเข้าครัวใหม่
 """
 from . import config as C
 from . import travel as TR
@@ -32,8 +41,36 @@ def of(sim, ch):
 
 
 def home(sim, hh):
-    head = sim.cast[hh.head]
-    return head.world_id, head.place
+    return hh.home
+
+
+def _settled_at(sim, ch):
+    """ที่ที่ `ch` อยู่ประจำตอนนี้ (แดน, สถานที่) — None ถ้ากำลังเดินทาง ซ่อนตัว ติดคุก หรือไม่ได้อยู่ในสถานที่"""
+    if (ch.place is None or ch.place < 0 or ch.travel_dest >= 0 or ch.hidden
+            or getattr(ch, "jail_until", 0) > sim.day):
+        return None
+    return ch.world_id, ch.place
+
+
+def _empty_larder(sim, hh):
+    """ข้าวในครัวคืนยุ้งฉางของบ้าน — ไม่มีข้าวหาย ไม่มีข้าวย้ายที่"""
+    if hh.larder > 0 and hh.home is not None:
+        sim.granary[hh.home] = sim.granary.get(hh.home, 0.0) + hh.larder
+        stats = _stats(sim)
+        stats["larder_returned"] = stats.get("larder_returned", 0.0) + hh.larder
+        hh.larder = 0.0
+
+
+def _absorb(sim, old, hh):
+    """ครัวเรือน `old` ที่สลายส่งกระเป๋าเข้า `hh` — ข้าวในครัวรวมเข้าถ้าบ้านอยู่ที่เดียวกัน ไม่งั้นคืนยุ้งฉางบ้านเดิม"""
+    if old is None:
+        return
+    _merge(old.purse, hh.purse)
+    if old.home is not None and old.home == hh.home:
+        hh.larder += old.larder
+        old.larder = 0.0
+    else:
+        _empty_larder(sim, old)
 
 
 def _merge(purse, into):
@@ -46,8 +83,8 @@ def found(sim, ch):
     """ตั้งครัวเรือนใหม่ที่มี `ch` คนเดียวเป็นหัวหน้า (ออกจากครัวเรือนเดิมก่อน กระเป๋าของครัวเรือนที่เขาทิ้งว่างตามมาด้วย)"""
     left = _leave(sim, ch)
     sim.household_seq = getattr(sim, "household_seq", 0) + 1
-    hh = Household(sim.household_seq, ch.cid, [ch.cid], sim.day)
-    _merge(left, hh.purse)
+    hh = Household(sim.household_seq, ch.cid, [ch.cid], sim.day, home=_settled_at(sim, ch))
+    _absorb(sim, left, hh)
     _table(sim)[hh.hid] = hh
     ch.household = hh.hid
     return hh
@@ -57,7 +94,7 @@ def join(sim, ch, hh):
     """ย้าย `ch` เข้าครัวเรือน `hh` (กระเป๋าของครัวเรือนที่เขาทิ้งว่างรวมเข้า `hh`)"""
     if getattr(ch, "household", -1) == hh.hid:
         return hh
-    _merge(_leave(sim, ch), hh.purse)
+    _absorb(sim, _leave(sim, ch), hh)
     hh.members.append(ch.cid)
     ch.household = hh.hid
     return hh
@@ -65,20 +102,20 @@ def join(sim, ch, hh):
 
 def _leave(sim, ch):
     """ถอน `ch` ออกจากครัวเรือนปัจจุบัน — หัวหน้าออกแล้วมีผู้รับช่วงตาม `_next_head` ไม่เหลือใครแล้วครัวเรือนสลาย
-    คืนกระเป๋าของครัวเรือนที่สลาย (ว่างถ้ายังมีคนอยู่) ให้ผู้เรียกส่งต่อ — ไม่มีทองหาย"""
+    คืนครัวเรือนที่สลาย (None ถ้ายังมีคนอยู่) ให้ผู้เรียกส่งกระเป๋าและข้าวในครัวต่อ — ไม่มีทองหรือข้าวหาย"""
     table = _table(sim)
     hh = table.get(getattr(ch, "household", -1))
     ch.household = -1
     if hh is None:
-        return {}
+        return None
     if ch.cid in hh.members:
         hh.members.remove(ch.cid)
     if not hh.members:
         del table[hh.hid]
-        return hh.purse
+        return hh
     if hh.head == ch.cid:
         hh.head = _next_head(sim, hh, ch)
-    return {}
+    return None
 
 
 def _next_head(sim, hh, old):
@@ -91,8 +128,12 @@ def _next_head(sim, hh, old):
 
 
 def on_death(sim, ch):
-    """ออกจากครัวเรือนตอนตาย — เป็นคนสุดท้ายแล้วกระเป๋าเข้าเงินของเขา (Sim.kill เรียกก่อน settle_estate จึงตกทอดตามกฎมรดก)"""
-    _merge(_leave(sim, ch), ch.money)
+    """ออกจากครัวเรือนตอนตาย — เป็นคนสุดท้ายแล้วกระเป๋าเข้าเงินของเขา (Sim.kill เรียกก่อน settle_estate จึงตกทอดตามกฎมรดก)
+    และข้าวในครัวคืนยุ้งฉางของบ้าน"""
+    old = _leave(sim, ch)
+    if old is not None:
+        _merge(old.purse, ch.money)
+        _empty_larder(sim, old)
 
 
 # ---------------------------------------------------------------- กระเป๋ากลาง (ขั้น H2)
@@ -107,8 +148,11 @@ def transfer(sim, hh, ch, amount, tier):
 
 
 def in_reach(sim, hh, ch):
-    """อยู่ในระยะส่งถึงบ้าน: แดนเดียวกัน อยู่กับที่ (ไม่เดินทาง ซ่อนตัว หรือติดคุก) และไม่เกิน FOOD_REACH_HOPS จากบ้าน"""
-    wid, place = home(sim, hh)
+    """อยู่ในระยะส่งถึงบ้าน: แดนเดียวกัน อยู่กับที่ (ไม่เดินทาง ซ่อนตัว หรือติดคุก) และไม่เกิน FOOD_REACH_HOPS จากบ้าน
+    ครัวเรือนที่ยังไม่มีบ้านไม่มีใครอยู่ในระยะ"""
+    if hh.home is None:
+        return False
+    wid, place = hh.home
     if (ch.world_id != wid or place is None or place < 0 or ch.place is None or ch.place < 0
             or ch.hidden or ch.travel_dest >= 0 or getattr(ch, "jail_until", 0) > sim.day):
         return False
@@ -162,6 +206,70 @@ def purse_gold(sim, tier):
     return sum(hh.purse.get(tier, 0.0) for hh in _table(sim).values())
 
 
+# ---------------------------------------------------------------- ครัว (ขั้น H3)
+def larder_food(sim):
+    return sum(hh.larder for hh in _table(sim).values())
+
+
+def spoil(sim, keep):
+    """ข้าวในครัวเน่าอัตราเดียวกับยุ้งฉาง (`keep` = ส่วนที่เหลือ) — คืนสำรับที่เน่า"""
+    lost = 0.0
+    for hid in sorted(_table(sim)):
+        hh = _table(sim)[hid]
+        gone = hh.larder * (1.0 - keep)
+        hh.larder -= gone
+        lost += gone
+    return lost
+
+
+def draw(sim, children, days, ration):
+    """เด็กที่อยู่ในระยะส่งถึงบ้านกินจากครัวก่อน — คืน {cid: สำรับที่ได้} ครัวไม่พอแบ่งตามสัดส่วนความต้องการ
+    `ration(ch)` = สำรับต่อวันของเด็กคนนั้น"""
+    wants = {}
+    for ch in children:
+        hh = of(sim, ch)
+        if hh is not None and hh.larder > 0 and in_reach(sim, hh, ch):
+            wants.setdefault(hh.hid, []).append((ch, days * ration(ch)))
+    fed = {}
+    for hid in sorted(wants):
+        hh = _table(sim)[hid]
+        total = sum(n for _ch, n in wants[hid])
+        share = min(1.0, hh.larder / total) if total > 0 else 0.0
+        for ch, n in wants[hid]:
+            fed[ch.cid] = n * share
+        hh.larder = max(0.0, hh.larder - total * share)
+    if fed:
+        stats = _stats(sim)
+        stats["larder_eaten"] = stats.get("larder_eaten", 0.0) + sum(fed.values())
+    return fed
+
+
+def stock(sim, spare, ration):
+    """กระเป๋ากลางซื้อข้าวเข้าครัวจากยุ้งฉางของที่บ้าน ถึง LARDER_DAYS วันของเด็กที่อยู่ในระยะส่งถึงบ้าน
+    `spare` = {(แดน, สถานที่): ข้าวที่ยุ้งฉางมีเกินระดับที่ต้องเก็บ} ลดลงตามที่ซื้อไป — คืน {บ้าน: ทองที่จ่าย}
+    ทองออกจากกระเป๋าไปลิ้นชักของไร่ที่บ้านตามทางของผู้เรียก"""
+    paid_at = {}
+    stats = _stats(sim)
+    for hid in sorted(_table(sim)):
+        hh = _table(sim)[hid]
+        if hh.home is None or spare.get(hh.home, 0.0) <= 0:
+            continue
+        kids = [ch for ch in children_of(sim, hh) if in_reach(sim, hh, ch)]
+        tier = sim.world(hh.home[0]).tier
+        got = min(C.LARDER_DAYS * sum(ration(ch) for ch in kids) - hh.larder,
+                  spare[hh.home], hh.purse.get(tier, 0.0) / C.FOOD_PRICE)
+        if got <= 0:
+            continue
+        cost = got * C.FOOD_PRICE
+        hh.purse[tier] -= cost
+        hh.larder += got
+        sim.granary[hh.home] -= got
+        spare[hh.home] -= got
+        paid_at[hh.home] = paid_at.get(hh.home, 0.0) + cost
+        stats["larder_stocked"] = stats.get("larder_stocked", 0.0) + got
+    return paid_at
+
+
 def dependants(sim, ch):
     """คนที่ย้ายตาม `ch` เมื่อเขาย้ายครัวเรือน — เด็กในความดูแลที่อยู่ครัวเรือนเดียวกัน"""
     hh = of(sim, ch)
@@ -182,6 +290,12 @@ def marry(sim, a, b):
 def tick(sim):
     """ทุกรอบนาฬิกาโลก: ผู้ใหญ่ (ADULT_AGE) ที่ไม่มีพ่อแม่หรือคู่ครองอยู่ในครัวเรือนเดียวกันแยกไปตั้งครัวเรือนเอง"""
     day, cast = sim.day, sim.cast
+    for hid in sorted(_table(sim)):                    # บ้านย้ายตามที่หัวหน้าไปอยู่ประจำ — ข้าวในครัวคืนยุ้งฉางบ้านเดิม
+        hh = _table(sim)[hid]
+        at = _settled_at(sim, cast[hh.head])
+        if at is not None and at != hh.home:
+            _empty_larder(sim, hh)
+            hh.home = at
     for hid in sorted(_table(sim)):
         hh = _table(sim).get(hid)
         if hh is None or len(hh.members) < 2:
@@ -197,7 +311,7 @@ def tick(sim):
 
 def check(sim):
     """ข้อที่ผิด invariant (ว่าง = ถูกทั้งหมด): ทุกคนที่ยังมีชีวิตอยู่ในครัวเรือนเดียว สมาชิกตรงกับที่ตัวละครชี้
-    หัวหน้าเป็นสมาชิกที่ยังมีชีวิต ไม่มีครัวเรือนว่าง"""
+    หัวหน้าเป็นสมาชิกที่ยังมีชีวิต ไม่มีครัวเรือนว่าง ข้าวในครัวไม่ติดลบ และมีข้าวได้เฉพาะครัวเรือนที่มีบ้าน"""
     problems = []
     table = _table(sim)
     seen = {}
@@ -206,6 +320,8 @@ def check(sim):
             problems.append(f"ครัวเรือน {hid} ไม่มีสมาชิก")
         if hh.head not in hh.members:
             problems.append(f"หัวหน้าครัวเรือน {hid} ไม่ได้อยู่ในครัวเรือน")
+        if hh.larder < -1e-9 or (hh.larder > 1e-9 and hh.home is None):
+            problems.append(f"ครัวของครัวเรือน {hid} ผิด ({hh.larder} ที่ {hh.home})")
         for cid in hh.members:
             ch = sim.cast[cid]
             if not ch.alive:
@@ -226,8 +342,9 @@ def build(sim):
     คู่ครองที่ยังมีชีวิตอยู่ด้วยกัน, เด็กอายุต่ำกว่า 14 อยู่กับผู้ปกครอง (ไม่มีก็พ่อแม่), วัยรุ่นต่ำกว่า ADULT_AGE อยู่กับพ่อแม่ที่ยังมีชีวิต
     นอกนั้นครัวเรือนคนเดียว"""
     cast, day = sim.cast, sim.day
-    for hh in _table(sim).values():                    # สร้างใหม่ทั้งหมด — กระเป๋าเดิม (ถ้ามี) เข้าเงินของหัวหน้า ไม่มีทองหาย
+    for hh in _table(sim).values():                    # สร้างใหม่ทั้งหมด — กระเป๋าเดิม (ถ้ามี) เข้าเงินของหัวหน้า ข้าวคืนยุ้งฉาง ไม่มีอะไรหาย
         _merge(getattr(hh, "purse", {}), cast[hh.head].money)
+        _empty_larder(sim, hh)
     sim.households, sim.household_seq = {}, 0
     living = [cast[c] for c in sorted(sim.alive_cids)]
     for ch in living:

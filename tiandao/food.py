@@ -190,6 +190,7 @@ def tick(sim, days) -> None:
         lost = sim.granary[spot] * (1.0 - keep)
         sim.granary[spot] -= lost
         stats["spoiled"] += lost
+    stats["spoiled"] += HH.spoil(sim, keep)          # ข้าวในครัวของครัวเรือนเน่าอัตราเดียวกัน
 
     eaters_at = collections.defaultdict(list)
     away = []
@@ -220,9 +221,12 @@ def tick(sim, days) -> None:
             stats["child_produced"] = stats.get("child_produced", 0.0) + made - (
                 land_output_per_day(len(workers_at.get(spot, ()))) * days * season)
 
+    # เด็กที่อยู่ในระยะส่งถึงบ้านกินจากครัวของครัวเรือนก่อน (ขั้น H3) ส่วนที่เหลือซื้อจากยุ้งฉาง
+    fed = HH.draw(sim, [ch for spot in sorted(eaters_at) for ch in eaters_at[spot] if ch.age(day) < 14],
+                  days, lambda ch: ration(ch, day))
     sources, short = {}, {}
     for spot in sorted(eaters_at):
-        total = sum(days * ration(ch, day) for ch in eaters_at[spot])
+        total = sum(days * ration(ch, day) - fed.get(ch.cid, 0.0) for ch in eaters_at[spot])
         take = min(sim.granary.get(spot, 0.0), total)
         sim.granary[spot] = sim.granary.get(spot, 0.0) - take
         sources[spot] = {spot: take}
@@ -235,7 +239,9 @@ def tick(sim, days) -> None:
             deficit[dest] -= amount
     short = set()
     for spot in sorted(eaters_at):
-        short |= _feed_place(sim, spot, eaters_at[spot], days, sources[spot])
+        short |= _feed_place(sim, spot, eaters_at[spot], days, sources[spot], fed)
+    if C.WAGES_ENABLED and C.GUARDIANS_ENABLED:
+        _stock_larders(sim, eaters_at)
     for ch in away:
         need = days * ration(ch, day)
         eaten = min(ch.food, need)
@@ -320,15 +326,16 @@ def _relief(sim, ch, amount):
     return 0.0
 
 
-def _feed_place(sim, spot, group, days, sources):
+def _feed_place(sim, spot, group, days, sources, fed):
     """แบ่งข้าวที่ได้มาให้คนในที่นี้ตามความต้องการเท่ากันทุกคน ส่วนที่ขาดหรือซื้อไม่ไหวกินจากเสบียงติดตัว
+    `fed` = {cid: สำรับที่กินจากครัวของครัวเรือนแล้วรอบนี้} หักออกจากความต้องการที่ยุ้งฉาง
 
     `sources` คือข้าวที่ได้มารอบนี้แยกตามยุ้งฉางต้นทาง — ค่าข้าวที่จ่ายแบ่งให้ไร่ต้นทางตามสัดส่วนนี้
     คืนเซต cid ของคนที่ยุ้งฉางให้ได้ไม่ครบรอบนี้ (ต้องควักเสบียงติดตัวหรือหิว)
     """
     day = sim.day
     supplied = sum(sources.values())
-    need = [days * ration(ch, day) for ch in group]
+    need = [days * ration(ch, day) - fed.get(ch.cid, 0.0) for ch in group]
     total = sum(need)
     share = min(1.0, supplied / total) if total > 0 else 1.0
     taken = paid = 0.0
@@ -342,7 +349,8 @@ def _feed_place(sim, spot, group, days, sources):
             short.add(ch.cid)
         from_pack = min(ch.food, n - got)
         ch.food -= from_pack
-        _account(sim, ch, n, got + from_pack, days)
+        home = fed.get(ch.cid, 0.0)
+        _account(sim, ch, n + home, got + from_pack + home, days)
     unsold = supplied - taken                    # ส่งมาเกินหรือไม่มีใครรับไป อยู่ในยุ้งฉางที่นี่ต่อ
     if unsold > _EPS:
         sim.granary[spot] = sim.granary.get(spot, 0.0) + unsold
@@ -365,6 +373,17 @@ def _feed_place(sim, spot, group, days, sources):
     for ch, w in zip(group, want):
         _sell_to_pack(sim, ch, spot, w * give / total_want)
     return short
+
+
+def _stock_larders(sim, eaters_at):
+    """กระเป๋ากลางซื้อข้าวเข้าครัว (household.stock) จากส่วนที่ยุ้งฉางมีเกินระดับที่ต้องเก็บไว้เลี้ยงคนที่นั่น
+    — ทองเข้าลิ้นชักของไร่ที่บ้าน เหมือนซื้อข้าวทั่วไป"""
+    day = sim.day
+    spare = {spot: sim.granary[spot] - C.FOOD_GRANARY_KEEP_DAYS * sum(ration(ch, day) for ch in eaters_at.get(spot, ()))
+             for spot in sim.granary}
+    for home, cost in sorted(HH.stock(sim, spare, lambda ch: ration(ch, day)).items()):
+        sim.farm_till[home] = sim.farm_till.get(home, 0.0) + cost
+        sim.wage_stats["food_bought"] += cost
 
 
 def _sell_to_pack(sim, ch, spot, amount):
@@ -631,6 +650,6 @@ def on_death(sim, ch):
 
 
 def total_held(sim) -> float:
-    """อาหารทั้งหมดที่มีอยู่ในโลกตอนนี้ — เสบียงติดตัวทุกคน (รวมผู้ตาย) + ยุ้งฉางทุกแห่ง"""
+    """อาหารทั้งหมดที่มีอยู่ในโลกตอนนี้ — เสบียงติดตัวทุกคน (รวมผู้ตาย) + ยุ้งฉางทุกแห่ง + ครัวของทุกครัวเรือน"""
     return (sum(ch.food for ch in sim.cast if ch.food is not None)
-            + sum(sim.granary.values()))
+            + sum(sim.granary.values()) + HH.larder_food(sim))

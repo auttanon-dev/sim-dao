@@ -153,6 +153,7 @@ class PurseTests(unittest.TestCase):
         setup_person(self.sim, self.child, 3, food=0.0, age=6)
         GUARD.assign(self.sim, self.child, self.parent, "รับเลี้ยง")
         self.hh = HH.of(self.sim, self.parent)
+        self.hh.home = (0, 3)                          # บ้านอยู่ที่ที่ผู้ปกครองอยู่ประจำ (setup_person ย้ายเขามาหลังตั้งครัวเรือน)
         self.tier = self.sim.world(0).tier
         self.parent.money[self.tier] = 1000.0
 
@@ -180,7 +181,10 @@ class PurseTests(unittest.TestCase):
         self.hh.head = self.other.cid if False else self.hh.head
         self.parent.place = far
         self.child.place = far
-        self.assertTrue(HH.in_reach(self.sim, self.hh, self.parent), "บ้านย้ายตามหัวหน้า")
+        self.assertFalse(HH.in_reach(self.sim, self.hh, self.parent), "บ้านไม่ย้ายทันทีที่หัวหน้าเดินไปที่อื่น")
+        HH.tick(self.sim)
+        self.assertEqual(self.hh.home, (0, far))
+        self.assertTrue(HH.in_reach(self.sim, self.hh, self.parent), "หัวหน้าอยู่ประจำที่ใหม่แล้ว บ้านย้ายตาม")
         self.child.place = 3
         self.assertFalse(HH.in_reach(self.sim, self.hh, self.child), "เด็กอยู่นอกระยะส่งถึงบ้าน")
         self.assertEqual(single.purse, {})
@@ -238,7 +242,109 @@ class PurseTests(unittest.TestCase):
         self.assertEqual(back.rng.getstate(), state)
 
 
+class LarderTests(unittest.TestCase):
+    """ครัว (ขั้น H3) — ข้าวอยู่ที่บ้าน นับใน food.total_held ไม่ย้ายข้ามที่"""
+    setUp = PurseTests.setUp
+
+    def food(self):
+        from tiandao import food as FOOD
+        return FOOD.total_held(self.sim)
+
+    def test_only_children_within_reach_of_home_draw_from_the_larder(self):
+        self.hh.larder = 100.0
+        ration = lambda ch: 1.0
+        self.assertEqual(HH.draw(self.sim, [self.child], 10, ration), {self.child.cid: 10.0})
+        self.assertAlmostEqual(self.hh.larder, 90.0)
+        self.child.travel_dest = 5
+        self.assertEqual(HH.draw(self.sim, [self.child], 10, ration), {}, "กำลังเดินทาง")
+        self.child.travel_dest = -1
+        self.child.world_id = next(w.wid for w in self.sim.worlds if w.wid != 0)
+        self.assertEqual(HH.draw(self.sim, [self.child], 10, ration), {}, "อยู่แดนอื่น")
+        self.child.world_id = 0
+        self.assertEqual(HH.draw(self.sim, [self.child], 1000, ration), {self.child.cid: 90.0}, "ครัวไม่พอ ได้เท่าที่มี")
+        self.assertAlmostEqual(self.hh.larder, 0.0)
+
+    def test_the_purse_stocks_only_from_the_granarys_spare_at_the_market_price(self):
+        self.sim.granary[(0, 3)] = 500.0
+        self.hh.purse[self.tier] = 100.0
+        self.parent.money[self.tier] -= 100.0
+        food, till = self.food(), self.sim.farm_till.get((0, 3), 0.0)
+        ration = lambda ch: 2.0
+        paid = HH.stock(self.sim, {(0, 3): 40.0}, ration)
+        self.assertAlmostEqual(self.hh.larder, 40.0, msg="ไม่เกินส่วนเกินของยุ้งฉาง")
+        self.assertAlmostEqual(paid[(0, 3)], 40.0 * C.FOOD_PRICE)
+        self.assertAlmostEqual(self.hh.purse[self.tier], 100.0 - 40.0 * C.FOOD_PRICE)
+        HH.stock(self.sim, {(0, 3): 1000.0}, ration)
+        self.assertAlmostEqual(self.hh.larder, C.LARDER_DAYS * 2.0, msg="ไม่เกิน LARDER_DAYS วันของเด็ก")
+        self.assertAlmostEqual(self.food(), food, msg="ข้าวแค่ย้ายจากยุ้งฉางเข้าครัว")
+        self.assertEqual(self.sim.farm_till.get((0, 3), 0.0), till, "ผู้เรียกส่งทองเข้าลิ้นชักไร่")
+
+    def test_a_moving_home_returns_the_larder_to_the_old_granary(self):
+        self.hh.larder = 30.0
+        food, old = self.food(), self.sim.granary.get((0, 3), 0.0)
+        self.parent.travel_dest = 7
+        HH.tick(self.sim)
+        self.assertEqual(self.hh.home, (0, 3), "เดินทางอยู่ บ้านยังไม่ย้าย")
+        self.parent.travel_dest, self.parent.place = -1, 7
+        HH.tick(self.sim)
+        self.assertEqual((self.hh.home, self.hh.larder), ((0, 7), 0.0))
+        self.assertAlmostEqual(self.sim.granary[(0, 3)], old + 30.0)
+        self.assertAlmostEqual(self.food(), food)
+
+    def test_food_is_conserved_through_marriage_across_places_and_the_last_death(self):
+        solo = HH.of(self.sim, self.other)
+        solo.home, solo.larder = (0, 9), 12.0
+        self.hh.larder = 20.0
+        food, there = self.food(), self.sim.granary.get((0, 9), 0.0)
+        self.sim.marry(self.parent, self.other)              # บ้านอยู่คนละที่: ข้าวคืนยุ้งฉางที่ (0, 9)
+        self.assertAlmostEqual(self.hh.larder, 20.0)
+        self.assertAlmostEqual(self.sim.granary[(0, 9)], there + 12.0)
+        HH.found(self.sim, self.child)
+        quiet(self.sim.kill, self.other, "ทดสอบ")
+        quiet(self.sim.kill, self.parent, "ทดสอบ")           # คนสุดท้าย: ข้าวในครัวคืนยุ้งฉางที่บ้าน
+        self.assertNotIn(self.hh.hid, self.sim.households)
+        self.assertAlmostEqual(self.food(), food)
+
+    def test_a_household_dissolving_into_one_at_the_same_home_brings_its_larder(self):
+        solo = HH.of(self.sim, self.other)
+        solo.home, solo.larder = (0, 3), 12.0
+        food = self.food()
+        HH.join(self.sim, self.other, self.hh)
+        self.assertAlmostEqual(self.hh.larder, 12.0)
+        self.assertAlmostEqual(self.food(), food)
+
+    def test_a_version_18_save_gets_empty_larders_and_a_fixed_home_without_moving_the_rng(self):
+        for hh in self.sim.households.values():
+            hh.__dict__.pop("larder", None)
+            hh.__dict__.pop("home", None)
+        state = self.sim.rng.getstate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "old.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 18, "sim": self.sim}, f)
+            back = PS.load_sim(path)
+        self.assertTrue(all(hh.larder == 0.0 for hh in back.households.values()))
+        self.assertEqual(back.households[self.hh.hid].home, (0, 3))
+        self.assertEqual(back.rng.getstate(), state)
+
+
 class RunningWorldTests(unittest.TestCase):
+    def test_a_running_world_keeps_its_food_ledger_with_larders(self):
+        from tiandao import food as FOOD
+        sim = quiet(S.Sim, seed=11)
+        for _ in range(4):
+            quiet(sim.run, 3000)
+            self.assertAlmostEqual(FOOD.total_held(sim), FOOD.ledger_balance(sim.food_stats), places=4)
+            self.assertEqual(HH.check(sim), [])
+        self.assertGreater(HH.larder_food(sim), 0.0)
+        self.assertGreater(sim.household_stats.get("larder_eaten", 0.0), 0.0)
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "w.save")
+            PS.save_sim(sim, path)
+            back = PS.load_sim(path)
+        self.assertEqual({h: (v.home, v.larder) for h, v in back.households.items()},
+                         {h: (v.home, v.larder) for h, v in sim.households.items()})
+
     def test_a_world_with_purses_keeps_its_gold_ledger(self):
         from tiandao import wages as WAGES
         sim = quiet(S.Sim, seed=11)

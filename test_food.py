@@ -403,6 +403,7 @@ class FoodSaveTests(unittest.TestCase):
         sim = quiet(S.Sim, seed=5)
         quiet(sim.run, 200)
         del sim.granary, sim.food_stats, sim.food_day
+        sim.households = {}                          # เซฟรุ่น 2 ยังไม่มีครัวเรือน (สร้างใหม่ตอนย้ายรุ่น 17)
         rng_state = sim.rng.getstate()
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "world.save")
