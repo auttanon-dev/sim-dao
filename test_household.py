@@ -328,6 +328,80 @@ class LarderTests(unittest.TestCase):
         self.assertEqual(back.rng.getstate(), state)
 
 
+class SuccessionTests(unittest.TestCase):
+    """สืบทอดและคลังตระกูล (ขั้น H4) — ทองและข้าวตรงตัวทุกทาง"""
+    setUp = PurseTests.setUp
+
+    def totals(self):
+        from tiandao import food as FOOD, wages as WAGES
+        return WAGES.total_gold(self.sim, self.tier), FOOD.total_held(self.sim)
+
+    def fund(self, purse=5.0, larder=20.0):
+        self.hh.purse[self.tier] = purse
+        self.parent.money[self.tier] -= purse
+        self.hh.larder = larder
+
+    def test_the_successor_takes_the_household_with_its_purse_and_larder_intact(self):
+        self.sim.marry(self.parent, self.other)
+        self.fund()
+        before = self.totals()
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertEqual(self.hh.head, self.other.cid, "คู่ครองรับช่วง")
+        self.assertIn(self.hh.hid, self.sim.households)
+        self.assertEqual((self.hh.purse[self.tier], self.hh.larder), (5.0, 20.0))
+        self.assertAlmostEqual(self.totals()[0], before[0])
+        self.assertAlmostEqual(self.totals()[1], before[1])
+
+    def heirless_last_member(self):
+        self.parent.spouse, self.parent.children = None, []
+        HH.found(self.sim, self.child)                       # เด็กแยกไป ผู้ปกครองเหลือคนเดียวพร้อมกระเป๋าและครัว
+        self.fund()
+        self.assertEqual(self.sim.heirs_of(self.parent), [])
+
+    def test_an_heirless_clan_member_leaves_the_purse_to_the_clan_and_the_larder_to_the_granary(self):
+        self.heirless_last_member()
+        self.parent.clan = 2
+        granary = self.sim.granary.get((0, 3), 0.0) + self.parent.food     # เสบียงติดตัวของผู้ตายเข้ายุ้งฉางด้วย (food.on_death)
+        before = self.totals()
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertNotIn(self.hh.hid, self.sim.households)
+        self.assertAlmostEqual(self.sim.clan_treasury[2][self.tier], 5.0)
+        self.assertAlmostEqual(self.sim.granary[(0, 3)], granary + 20.0)
+        self.assertAlmostEqual(self.totals()[0], before[0])
+        self.assertAlmostEqual(self.totals()[1], before[1])
+
+    def test_without_a_clan_the_purse_follows_the_old_estate_rules(self):
+        self.heirless_last_member()
+        self.parent.clan = -1
+        before = self.totals()
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertEqual(self.sim.clan_treasury, {})
+        self.assertAlmostEqual(self.totals()[0], before[0])
+        self.assertAlmostEqual(self.totals()[1], before[1])
+
+    def test_a_living_heir_outside_the_household_inherits_the_purse_not_the_clan(self):
+        self.heirless_last_member()
+        self.parent.clan = 2
+        self.parent.children = [self.other.cid]
+        self.other.born_day = self.sim.day - 30 * 365
+        heir_gold = self.other.money.get(self.tier, 0.0)
+        own = self.parent.money[self.tier]
+        quiet(self.sim.kill, self.parent, "ทดสอบ")
+        self.assertEqual(self.sim.clan_treasury.get(2, {}), {})
+        self.assertAlmostEqual(self.other.money[self.tier], heir_gold + own + 5.0)
+
+    def test_a_version_19_save_gets_an_empty_clan_treasury_without_moving_the_rng(self):
+        del self.sim.clan_treasury
+        state = self.sim.rng.getstate()
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "old.save")
+            with open(path, "wb") as f:
+                pickle.dump({"save_version": 19, "sim": self.sim}, f)
+            back = PS.load_sim(path)
+        self.assertEqual(back.clan_treasury, {})
+        self.assertEqual(back.rng.getstate(), state)
+
+
 class RunningWorldTests(unittest.TestCase):
     def test_a_running_world_keeps_its_food_ledger_with_larders(self):
         from tiandao import food as FOOD

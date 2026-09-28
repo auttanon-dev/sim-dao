@@ -26,6 +26,10 @@
   เฉพาะส่วนที่ยุ้งฉางมีเกินระดับที่ต้องเก็บไว้เลี้ยงคนที่นั่น (FOOD_GRANARY_KEEP_DAYS)
 - ข้าวไม่ย้ายข้ามที่: บ้านย้าย ครัวเรือนสลาย หรือย้ายเข้าครัวเรือนที่บ้านอยู่ที่อื่น ข้าวในครัวคืนยุ้งฉางของบ้านเดิม
   (`_empty_larder`) ครัวเรือนที่สลายรวมเข้าครัวเรือนที่บ้านอยู่ที่เดียวกัน ข้าวรวมเข้าครัวใหม่
+
+สืบทอด (ขั้น H4): หัวหน้าตาย ครัวเรือนอยู่ต่อพร้อมกระเป๋าและข้าวในครัวครบ ผู้รับช่วงตาม `_next_head`
+(คู่ครอง → สมาชิกที่เติบใหญ่แล้วอายุมากสุด → สมาชิกอายุมากสุด) คนสุดท้ายตายโดยไม่มีทายาท (Sim.heirs_of) และอยู่ในตระกูล
+กระเป๋าเข้าคลังตระกูล (`sim.clan_treasury[clan]` นับใน wages.total_gold) ไม่งั้นตามกฎมรดกเดิม ข้าวในครัวคืนยุ้งฉางของบ้านเสมอ
 """
 from . import config as C
 from . import travel as TR
@@ -129,11 +133,27 @@ def _next_head(sim, hh, old):
 
 def on_death(sim, ch):
     """ออกจากครัวเรือนตอนตาย — เป็นคนสุดท้ายแล้วกระเป๋าเข้าเงินของเขา (Sim.kill เรียกก่อน settle_estate จึงตกทอดตามกฎมรดก)
-    และข้าวในครัวคืนยุ้งฉางของบ้าน"""
+    ไม่มีทายาทแต่อยู่ในตระกูล กระเป๋าเข้าคลังตระกูลแทน ข้าวในครัวคืนยุ้งฉางของบ้าน"""
     old = _leave(sim, ch)
-    if old is not None:
+    if old is None:
+        return
+    if getattr(ch, "clan", -1) >= 0 and not sim.heirs_of(ch):
+        _merge(old.purse, clan_purse(sim, ch.clan))
+        stats = _stats(sim)
+        stats["to_clan"] = stats.get("to_clan", 0.0) + sum(old.purse.values())
+    else:
         _merge(old.purse, ch.money)
-        _empty_larder(sim, old)
+    old.purse = {}
+    _empty_larder(sim, old)
+
+
+def clan_purse(sim, clan):
+    """คลังตระกูล {tier: ทอง} (ศาลบรรพชน) — รับกระเป๋าของครัวเรือนที่สลายโดยไม่มีทายาท"""
+    return sim.__dict__.setdefault("clan_treasury", {}).setdefault(clan, {})
+
+
+def clan_gold(sim, tier):
+    return sum(t.get(tier, 0.0) for t in getattr(sim, "clan_treasury", {}).values())
 
 
 # ---------------------------------------------------------------- กระเป๋ากลาง (ขั้น H2)

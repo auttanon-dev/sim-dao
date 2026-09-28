@@ -55,7 +55,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  17 — ครัวเรือน (sim.households, Character.household) สร้างจากคู่ครอง ผู้ปกครอง และพ่อแม่
 #  18 — กระเป๋ากลางของครัวเรือน (Household.purse) เริ่มว่าง
 #  19 — บ้านที่ตายตัว (Household.home) และข้าวในครัว (Household.larder) เริ่มว่าง
-SAVE_VERSION = 19
+#  20 — คลังตระกูล (Sim.clan_treasury) เริ่มว่าง
+SAVE_VERSION = 20
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -304,6 +305,8 @@ def _migrate(sim, version):
         for hh in getattr(sim, "households", {}).values():
             hh.larder = 0.0             # บ้านตั้งจากที่อยู่ของหัวหน้าตอนนี้ (None ถ้าเดินทางอยู่ ย้ายเข้าที่ตอน tick) ไม่แตะ RNG
             hh.home = HH._settled_at(sim, sim.cast[hh.head])
+    if version < 20:
+        sim.__dict__.setdefault("clan_treasury", {})
 
 
 def _cities_into_save(sim):

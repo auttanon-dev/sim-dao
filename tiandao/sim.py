@@ -99,6 +99,7 @@ class Sim:
         self.wage_stats = WAGES.new_stats()
         self.guardian_stats = GUARD.new_stats()
         self.households, self.household_seq = {}, 0   # tiandao/household.py
+        self.clan_treasury = {}   # clan -> {tier: ทอง} กระเป๋าของครัวเรือนที่สลายโดยไม่มีทายาท (household.on_death)
         self.cities = copy.deepcopy(C.CITIES)   # เมืองของโลกนี้ — เจ้าเมืองอยู่ในเซฟ (เดิมแก้ config.CITIES ของ module)
         self.seq = 0
         self.cast = []
@@ -905,7 +906,7 @@ class Sim:
         if ch.realm == 0:
             w.n_mortal -= 1
         R.death_return(w, ch, natural)
-        HH.on_death(self, ch)                    # คนสุดท้ายของครัวเรือน: กระเป๋ากลางเข้าเงินของเขาก่อนแบ่งมรดก
+        HH.on_death(self, ch)                    # คนสุดท้ายของครัวเรือน: กระเป๋ากลางเข้าเงินของเขาก่อนแบ่งมรดก (ไม่มีทายาท: คลังตระกูล)
         self.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
         mate = self.cast[ch.spouse] if ch.spouse is not None and 0 <= ch.spouse < len(self.cast) else None
         if mate is not None and mate.spouse == ch.cid:
