@@ -255,6 +255,7 @@ class Character:
     # เหตุการณ์วัยเด็กแบบย่อ เก็บหนึ่งรายการต่ออายุหนึ่งปี เพื่อให้ตัวละครที่ถูกเลือกเป็น
     # ผู้มีจิตใจภายหลังยังมีอดีตตั้งแต่เกิด โดยไม่ต้องแบก event log ทั้งโลกไว้ตลอดกาล
     childhood: List[dict] = field(default_factory=list)
+    childhood_gain: Dict[str, float] = field(default_factory=dict)   # ผลสะสมจากกิจวัตรวัยเด็กที่มีเพดานตลอดชีวิต
     children: List[int] = field(default_factory=list)
     # เคยถูกประกาศสองที่ในคลาสเดียวกัน (ที่นี่ = 0 และอีกครั้งใต้ enemies_defeated = 1)
     # Python เก็บอันหลัง ค่าที่มีผลจริงจึงเป็น 1 ซึ่งถูกแล้ว (ผู้ก่อตั้งสายเลือดคือ "รุ่นที่ 1")
@@ -591,6 +592,7 @@ class Character:
         self.__dict__.setdefault("jail_until", 0)
         self.__dict__.setdefault("jailer", -1)
         self.__dict__.setdefault("birth_wid", self.__dict__.get("world_id", -1))
+        self.__dict__.setdefault("childhood_gain", {})
         self.__dict__.setdefault("system_foresight", False)
         self.__dict__.setdefault("visions", [])
         self.__dict__.setdefault("foreseen", {})

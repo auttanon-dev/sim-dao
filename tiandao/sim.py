@@ -1401,6 +1401,8 @@ class Sim:
         if ch.process is not None and ch.process.kind != "cultivation":
             R.cultivate(ch, days * rate, self.items)
             return None
+        if CHILD.teaching(self, ch):
+            rate *= C.GUARDIAN_TEACH_COST        # เวลาที่ใช้สอนเด็กในความดูแล (childhood.py) ไม่ได้ใช้บำเพ็ญ
         return self.start_process(ch, "cultivation", days, None, rate)
 
     def settle_routine(self, ch):
@@ -5387,23 +5389,16 @@ class Sim:
             if not isinstance(getattr(t, "mastery", None), dict):
                 t.mastery = {}
             # สอนได้เฉพาะวิชาที่ **ตัวเองเข้าใจพอ** และผู้รับยังไม่มี — เลือกอันที่ชำนาญที่สุด
-            teachable = [n for n in a.skills if n not in t.skills
-                         and a.mastery.get(n, 0) >= C.TEACH_MIN_REPS]
+            teachable = R.teachable(a, t)
             if not teachable:
                 # แยก outcome ออกให้วัดได้ — ไม่งั้น "สอนแล้วไม่มีอะไรจะสอน" กับ "สอนสำเร็จ"
                 # จะถูกนับรวมกันจนมองไม่เห็นว่ากลไกทำงานจริงหรือเปล่า (บทเรียนจากรอบที่แล้ว)
                 d["ที่ผู้รับได้"] = "ได้แต่หลักคิด ไม่ได้ตัววิชา"
                 return "ไม่มีวิชาจะสอน", f"{a.name}ถ่ายทอดวิถีให้{t.name} แต่ไม่มีวิชาที่ส่งต่อได้", d
-            name = max(teachable, key=lambda n: (a.mastery.get(n, 0), n))
-            sk = next((x for x in SK.SKILLS if x[0] == name), None)
             # รับได้ไหม ขึ้นกับสามอย่าง: ขั้นของผู้รับถึงเกรดวิชาไหม · ธาตุถูกกันไหม ·
-            # อาจารย์เข้าใจลึกแค่ไหน (สอนสิ่งที่ตัวเองรู้ครึ่งๆ กลางๆ ก็ได้ผลครึ่งๆ กลางๆ)
-            bar = SK.GRADE_REALM_BAR[sk[3]] if sk else 0
-            aff = EL.affinity(EL.ensure(t), EL.skill_element(name))
-            deep = PHYS.practice_mastery(a.mastery.get(name, 1), C.PRACTICE_EXPONENT)
-            p_ok = (C.TEACH_BASE_P + C.TEACH_REALM_W * (t.realm - bar)
-                    + C.ELEMENT_LEARN_W * aff + C.TEACH_DEPTH_W * deep)
-            d["p"] = max(0.05, min(0.95, p_ok))
+            # อาจารย์เข้าใจลึกแค่ไหน (สอนสิ่งที่ตัวเองรู้ครึ่งๆ กลางๆ ก็ได้ผลครึ่งๆ กลางๆ) — rules.teach_chance
+            name = teachable[0]
+            d["p"], deep = R.teach_chance(a, t, name)
             d["วิชาที่สอน"] = f"{name} (ธาตุ{EL.skill_element(name)} · อาจารย์ชำนาญ {deep:.0%})"
             if rng.random() > d["p"]:
                 t.insight += C.TRAIN_FAIL_INSIGHT

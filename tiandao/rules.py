@@ -8,7 +8,7 @@ from . import physics as PHYS
 from . import elements as EL
 from . import body as BODY
 from .models import Character, World
-from .skills import GRADE_POWER, ANTI_CHAOS_CUT, SKILLS
+from .skills import GRADE_POWER, ANTI_CHAOS_CUT, GRADE_REALM_BAR, SKILLS
 
 SKILL_INDEX = {s[0]: s for s in SKILLS}
 
@@ -357,6 +357,29 @@ def escape_with_talisman(sim, ch) -> bool:
             del sim.items[iid]
             return True
     return False
+
+
+def teachable(teacher, student, max_grade=None):
+    """วิชาที่ครูสอนได้ (ฝึกมาแล้วอย่างน้อย TEACH_MIN_REPS ครั้ง) และผู้รับยังไม่มี — ชำนาญมากที่สุดก่อน
+    `max_grade` จำกัดเกรดวิชา (เด็กขั้น 0 เรียนได้แค่เกรด 0)"""
+    mastery = teacher.mastery if isinstance(getattr(teacher, "mastery", None), dict) else {}
+    grade = {sk[0]: sk[3] for sk in SKILLS}
+    names = [n for n in teacher.skills if n not in student.skills and mastery.get(n, 0) >= C.TEACH_MIN_REPS
+             and (max_grade is None or grade.get(n, 0) <= max_grade)]
+    return sorted(names, key=lambda n: (mastery.get(n, 0), n), reverse=True)   # ลำดับเดียวกับ max() เดิม
+
+
+def teach_chance(teacher, student, name):
+    """(โอกาสที่ผู้รับรับวิชานี้ไหว, ความลึกของครู) — ขั้นของผู้รับเทียบเกณฑ์ของวิชา ธาตุถูกกันไหม และครูเข้าใจลึกแค่ไหน
+    กฎเดียวของการถ่ายทอดวิชา ใช้ทั้งการกระทำ "ถ่ายทอดวิชา" ของผู้ใหญ่ และการเรียนกับผู้ปกครองวัยเด็ก (childhood.py)"""
+    sk = next((x for x in SKILLS if x[0] == name), None)
+    bar = GRADE_REALM_BAR[sk[3]] if sk else 0
+    aff = EL.affinity(EL.ensure(student), EL.skill_element(name))
+    mastery = teacher.mastery if isinstance(getattr(teacher, "mastery", None), dict) else {}
+    deep = PHYS.practice_mastery(mastery.get(name, 1), C.PRACTICE_EXPONENT)
+    p = (C.TEACH_BASE_P + C.TEACH_REALM_W * (student.realm - bar)
+         + C.ELEMENT_LEARN_W * aff + C.TEACH_DEPTH_W * deep)
+    return max(0.05, min(0.95, p)), deep
 
 
 def fight(sim, world, a, b, rng, day=None, lethal_at=None, plunder=False, lethal=True):

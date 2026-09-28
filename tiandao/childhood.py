@@ -8,6 +8,9 @@
 - 0–2 ได้รับการเลี้ยงดู — ผูกพันกับผู้ดูแล ไม่มีตัวเลือก
 - 3–13 เล่นกับเด็กที่อยู่ที่เดียวกัน (ผูกพันกันสองทาง) / เรียนรู้ที่บ้านกับผู้ดูแล / พัก
 - 7–13 ช่วยงานบ้าน: แรงงาน CHILD_LABOUR_SHARE ของผู้ใหญ่ในการผลิตอาหารของที่ที่อยู่ (food.tick) ไม่มีค่าแรง
+- 7–13 เรียนกับผู้ปกครอง: ผู้ปกครองที่อยู่ด้วยและมีวิชาเกรด 0 ที่สอนได้ — โอกาสได้วิชาตามกฎเดียวกับ "ถ่ายทอดวิชา"
+  (rules.teach_chance) คิดตามส่วนของปีที่เรียนจริง ความเข้าใจเพิ่มไม่เกิน CHILD_INSIGHT_CAP ตลอดวัยเด็ก
+  ผู้ปกครองที่กำลังสอนบำเพ็ญได้ GUARDIAN_TEACH_COST ของปกติ (Sim.begin_cultivation)
 
 ขอความช่วยเหลือ: เทิร์นของเด็กที่หิวหรืออยู่ที่ที่ไม่มีข้าวใกล้ๆ ขอให้คนที่อยู่ใกล้ข้าวรับไปเลี้ยง (guardians.refoster)
 ก่อนเลือกกิจวัตร — ไม่ต้องรอหิวจนระบบอาหารพาไป
@@ -18,9 +21,11 @@ import random
 
 from . import config as C
 from . import guardians as GUARD
+from . import rules as R
 
 CARE, PLAY, HOME, REST = "ได้รับการเลี้ยงดู", "เล่นกับเพื่อน", "เรียนรู้ที่บ้าน", "พักผ่อน"
 CHORES = "ช่วยงานบ้าน"
+STUDY = "เรียนกับผู้ปกครอง"
 CHORE_AGE = 7
 BAND_OUTCOME = ((2, "ได้รับการเลี้ยงดู"), (6, "เรียนรู้โลก"), (10, "ช่วยครอบครัว"), (13, "เตรียมเติบใหญ่"))
 MAX_PLAYMATES = 3
@@ -68,12 +73,24 @@ def choose(sim, child, rng):
             weight += 1.5
         together = [home.cid] if home is not None and home.place == child.place else []
         options.append((CHORES, weight, together))
+        if home is not None and home.place == child.place and R.teachable(home, child, max_grade=0):
+            options.append((STUDY, 2.0, [home.cid]))
     roll = rng.random() * sum(w for _, w, _ in options)
     for routine, w, with_ in options:
         roll -= w
         if roll < 0:
             return routine, with_
     return options[-1][0], options[-1][2]
+
+
+def teaching(sim, ch) -> bool:
+    """ผู้ใหญ่คนนี้กำลังสอนเด็กในความดูแลอยู่ไหม (เด็กที่เรียนกับเขาและกิจวัตรยังไม่จบ)"""
+    for cid in getattr(ch, "wards", ()):
+        p = sim.cast[cid].process if 0 <= cid < len(sim.cast) else None
+        if (p is not None and p.kind == "upbringing" and p.payload.get("routine") == STUDY
+                and ch.cid in p.payload["with"] and p.end_day > sim.day):
+            return True
+    return False
 
 
 def labour(ch, day) -> float:
@@ -132,16 +149,18 @@ def _to_granary(sim, child):
 
 def start(sim, child, end_day, rng):
     routine, with_ = choose(sim, child, rng)
-    p = sim.start_process(child, "upbringing", end_day - sim.day,
-                          {"routine": routine, "with": with_, "guardian": getattr(child, "guardian", -1),
-                           "carry": {}}, C.CHILD_BOND_PER_YEAR)
-    return p
+    payload = {"routine": routine, "with": with_, "guardian": getattr(child, "guardian", -1), "carry": {}}
+    if routine == STUDY:
+        payload["skill"] = R.teachable(sim.cast[with_[0]], child, max_grade=0)[0]
+    return sim.start_process(child, "upbringing", end_day - sim.day, payload, C.CHILD_BOND_PER_YEAR)
 
 
 def accrue(sim, child, p, days):
     """ผูกพันตามวันที่ทำจริง — สะสมเศษไว้ใน payload แล้วเพิ่มเป็นจำนวนเต็ม (bonds เป็นจำนวนเต็มทั้งเอนจิน)"""
     if p.payload["routine"] == REST:
         return
+    if p.payload["routine"] == STUDY:
+        _study(sim, child, p, days)
     carry = p.payload["carry"]
     gain = days / 365.0 * p.yield_rate
     for cid in p.payload["with"]:
@@ -156,11 +175,34 @@ def accrue(sim, child, p, days):
             other.bonds[child.cid] = other.bonds.get(child.cid, 0) + whole
 
 
+def _gain(child, key, amount, cap):
+    """เพิ่มผลวัยเด็กไม่เกินเพดานตลอดชีวิต — คืนส่วนที่ได้จริง"""
+    got = max(0.0, min(amount, cap - child.childhood_gain.get(key, 0.0)))
+    child.childhood_gain[key] = child.childhood_gain.get(key, 0.0) + got
+    return got
+
+
+def _study(sim, child, p, days):
+    """เรียนกับผู้ปกครอง: ความเข้าใจตามวันที่เรียน (มีเพดาน) และโอกาสได้วิชา = teach_chance × ส่วนของปีที่เรียนช่วงนี้
+    สุ่มจากสตรีมของเด็ก (seed, cid, วัน) ไม่แตะ rng ของโลก ได้วิชาแล้วเรียนต่อได้แต่ไม่ได้วิชาเดิมซ้ำ"""
+    child.insight += _gain(child, "insight", days / 365.0 * C.CHILD_STUDY_INSIGHT_PER_YEAR, C.CHILD_INSIGHT_CAP)
+    name = p.payload.get("skill")
+    teacher = sim.cast[p.payload["with"][0]]
+    if not name or name in child.skills or not teacher.alive:
+        return
+    chance, _deep = R.teach_chance(teacher, child, name)
+    if _rng(sim, child).random() < chance * min(1.0, days / 365.0):
+        child.learn_skill(name)
+        child.childhood_gain["skills"] = child.childhood_gain.get("skills", 0.0) + 1
+        sim.emit(sim.world(child.world_id), "เรียนวิชา", child, teacher, ["วัยเด็ก", "วิชา"], "ได้วิชา",
+                 f"{child.name}เรียน{name}จาก{teacher.name}จนทำได้", 0, {"วิชา": name, "โอกาส": f"{chance:.0%}"})
+
+
 def broken(sim, child, p):
     """เหตุที่กิจวัตรนี้ไปต่อไม่ได้ (None = ไปต่อได้) — ตรวจทุกรอบนาฬิกาโลก"""
     if getattr(child, "guardian", -1) != p.payload.get("guardian", -1):
         return "ผู้ปกครองเปลี่ยน"
-    if p.payload["routine"] in (CARE, HOME) and any(not sim.cast[c].alive for c in p.payload["with"]):
+    if p.payload["routine"] in (CARE, HOME, STUDY) and any(not sim.cast[c].alive for c in p.payload["with"]):
         return "ผู้ดูแลจากไป"
     return None
 
@@ -180,6 +222,8 @@ def turn(sim, child, world, elapsed, rng):
         text = f"{child.name}วัย {age} ปี เล่นซนกับ{names}จนสนิทกัน"
     elif routine == HOME:
         text = f"{child.name}วัย {age} ปี เรียนรู้ผู้คนและวิถีชีวิตจาก{names}"
+    elif routine == STUDY:
+        text = f"{child.name}วัย {age} ปี เรียน{p.payload['skill']}กับ{names}"
     elif routine == CHORES:
         text = (f"{child.name}วัย {age} ปี ช่วย{names}ทำงานหาอาหาร" if names
                 else f"{child.name}วัย {age} ปี ช่วยงานเก็บหาอาหารที่{sim.place_name(child)}")

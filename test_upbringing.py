@@ -192,6 +192,84 @@ class UpbringingTests(unittest.TestCase):
         self.assertEqual(kid.guardian, self.adult.cid)
         self.assertFalse(any(e.kind == "ขอความช่วยเหลือ" for e in self.sim.log))
 
+    # ---------------------------------------------------------------- ขั้น C1: เรียนกับผู้ปกครอง
+    def teacher_with_skill(self):
+        from tiandao import skills as SK
+        name = next(sk[0] for sk in SK.SKILLS if sk[3] == 0)
+        self.adult.skills, self.adult.mastery = [name], {name: 20}
+        return name
+
+    def study(self, kid, name, days=365):
+        return self.sim.start_process(kid, "upbringing", days, {"routine": CHILD.STUDY, "with": [self.adult.cid],
+                                                                "guardian": kid.guardian, "carry": {}, "skill": name},
+                                      C.CHILD_BOND_PER_YEAR)
+
+    def test_study_is_offered_only_with_a_guardian_here_who_can_teach(self):
+        kid = self.child(9)
+
+        def seen():
+            options = set()
+            for day in range(5000, 5060):
+                self.sim.day = day
+                options.add(CHILD.choose(self.sim, kid, CHILD._rng(self.sim, kid))[0])
+            return options
+
+        self.adult.skills = []
+        self.assertNotIn(CHILD.STUDY, seen())
+        name = self.teacher_with_skill()
+        self.assertIn(CHILD.STUDY, seen())
+        self.adult.place = kid.place + 1
+        self.assertNotIn(CHILD.STUDY, seen(), "ผู้ปกครองต้องอยู่ที่เดียวกัน")
+        self.adult.place = kid.place
+        kid.skills = [name]
+        self.assertNotIn(CHILD.STUDY, seen(), "ไม่มีวิชาที่เด็กยังไม่มี")
+
+    def test_the_adult_teaching_rule_is_the_shared_one(self):
+        from tiandao import rules as R
+        name = self.teacher_with_skill()
+        kid = self.child(9)
+        chance, deep = R.teach_chance(self.adult, kid, name)
+        from tiandao import elements as EL, physics as PHYS
+        expect = (C.TEACH_BASE_P + C.TEACH_REALM_W * kid.realm
+                  + C.ELEMENT_LEARN_W * EL.affinity(EL.ensure(kid), EL.skill_element(name))
+                  + C.TEACH_DEPTH_W * PHYS.practice_mastery(20, C.PRACTICE_EXPONENT))
+        self.assertAlmostEqual(chance, max(0.05, min(0.95, expect)))
+        self.assertEqual(R.teachable(self.adult, kid), [name])
+
+    def test_study_insight_stops_at_the_lifetime_cap(self):
+        name = self.teacher_with_skill()
+        kid = self.child(9)
+        kid.childhood_gain = {"insight": C.CHILD_INSIGHT_CAP - 0.1}
+        insight = kid.insight
+        self.study(kid, name)
+        self.sim.day += 365
+        with mock.patch.object(CHILD.R, "teach_chance", return_value=(0.0, 0.0)):
+            self.sim.settle_routine(kid)
+        self.assertAlmostEqual(kid.insight - insight, 0.1)
+        self.assertAlmostEqual(kid.childhood_gain["insight"], C.CHILD_INSIGHT_CAP)
+
+    def test_a_full_year_of_study_at_a_sure_chance_teaches_the_skill_without_touching_the_world_rng(self):
+        name = self.teacher_with_skill()
+        kid = self.child(9)
+        self.study(kid, name)
+        self.sim.day += 365
+        state = self.sim.rng.getstate()
+        with mock.patch.object(CHILD.R, "teach_chance", return_value=(1.0, 1.0)):
+            quiet(self.sim.settle_routine, kid)
+        self.assertIn(name, kid.skills)
+        self.assertEqual(self.sim.rng.getstate(), state)
+        self.assertTrue(any(e.kind == "เรียนวิชา" and e.actor == kid.cid for e in self.sim.log))
+
+    def test_a_guardian_who_is_teaching_cultivates_at_ninety_percent(self):
+        name = self.teacher_with_skill()
+        kid = self.child(9)
+        self.sim.begin_cultivation(self.adult, 100)
+        self.assertEqual(self.adult.process.yield_rate, 1.0)
+        self.sim.settle_routine(self.adult)
+        self.study(kid, name)
+        self.sim.begin_cultivation(self.adult, 100)
+        self.assertAlmostEqual(self.adult.process.yield_rate, C.GUARDIAN_TEACH_COST)
+
     def test_a_running_world_uses_the_routines(self):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 20000)
