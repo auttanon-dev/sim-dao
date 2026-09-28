@@ -1516,6 +1516,41 @@ class Sim:
         top = sorted(seen.values(), reverse=True)[:C.SECT_TERRITORY_CAP]
         return float(sum(top))
 
+    def sect_dues(self, org):
+        """ค่าบำรุงสำนัก: สมาชิกจ่าย SECT_DUES_RATE ของเงินตัวเองเข้าคลังทองของสำนัก (org.treasury_gold ตามชั้น)
+        แล้วคลังแจก SECT_PAYOUT_RATE ของแต่ละชั้นให้ศิษย์สายแกน สายใน สายนอก 40/40/20 — เฉพาะศิษย์ที่อยู่แดนชั้นนั้น
+        (ทองชั้นไหนใช้ได้ในแดนชั้นนั้น) กลุ่มที่ไม่มีใครรับ ส่วนนั้นค้างอยู่ในคลัง
+
+        เดิมค่าบำรุงเข้า org.treasury ซึ่งเป็นตัวเลขเดียวรวมทุกชั้นและอยู่นอก wages.total_gold ส่วนแจกปัดลงด้วย int()
+        และส่วนของกลุ่มที่ไม่มีศิษย์ถูกหักออกไปเฉยๆ ทองหายรอบละราว 160–175 เหรียญ (seed 11 ก้าวที่ 12,000)
+        org.treasury ที่ค้างจากเซฟเก่าคงไว้ตามเดิม ทองก้อนนั้นหลุดจากบัญชีไปตั้งแต่ก่อนแก้ ไม่นำกลับเข้ามาเสกเพิ่ม"""
+        cast = self.cast
+        purse = org.__dict__.setdefault("treasury_gold", {})
+        for cid in org.members:
+            if not (0 <= cid < len(cast)) or not cast[cid].alive:
+                continue
+            mem = cast[cid]
+            tier = self.world(mem.world_id).tier
+            due = mem.money.get(tier, 0.0) * C.SECT_DUES_RATE
+            if due > 0:
+                mem.money[tier] = mem.money.get(tier, 0.0) - due
+                purse[tier] = purse.get(tier, 0.0) + due
+        pools = ((0.4, getattr(org, "core_disciples", [])), (0.4, getattr(org, "inner_disciples", [])),
+                 (0.2, getattr(org, "outer_disciples", [])))
+        for tier in sorted(purse):
+            payout = purse[tier] * C.SECT_PAYOUT_RATE
+            if payout <= 0:
+                continue
+            for share, group in pools:
+                live = [cast[c] for c in group if 0 <= c < len(cast) and cast[c].alive
+                        and self.world(cast[c].world_id).tier == tier]
+                if not live:
+                    continue
+                each = payout * share / len(live)
+                for m in live:
+                    m.money[tier] = m.money.get(tier, 0.0) + each
+                purse[tier] -= each * len(live)
+
     def sect_mine(self, org):
         """สำนักขุดปราณจากอาณาเขตของตนเข้าคลัง แล้วตกผลึกเป็นหินวิญญาณแจกศิษย์
 
@@ -2125,38 +2160,7 @@ class Sim:
                     # **ผลผลิตที่ขุดได้จริง** เพิ่มเข้ามา ซึ่งถูกหักออกจากคลังฟ้าจริงๆ
                     # สำนักจึงรวยได้ก็ต่อเมื่อมีทั้งคนและแผ่นดินที่ปราณหนา — และการ
                     # ที่สำนักหนึ่งรวยขึ้นแปลว่าโลกจนลงเท่านั้นพอดี ไม่มีใครได้ฟรี
-                    treasury = getattr(org, "treasury", 0.0)
-                    for cid in org.members:
-                        if not (0 <= cid < cast_len) or not self.cast[cid].alive:
-                            continue
-                        mem = self.cast[cid]
-                        wkey = self.world(mem.world_id).tier
-                        due = mem.money.get(wkey, 0.0) * C.SECT_DUES_RATE
-                        if due > 0:
-                            mem.money[wkey] = mem.money.get(wkey, 0.0) - due
-                            treasury += due
-                    payout = treasury * C.SECT_PAYOUT_RATE
-                    org.treasury = treasury - payout
-                    pool_c = payout * 0.4
-                    pool_i = payout * 0.4
-                    pool_o = payout * 0.2
-
-                    cd = getattr(org, "core_disciples", [])
-                    id_ = getattr(org, "inner_disciples", [])
-                    od = getattr(org, "outer_disciples", [])
-
-                    if cd:
-                        share = int(pool_c / len(cd))
-                        for cid in cd:
-                            if 0 <= cid < cast_len and self.cast[cid].alive: WAGES.move_gold(self, self.cast[cid], share)
-                    if id_:
-                        share = int(pool_i / len(id_))
-                        for cid in id_:
-                            if 0 <= cid < cast_len and self.cast[cid].alive: WAGES.move_gold(self, self.cast[cid], share)
-                    if od:
-                        share = int(pool_o / len(od))
-                        for cid in od:
-                            if 0 <= cid < cast_len and self.cast[cid].alive: WAGES.move_gold(self, self.cast[cid], share)
+                    self.sect_dues(org)
 
                     self.sect_mine(org)
 
