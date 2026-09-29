@@ -127,7 +127,8 @@ class Sim:
         self.queue = []
         self.rumors = []
         # คีย์ (wid, place_idx) — หลายแดนใช้ผังสถานที่ชุดเดียวกัน คีย์ด้วยสถานที่อย่างเดียวทำให้ขุดแดนหนึ่งแล้วอีกแดนโทรมไปด้วย (§6.2 R1)
-        self.place_stock = {}     # (wid, place_idx) -> ปริมาณทรัพยากร/สัตว์อสูรที่เหลืออยู่ตอนนี้ (ระบบนิเวศ)
+        self.place_stock = {}     # (wid, place_idx, ชนิด) -> ทรัพยากรที่เหลืออยู่ตอนนี้ (ระบบนิเวศ §6.2)
+        self.material_stats = {}  # บัญชีคลังทรัพยากร: genesis regrown seeded harvested disaster
         self.eco_scarce = {}      # (wid, place_idx) -> True ขณะที่ยังอยู่ในสถานะขาดแคลน (ค้างจนกว่าจะฟื้นจริง)
         self.eco_recovered = set()  # (wid, place_idx) ที่เพิ่งฟื้นจากขาดแคลน — ใช้เป็นข่าวลือครั้งเดียวแล้วเคลียร์ทิ้ง
         self.skill_fragments = []   # ชิ้นส่วนวิชาแก้ทางโกลาหลที่ฝังกระจายไว้ทั่วโลกมนุษย์
@@ -1920,7 +1921,7 @@ class Sim:
             it = self.items.get(iid)
             if it:
                 pool.append(("สมบัติ", iid, it.name))
-        for key in sorted(self.place_stock):
+        for key in sorted({k[:2] for k in self.place_stock}):
             if key[0] != world.wid:
                 continue
             p = PL.PLACES[key[1]]
@@ -2049,57 +2050,92 @@ class Sim:
         self.emit(world, "ได้ยินข่าวลือ", actor, None, ["ข่าวลือ"], "ได้ยินมา",
                   f"{actor.name}{source} {r['text']}", 0, {})
 
-    # ------------------------------------------------------------ ระบบนิเวศ
-    def eco_ratio(self, wid, place_idx):
-        """สัดส่วนความอุดมสมบูรณ์ของแหล่ง `place_idx` ในแดน `wid` ตอนนี้ (0..1)
-        ยิ่งถูกเก็บเกี่ยวหนัก ยิ่งลดลง ฟื้นเองตามเวลาที่ผ่านไป"""
+    # ------------------------------------------------------------ ระบบนิเวศ (แบบ §6.2 R1–R3)
+    # คลังแยกชนิดต่อ (แดน, สถานที่, ชนิด): "herb" สมุนไพร "beast" สัตว์อสูร "ore" แร่ — ชนิดหลักของที่นั้นตาม eco_kind
+    # เก็บได้ไม่เกินที่มีจริง ทีละหน่วย (eco_harvest คืนหน่วยที่ได้) ไม่มีพื้นผลผลิตขั้นต่ำอีก — วัดแล้ว (seed 11–13 เดิน 50 ปี)
+    # แหล่งสมุนไพรและแร่ที่มีคนใช้ 70–78% อยู่ที่พื้นตั้งแต่ปีที่ 25 และการเก็บ 71–80% เกิดตอนคลังอยู่ที่พื้น คือของเกิดจากอากาศ
+    # บัญชี `material_stats`: คลังรวม = genesis + regrown + seeded − harvested − disaster (test_resources)
+    def eco_kind(self, place_idx):
+        """ชนิดทรัพยากรหลักของสถานที่ — แหล่งแร่/สมุนไพร/แก่นพลัง ตามผัง ที่อื่น (เมือง สำนัก ป่า) คือสัตว์อสูรที่ล่าได้"""
+        p = PL.PLACES[place_idx] if place_idx is not None and 0 <= place_idx < len(PL.PLACES) else None
+        return {"แร่": "ore", "สมุนไพร": "herb"}.get(p[4] if p and len(p) > 4 else None, "beast")
+
+    def _eco_key(self, wid, place_idx, kind):
+        key = (wid, place_idx, kind or self.eco_kind(place_idx))
+        if key not in self.place_stock:
+            cap = C.ECO_KINDS[key[2]][0]
+            self.place_stock[key] = cap
+            self._material_flow("genesis", cap)
+        return key
+
+    def _material_flow(self, cause, amount):
+        stats = self.__dict__.setdefault("material_stats", {})
+        stats[cause] = stats.get(cause, 0.0) + amount
+
+    def eco_ratio(self, wid, place_idx, kind=None):
+        """สัดส่วนที่เหลือของคลังชนิด `kind` (ค่าตั้ง = ชนิดหลักของที่นั้น) ที่ `place_idx` ในแดน `wid` (0..1) — ไม่มีพื้น"""
         if place_idx is None or place_idx < 0:
             return 1.0
-        key = (wid, place_idx)
-        stock = self.place_stock.get(key)
-        if stock is None:
-            stock = C.ECO_CAP
-            self.place_stock[key] = stock
-        return max(C.ECO_MIN_YIELD, min(1.0, stock / C.ECO_CAP))
+        key = self._eco_key(wid, place_idx, kind)
+        return min(1.0, self.place_stock[key] / C.ECO_KINDS[key[2]][0])
 
     def eco_regen(self, elapsed_days):
-        """แหล่งทรัพยากรฟื้นตัวแบบลอจิสติก ไม่ใช่เส้นตรง
+        """แหล่งทรัพยากรฟื้นตัวแบบลอจิสติก ไม่ใช่เส้นตรง — อัตราและเพดานตามชนิด (ECO_KINDS)
 
         ของเดิมเขียน `min(ECO_CAP, stock + grow)` ซึ่งเป็นสองข้อผิดเดียวกับที่ heaven_inflow
         เคยเป็นก่อนแก้ และตรวจเจอซ้ำที่นี่ตอนรื้อระบบทรัพยากร
           1. แหล่งที่ถูกขุดจนเหลือเศษ ฟื้นเร็วเท่าแหล่งที่เกือบเต็ม — "ขุดจนโทรม" จึงไม่เคย
              เป็นสภาพที่อยู่ได้นานพอจะมีผลต่อการตัดสินใจของใคร
           2. min() ที่เพดานคือการทำผลผลิตหายจากระบบเงียบๆ
-        ลอจิสติกแก้ทั้งคู่ และให้ "แหล่งที่ตายแล้วฟื้นช้ามาก" ฟรี ซึ่งเป็นสิ่งที่ทำให้
-        ตัวละครต้องย้ายถิ่นจริงๆ แทนที่จะขุดที่เดิมไปเรื่อยๆ
-        ฤดูกาลยังคูณอัตราการโตเหมือนเดิม (ฤดูไหนของงอกดีกว่ากัน)
+        ลอจิสติกแก้ทั้งคู่ สมุนไพรและสัตว์อสูรคูณฤดูกาล แร่ไม่ (สายแร่ก่อตัวช้าตามปี ไม่ตามฤดู)
+        ต่ำกว่า ECO_SEED ยกขึ้นเป็น ECO_SEED ก่อนโต (เมล็ดในดิน สัตว์ย้ายเข้ามาจากที่ใกล้เคียง) บันทึกเป็น `seeded`
         """
         if not self.place_stock or elapsed_days <= 0:
             return
-        rate = (C.ECO_REGEN_PER_YEAR / C.ECO_CAP) * SEASONS.regen_multiplier(self.day) / 365.0
+        season = SEASONS.regen_multiplier(self.day)
         for key in list(self.place_stock):
-            # เมล็ดเล็กๆ ด้วยเหตุผลเดียวกับคลังฟ้า: ลอจิสติกที่ศูนย์โตไม่ได้ตลอดกาล
-            now = max(C.ECO_SEED, self.place_stock[key])
-            stock = PHYS.logistic_growth(now, C.ECO_CAP, rate, elapsed_days)
+            cap, r = C.ECO_KINDS[key[2]]
+            rate = r * (1.0 if key[2] == "ore" else season) / 365.0
+            old = self.place_stock[key]
+            if old < C.ECO_SEED:
+                self._material_flow("seeded", C.ECO_SEED - old)
+                old = C.ECO_SEED
+            stock = PHYS.logistic_growth(old, cap, rate, elapsed_days)
+            self._material_flow("regrown", stock - old)
             self.place_stock[key] = stock
             self._update_eco_state(key, stock)
 
-    def eco_harvest(self, wid, place_idx, amount):
-        if place_idx is None or place_idx < 0:
-            return
-        key = (wid, place_idx)
-        stock = max(0.0, self.place_stock.get(key, C.ECO_CAP) - amount)
-        self.place_stock[key] = stock
-        self._update_eco_state(key, stock)
+    def eco_harvest(self, wid, place_idx, amount, kind=None, cause="harvested"):
+        """เอาออกจากคลังชนิด `kind` ไม่เกินที่มี — คืนหน่วยที่ได้จริง ผู้เรียกให้ของตามนี้เท่านั้น"""
+        if place_idx is None or place_idx < 0 or amount <= 0:
+            return 0.0
+        key = self._eco_key(wid, place_idx, kind)
+        taken = min(amount, self.place_stock[key])
+        self.place_stock[key] -= taken
+        self._material_flow(cause, taken)
+        self._update_eco_state(key, self.place_stock[key])
+        return taken
 
-    def _update_eco_state(self, idx, stock):
-        """สถานะขาดแคลนค้างอยู่จนกว่าจะฟื้นข้ามเกณฑ์ recover จริง — ไม่ใช่แค่กระเตื้องนิดหน่อยแล้วนับว่าอุดมสมบูรณ์"""
-        ratio = stock / C.ECO_CAP
+    def eco_take_units(self, wid, place_idx, units, kind=None):
+        """เอาของเป็นชิ้นเต็ม (ไม่เกิน `units`) — คืนจำนวนชิ้นที่ได้"""
+        if place_idx is None or place_idx < 0 or units <= 0:
+            return 0
+        key = self._eco_key(wid, place_idx, kind)
+        n = min(int(units), int(self.place_stock[key] + 1e-9))
+        return int(round(self.eco_harvest(wid, place_idx, float(n), kind))) if n > 0 else 0
+
+    def _update_eco_state(self, key, stock):
+        """สถานะขาดแคลนของชนิดหลักของที่นั้น (คีย์ (แดน, สถานที่)) ค้างอยู่จนกว่าจะฟื้นข้ามเกณฑ์ recover จริง"""
+        wid, idx, kind = key
+        if kind != self.eco_kind(idx):
+            return
+        ratio = stock / C.ECO_KINDS[kind][0]
+        spot = (wid, idx)
         if ratio < C.ECO_SCARCE_RATIO:
-            self.eco_scarce[idx] = True
-        elif self.eco_scarce.get(idx) and ratio >= C.ECO_RECOVER_RATIO:
-            self.eco_scarce[idx] = False
-            self.eco_recovered.add(idx)
+            self.eco_scarce[spot] = True
+        elif self.eco_scarce.get(spot) and ratio >= C.ECO_RECOVER_RATIO:
+            self.eco_scarce[spot] = False
+            self.eco_recovered.add(spot)
 
     # ------------------------------------------------------------ ลูปหลัก
     # ------------------------------------------------------------ นาฬิกาโลก
@@ -4664,9 +4700,10 @@ class Sim:
             if not pool:
                 # แหล่งแก่นพลัง — เก็บแก่นจากซากอสูรโดยไม่ต้องออกล่าเอง (ไม่มีความเสี่ยงตาย
                 # แต่ได้น้อยกว่าล่าจริง) ก่อนหน้านี้ 9 แหล่งนี้ไม่มีทางเก็บอะไรได้เลย
-                got_cores = max(1, round(rng.randint(*C.GATHER_CORE_PER_TRIP) * eco))
+                got_cores = self.eco_take_units(a.world_id, a.place, max(1, round(rng.randint(*C.GATHER_CORE_PER_TRIP) * eco)))
+                if got_cores <= 0:
+                    return "มือเปล่า", f"{a.name}ออกเก็บแก่นพลังที่{self.place_name(a)}แต่ซากอสูรที่นี่หมดแล้ว", d
                 a.cores += got_cores
-                self.eco_harvest(a.world_id, a.place, float(got_cores))
                 d["เก็บได้"] = f"แก่นพลัง×{got_cores}"
                 # สายหินวิญญาณที่แทรกอยู่ในแหล่งแก่นพลัง — ขุดขึ้นมาก็คือดูดปราณออกจากโลก
                 if rng.random() < C.VEIN_FIND_P and w.heaven > 0:
@@ -4676,11 +4713,14 @@ class Sim:
                     EC.add_stones(a, grade, EC.mint(vein, grade))
                     d["สายหินวิญญาณ"] = f"{EC.grade_name(grade)} ×{EC.mint(vein, grade):.1f}"
                 d["ที่"] = self.place_name(a)
-                if rng.random() < 0.35:
+                if rng.random() < 0.35 and self.eco_take_units(a.world_id, a.place, 1):
                     a.mat_stock["โลหิตอสูรกลั่น"] = a.mat_stock.get("โลหิตอสูรกลั่น", 0) + 1
                     d["ของพิเศษ"] = "โลหิตอสูรกลั่น"
                 return ("เก็บได้", f"{a.name}เก็บแก่นพลัง {got_cores} เม็ดที่{self.place_name(a)}", d)
-            n = max(1, round(rng.randint(*C.GATHER_PER_TRIP) * eco))
+            n = self.eco_take_units(a.world_id, a.place, max(1, round(rng.randint(*C.GATHER_PER_TRIP) * eco)))
+            if n <= 0:
+                d["สภาพแหล่ง"] = "หมดแล้ว"
+                return "มือเปล่า", f"{a.name}ออกเก็บวัตถุดิบแต่แหล่งที่{self.place_name(a)}ถูกเก็บจนหมด", d
             got = {}
             wanted_here = [m for m in getattr(a, "wants", ()) if m in pool]
             for _ in range(n):
@@ -4699,7 +4739,10 @@ class Sim:
                         a.wants[pick] = left
                     else:
                         a.wants.pop(pick, None)
-            self.eco_harvest(a.world_id, a.place, float(n))
+            if sum(got.values()) < n:                        # ชิ้นที่สุ่มไม่ได้อะไรคืนคลัง (ไม่ได้เก็บจริง)
+                back = n - sum(got.values())
+                self.place_stock[self._eco_key(a.world_id, a.place, None)] += back
+                self._material_flow("harvested", -back)
             if not got:
                 return "มือเปล่า", f"{a.name}ออกเก็บวัตถุดิบแต่กลับมามือเปล่า", d
             d["เก็บได้"] = ", ".join(f"{m}×{q}" for m, q in got.items())
@@ -4713,37 +4756,42 @@ class Sim:
         if k == "ล่าอสูร":
             pv = self.place_of(a)
             eco = self.eco_ratio(a.world_id, a.place)
+            eco = self.eco_ratio(a.world_id, a.place, "beast")          # ล่าอสูรตัดจากคลังสัตว์อสูรของที่นั้นเสมอ
             n = max(1, round(rng.randint(*C.CORE_PER_HUNT) * eco))
             if pv and pv[4] == "แก่นพลัง":
                 n += 2
+            n = self.eco_take_units(a.world_id, a.place, n, "beast")
             a.cores += n
             # ล่าอสูรเคยให้แต่ของ (แก่นพลัง/วัตถุดิบ) ไม่ให้ความก้าวหน้าเลย ทั้งที่การปะทะของจริง
             # และการกลั่นแก่นพลังคือสายกายของแนวนิยายนี้โดยตรง — เป็นเหตุผลอีกข้อที่โลกไต่ขั้นไม่ขึ้น
             a.refine += min(C.HUNT_REFINE_CAP, C.HUNT_REFINE_PER_CORE * n)
             a.insight += C.HUNT_INSIGHT
-            got = max(1, round(rng.randint(1, 4) * eco))
+            got = self.eco_take_units(a.world_id, a.place, max(1, round(rng.randint(1, 4) * eco)), "beast")
             a.mats += got
-            self.eco_harvest(a.world_id, a.place, got + n * 0.3)
 
             if rng.random() < 0.4:
-                a.mat_stock["โลหิตอสูรกลั่น"] = a.mat_stock.get("โลหิตอสูรกลั่น", 0) + rng.randint(1, 2)
-                d["ของพิเศษ"] = "โลหิตอสูรกลั่น"
+                k_blood = self.eco_take_units(a.world_id, a.place, rng.randint(1, 2), "beast")
+                if k_blood:
+                    a.mat_stock["โลหิตอสูรกลั่น"] = a.mat_stock.get("โลหิตอสูรกลั่น", 0) + k_blood
+                    d["ของพิเศษ"] = "โลหิตอสูรกลั่น"
             if rng.random() < 0.3:
-                a.mat_stock["ศิลาปราณห้าธาตุ"] = a.mat_stock.get("ศิลาปราณห้าธาตุ", 0) + rng.randint(1, 3)
-                d["ของพิเศษ"] = (d.get("ของพิเศษ", "") + " ศิลาปราณห้าธาตุ").strip()
+                k_stone = self.eco_take_units(a.world_id, a.place, rng.randint(1, 3), "beast")
+                if k_stone:
+                    a.mat_stock["ศิลาปราณห้าธาตุ"] = a.mat_stock.get("ศิลาปราณห้าธาตุ", 0) + k_stone
+                    d["ของพิเศษ"] = (d.get("ของพิเศษ", "") + " ศิลาปราณห้าธาตุ").strip()
             # ชิ้นส่วนหายากจากซากอสูร — config.MATERIAL_KINDS เคยนิยามไว้เฉยๆ ไม่มีใครอ่าน
             if MAT.BEAST_PARTS and rng.random() < C.BEAST_PART_P:
                 part = rng.choice(MAT.BEAST_PARTS)
-                a.mat_stock[part] = a.mat_stock.get(part, 0) + 1
-                d["ของพิเศษ"] = (d.get("ของพิเศษ", "") + " " + part).strip()
+                if self.eco_take_units(a.world_id, a.place, 1, "beast"):
+                    a.mat_stock[part] = a.mat_stock.get(part, 0) + 1
+                    d["ของพิเศษ"] = (d.get("ของพิเศษ", "") + " " + part).strip()
 
             if pv and pv[4] in ("แร่", "สมุนไพร"):
                 # ของที่ได้ต้องคู่ควรกับระดับโลกและเกรดของแหล่ง — เดิมสุ่มจากตารางราคาทั้งก้อน
                 # ถ้ำหินแกรนิตดิบในโลกมนุษย์จึงเคยออกแร่ระดับสวรรค์ได้
-                pick = MAT.roll_material(a.place, rng, eco)
-                if pick:
+                pick = MAT.roll_material(a.place, rng, self.eco_ratio(a.world_id, a.place))
+                if pick and self.eco_take_units(a.world_id, a.place, 1):
                     a.mat_stock[pick] = a.mat_stock.get(pick, 0) + 1
-                    self.eco_harvest(a.world_id, a.place, 1.0)
                     tail = " (แหล่งนี้เริ่มร่อยหรอ)" if eco < 0.5 else ""
                     d["เก็บได้"] = f"{pick} ที่{self.place_name(a)}{tail}"
                     if a.wants.get(pick):

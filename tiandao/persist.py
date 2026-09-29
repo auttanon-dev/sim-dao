@@ -65,7 +65,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  27 — ราคาข้าวตามข้าวในยุ้งฉาง (Sim.food_price คิดใหม่ทุกรอบ ไม่มีสถานะที่ต้องย้าย)
 #  28 — บันทึกความตาย (Sim.deaths: models.DeathRecord) เริ่มว่าง
 #  29 — ระบบนิเวศคีย์ (แดน, สถานที่) (Sim.place_stock, eco_scarce, eco_recovered) ค่าเดิมของสถานที่คัดลอกให้ทุกแดนที่มีสถานที่นั้น
-SAVE_VERSION = 29
+#  30 — คลังทรัพยากรแยกชนิด (Sim.place_stock คีย์ (แดน, สถานที่, ชนิด)) ค่าเดิมเป็นสัดส่วนของชนิดหลัก บัญชี material_stats
+SAVE_VERSION = 30
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -348,6 +349,8 @@ def _migrate(sim, version):
         sim.__dict__.setdefault("death_seq", 0)
     if version < 29:
         _eco_by_realm(sim)              # ไม่แตะ RNG
+    if version < 30:
+        _eco_by_kind(sim)               # ไม่แตะ RNG
 
 
 def _eco_by_realm(sim):
@@ -365,6 +368,17 @@ def _eco_by_realm(sim):
             if idx in recovered:
                 new_recovered.add((w.wid, idx))
     sim.place_stock, sim.eco_scarce, sim.eco_recovered = new_stock, new_scarce, new_recovered
+
+
+def _eco_by_kind(sim):
+    """คลังก่อนรุ่น 30 เป็นก้อนเดียวต่อที่ เพดาน 18 — ย้ายเป็นชนิดหลักของที่นั้นตามสัดส่วนเดิมของเพดานใหม่ เปิดบัญชีด้วยยอดนี้"""
+    from . import config as C
+    new = {}
+    for (wid, idx), v in getattr(sim, "place_stock", {}).items():
+        kind = sim.eco_kind(idx)
+        new[(wid, idx, kind)] = min(1.0, v / 18.0) * C.ECO_KINDS[kind][0]
+    sim.place_stock = new
+    sim.material_stats = {"genesis": sum(new.values())}
 
 
 def _cities_into_save(sim):
