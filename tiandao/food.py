@@ -302,6 +302,15 @@ def _buy(sim, ch, amount, meal=True):
             paid += part
         if cost - paid <= _EPS:
             break
+    if meal and ch.age(sim.day) < 14 and cost - paid > _EPS and getattr(ch, "clan", -1) >= 0:
+        # ศาลบรรพชนของตระกูลจ่ายก่อนคลังชุมชน (ขั้น C2) — ทองชั้นของแดนที่เด็กอยู่
+        tier = WAGES.tier_of(sim, ch)
+        hall = getattr(sim, "clan_treasury", {}).get(ch.clan, {})
+        part = min(max(0.0, hall.get(tier, 0.0)), cost - paid)
+        if part > 0:
+            hall[tier] -= part
+            paid += part
+            sim.wage_stats["clan_meals"] = sim.wage_stats.get("clan_meals", 0.0) + part
     if meal and ch.age(sim.day) < 14 and cost - paid > _EPS:
         tier = WAGES.tier_of(sim, ch)
         towns = getattr(sim, "settlement_treasury", {})

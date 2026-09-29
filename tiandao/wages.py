@@ -173,6 +173,7 @@ def tick(sim, days) -> None:
 
     _mine(sim, workers_at, days)
     _public_works(sim, days)
+    _clan_stipends(sim)
 
     # ทุนสำรองของตลาดไม่เกินของที่คนมาขายที่นี่ในหนึ่งปี (market_demand ลดลงตามเวลา) และไม่เกินความลึก — ส่วนเกินคืนลิ้นชัก
     # จ่ายเป็นค่าแรง (ขั้น B3b) วัดแล้วถ้าใช้ความลึกเป็นเพดานอย่างเดียว ทุนสำรองกองนิ่งแสนกว่าทองใน 50 ปี
@@ -244,6 +245,41 @@ def _public_works(sim, days) -> None:
         towns[spot][tier] = bal - spend
         sim.market_till[spot] = sim.market_till.get(spot, 0.0) + spend
         stats["civic_works"] = stats.get("civic_works", 0.0) + spend
+
+
+def _clan_stipends(sim) -> None:
+    """ศาลบรรพชนเลี้ยงสมาชิกที่ยากจน (ขั้น C2) — ผู้ใหญ่ในตระกูลที่อยู่ในแดนชั้นเดียวกับทองของศาล มีทองชั้นนั้นไม่ถึง WAGE_KEEP_GOLD
+    ได้เติมถึง WAGE_KEEP_GOLD จากส่วนที่เหนือพื้น — พื้น = ค่ามื้อเด็กของตระกูลในชั้นนั้น CLAN_FLOOR_YEARS ปี (ศาลเลี้ยงเด็กก่อน food._buy)
+    คนที่จนที่สุดได้ก่อน เรียงด้วย cid เมื่อเท่ากัน"""
+    halls = getattr(sim, "clan_treasury", {})
+    if not halls:
+        return
+    day = sim.day
+    kids, poor = collections.Counter(), collections.defaultdict(list)
+    for cid in sorted(sim.alive_cids):
+        ch = sim.cast[cid]
+        clan = getattr(ch, "clan", -1)
+        if clan < 0 or clan not in halls:
+            continue
+        tier = tier_of(sim, ch)
+        if ch.age(day) < 14:
+            kids[(clan, tier)] += 1
+        elif (getattr(ch, "sentient", True) and not getattr(ch, "is_beast", False)
+              and ch.money.get(tier, 0.0) < C.WAGE_KEEP_GOLD):
+            poor[(clan, tier)].append(ch)
+    meal_year = 365.0 * C.FOOD_RATION_CHILD * C.FOOD_PRICE
+    stats = sim.wage_stats
+    for (clan, tier), members in sorted(poor.items()):
+        hall = halls[clan]
+        spare = hall.get(tier, 0.0) - C.CLAN_FLOOR_YEARS * meal_year * kids[(clan, tier)]
+        for ch in sorted(members, key=lambda c: (c.money.get(tier, 0.0), c.cid)):
+            if spare <= _EPS:
+                break
+            give = min(C.WAGE_KEEP_GOLD - ch.money.get(tier, 0.0), spare)
+            hall[tier] -= give
+            ch.money[tier] = ch.money.get(tier, 0.0) + give
+            spare -= give
+            stats["clan_stipends"] = stats.get("clan_stipends", 0.0) + give
 
 
 def _reserve_cap(sim, spot) -> float:

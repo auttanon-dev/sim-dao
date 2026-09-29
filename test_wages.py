@@ -315,6 +315,40 @@ class FoodMoneyTests(unittest.TestCase):
         self.assertEqual(orphan.hunger_days, 0.0, "ชุมชนใกล้ ๆ จ่ายแทน")
         self.assertAlmostEqual(50.0 - self.sim.settlement_treasury[(0, close)][tier], 30 * C.FOOD_RATION_CHILD * C.FOOD_PRICE)
 
+    def test_the_clan_hall_feeds_a_clan_child_before_the_settlement_treasury(self):
+        orphan = setup_person(self.sim, self.people[2], self.a, age=6)
+        orphan.parents, orphan.clan = [], 2
+        self.sim.granary[(0, self.a)] = 1000.0
+        tier = self.sim.world(0).tier
+        self.sim.clan_treasury = {2: {tier: 50.0}}
+        self.sim.settlement_treasury = {(0, self.a): {tier: 50.0}}
+        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), only(self.sim, orphan):
+            FOOD.tick(self.sim, 30)
+        kid = 30 * C.FOOD_RATION_CHILD * C.FOOD_PRICE
+        self.assertEqual(orphan.hunger_days, 0.0)
+        self.assertAlmostEqual(50.0 - self.sim.clan_treasury[2][tier], kid, msg="ศาลบรรพชนจ่ายก่อน")
+        self.assertEqual(self.sim.settlement_treasury[(0, self.a)][tier], 50.0)
+
+    def test_a_poor_clan_member_is_topped_up_only_from_gold_above_the_childrens_floor(self):
+        poor = setup_person(self.sim, self.people[1], self.a)
+        kid = setup_person(self.sim, self.people[2], self.a, age=6)
+        poor.clan = kid.clan = 2
+        tier = self.sim.world(0).tier
+        poor.money = {tier: 3.0}
+        floor = C.CLAN_FLOOR_YEARS * 365.0 * C.FOOD_RATION_CHILD * C.FOOD_PRICE
+        self.sim.clan_treasury = {2: {tier: floor + 4.0}}
+        before = money_everywhere(self.sim)
+        with only(self.sim, poor, kid):
+            WAGES._clan_stipends(self.sim)
+        self.assertAlmostEqual(poor.money[tier], 7.0, msg="ได้แค่ส่วนเหนือพื้น")
+        self.assertAlmostEqual(self.sim.clan_treasury[2][tier], floor)
+        self.sim.clan_treasury[2][tier] += 100.0
+        WAGES.record(self.sim, "test", tier, 100.0)
+        with only(self.sim, poor, kid):
+            WAGES._clan_stipends(self.sim)
+        self.assertAlmostEqual(poor.money[tier], C.WAGE_KEEP_GOLD, msg="เติมถึงเงินเก็บ")
+        self.assertAlmostEqual(money_everywhere(self.sim), before + 100.0, places=6)
+
     def test_with_the_settlement_treasury_empty_an_orphan_misses_meals(self):
         orphan = setup_person(self.sim, self.people[2], self.a, age=6)
         orphan.parents = []
