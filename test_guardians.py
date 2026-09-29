@@ -127,6 +127,20 @@ class GuardianRulesTests(unittest.TestCase):
         spent = 100.0 - WAGES.gold(self.sim, mother)
         self.assertAlmostEqual(spent, 30 * (C.FOOD_RATION_ADULT + C.FOOD_RATION_CHILD) * C.FOOD_PRICE)
 
+    def test_a_secluded_or_jailed_guardian_still_pays_within_the_realm_but_not_from_another(self):
+        mother, _uncle, _grandma, child = self.family()
+        GUARD.tick(self.sim)
+        self.assertEqual(child.guardian, mother.cid)
+        mother.place = self.far                                  # ปิดด่านอยู่ที่อื่นในแดนเดียวกัน
+        mother.seclude_until = self.sim.day + 365
+        self.assertIs(GUARD.payer(self.sim, child), mother)
+        mother.seclude_until, mother.jail_until = 0, self.sim.day + 365
+        self.assertIs(GUARD.payer(self.sim, child), mother)
+        mother.world_id = next(w.wid for w in self.sim.worlds if w.wid != child.world_id)
+        self.assertIsNone(GUARD.payer(self.sim, child), "เงินคนละชั้น ส่งข้ามแดนไม่ได้")
+        mother.world_id, mother.jail_until = child.world_id, 0
+        self.assertIsNone(GUARD.payer(self.sim, child), "อยู่คนละที่และไม่ได้ถูกกัก — ไม่ใช่ผู้จ่าย")
+
 
 class ChildRelocationSafetyTests(unittest.TestCase):
     """เปิดระบบอาหาร เด็กต้องไม่ถูกย้ายไปอยู่กับผู้ปกครองในที่ที่ไม่มีข้าวในระยะส่ง"""

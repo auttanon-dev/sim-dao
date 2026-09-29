@@ -327,10 +327,16 @@ def on_arrival(sim, guardian, old_place) -> None:
 
 
 def payer(sim, child):
-    """ผู้ปกครองที่อยู่ที่เดียวกับเด็กตอนนี้ — ผู้ที่จ่ายค่าข้าวให้ หรือ None"""
+    """ผู้ปกครองที่จ่ายค่าข้าวให้เด็ก หรือ None — ผู้ที่อยู่ที่เดียวกับเด็กตอนนี้ หรือผู้ที่ปิดด่านหรือติดคุกอยู่ในแดนเดียวกัน
+    (ส่งเงินมาให้ เหมือนข้าวที่ส่งถึงถ้ำ — ดูแลเด็กไม่ได้แต่ยังจ่ายได้) แดนอื่นจ่ายไม่ได้เพราะเงินคนละชั้น
+    วัดแล้ว seed 11: เด็ก 7 คนอดตายข้างยุ้งฉางที่มีข้าวขณะผู้ปกครองที่มีทองของชั้นนั้นปิดด่านหรือติดคุก"""
     if 0 <= child.guardian < len(sim.cast):
         g = sim.cast[child.guardian]
-        if (_can_care(g, sim.day) and (g.world_id, g.place) == (child.world_id, child.place)
+        day = sim.day
+        if (_can_care(g, day) and (g.world_id, g.place) == (child.world_id, child.place)
                 and g.travel_dest < 0):
+            return g
+        if (g.alive and g.world_id == child.world_id
+                and (getattr(g, "seclude_until", 0) > day or getattr(g, "jail_until", 0) > day)):
             return g
     return None
