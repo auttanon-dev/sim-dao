@@ -91,6 +91,30 @@ class LedgerTests(unittest.TestCase):
         WAGES.retier(sim, world, old - 1)
         self.assertClosed(sim, "หลังฟื้นขึ้นชั้น")
 
+    def test_a_demoted_realm_turns_its_residents_treasuries_and_purses_into_the_new_tier(self):
+        from tiandao import household as HH
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 1500)
+        world = next(w for w in sim.worlds if w.tier > 0 and sim.living_in(w.wid))
+        old = world.tier
+        resident = sim.living_in(world.wid)[0]
+        outsider = next(c for c in sim.living() if c.world_id != world.wid)
+        hh = HH.of(sim, resident)
+        hh.home = (world.wid, resident.place)
+        for purse in (resident.money, WAGES.settlement_purse(sim, (world.wid, 0)), hh.purse, outsider.money):
+            WAGES.record(sim, "test", old, 10.0)
+            purse[old] = purse.get(old, 0.0) + 10.0
+        before = {k: resident.money.get(k, 0.0) for k in (old, old - 1)}
+        outsider_old = outsider.money[old]
+        world.tier = old - 1
+        WAGES.retier(sim, world, old)
+        self.assertNotIn(old, resident.money)
+        self.assertAlmostEqual(resident.money[old - 1], before[old] + before[old - 1])
+        self.assertNotIn(old, sim.settlement_treasury[(world.wid, 0)])
+        self.assertNotIn(old, hh.purse)
+        self.assertEqual(outsider.money[old], outsider_old, "คนแดนอื่นไม่เปลี่ยน")
+        self.assertClosed(sim, "หลังเสื่อมลงชั้น")
+
     def test_save_and_load_keep_the_ledger_closed(self):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 2000)

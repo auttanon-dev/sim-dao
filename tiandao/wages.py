@@ -76,11 +76,25 @@ def clear_gold(sim, ch, cause) -> None:
 
 
 def retier(sim, world, old_tier) -> None:
-    """แดนเปลี่ยนชั้น (rules: ฟื้นขึ้นชั้นหรือเสื่อมลงชั้น) — ทองในลิ้นชักตลาดและไร่ของแดนนี้คีย์ด้วยที่ ไม่ใช่ชั้น
-    จึงกลายเป็นทองของชั้นใหม่ บันทึกเป็นทองออกจากชั้นเดิมเข้าชั้นใหม่ (`realm_retier`) บัญชีทองทุกชั้นจึงยังปิด"""
+    """แดนเปลี่ยนชั้น (rules: ฟื้นขึ้นชั้นหรือเสื่อมลงชั้น) — เงินตราของแดนเปลี่ยนตาม บันทึกเป็นทองออกจากชั้นเดิมเข้าชั้นใหม่
+    (`realm_retier`) บัญชีทองทุกชั้นจึงยังปิด:
+    - ลิ้นชักตลาดและไร่ของแดนนี้ (คีย์ด้วยที่ จึงเป็นทองของชั้นใหม่อยู่แล้ว)
+    - ทองชั้นเดิมของคนที่มีชีวิตอยู่ในแดนนี้ คลังชุมชนของแดนนี้ และกระเป๋าของครัวเรือนที่บ้านอยู่ในแดนนี้ ย้ายไปชั้นใหม่
+      — วัดแล้ว seed 11: แดนหนึ่งเสื่อมจากชั้น 2 เป็น 1 เงินของทุกคนค้างเป็นทองชั้น 2 ที่ใช้ในแดนไม่ได้ เด็ก 13 คนอดตาย
+        ภายในสี่เดือนขณะผู้ปกครองอยู่ด้วยและมีทองหลายร้อย"""
     if world.tier == old_tier:
         return
+    from . import household as HH
+    new = world.tier
     moved = sum(v for till in (sim.market_till, sim.farm_till) for (wid, _p), v in till.items() if wid == world.wid)
+    purses = ([ch.money for ch in sim.living_in(world.wid)]
+              + [t for (wid, _p), t in sorted(getattr(sim, "settlement_treasury", {}).items()) if wid == world.wid]
+              + [hh.purse for _hid, hh in sorted(HH._table(sim).items()) if hh.home is not None and hh.home[0] == world.wid])
+    for purse in purses:
+        gold = purse.pop(old_tier, 0.0)
+        if gold:
+            purse[new] = purse.get(new, 0.0) + gold
+            moved += gold
     record(sim, "realm_retier", old_tier, -moved)
     record(sim, "realm_retier", world.tier, moved)
 
