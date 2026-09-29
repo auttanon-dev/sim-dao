@@ -1008,6 +1008,28 @@ class Sim:
                           f"{new.name}ขึ้นปกครองเมืองต่อจาก{ch.name}", 0, {"เมือง": city.get("name", city["id"])})
 
     # ------------------------------------------------------------ หุ่นเชิด
+    def wrong_done(self, a, t, kind, gold):
+        """ผลของการปล้นหรือริบของจากผู้ถูกฆ่า (ขั้นปล้น §7.4): ผู้ถูกกระทำแค้น ญาติในครัวเรือนและตระกูลเดียวกันในแดนแค้นรองลงมา
+        ผู้กระทำติดหนี้กรรม นับครั้งที่ปล้นไว้ให้ crime_weight ได้ของมากก็มีเหตุให้ไปปิดด่าน (intent.weigh) และนับไว้ในสถิติ"""
+        stats = self.__dict__.setdefault("crime_stats", {})
+        stats[kind] = stats.get(kind, 0.0) + gold
+        stats[kind + "_count"] = stats.get(kind + "_count", 0) + 1
+        if gold >= 365.0 * C.FOOD_RATION_ADULT * C.FOOD_PRICE:
+            a.big_haul_day = self.day
+        if kind != "ปล้น":
+            return                                  # ผู้ถูกฆ่า: ญาติแค้นและผู้ฆ่าติดหนี้ผ่าน kin_avenge / add_debt อยู่แล้ว
+        a.robberies = getattr(a, "robberies", 0) + 1
+        R.add_debt(a, "ปล้น", t.cid, t.name, self.day)
+        t.rivals[a.cid] = t.rivals.get(a.cid, 0) + C.GRUDGE_ROB
+        hh = HH.of(self, t)
+        kin = set(hh.members) if hh is not None else set()
+        if t.clan >= 0:
+            kin |= {c.cid for c in self.living_in(t.world_id) if c.clan == t.clan}
+        for cid in sorted(kin - {t.cid, a.cid}):
+            m = self.cast[cid]
+            if m.alive:
+                m.rivals[a.cid] = m.rivals.get(a.cid, 0) + C.GRUDGE_ROB_KIN
+
     def raise_corpse(self, killer, victim, rng):
         """สายเชิดศพ: ฆ่าคนแล้วปลุกซากขึ้นมาเป็นหุ่นของตน
 
@@ -4355,9 +4377,10 @@ class Sim:
         if k == "ดักปล้น":
             if not t: return "ล้มเหลว", "ไม่มีเป้าหมาย", d
             if R.power(a, w) > R.power(t, w):
-                stolen = t.money.get(w.tier, 0) // 2
+                stolen = t.money.get(w.tier, 0) // 2           # ครึ่งหนึ่งของที่พกอยู่ — ย้ายระหว่างคน ไม่ใช่ทองเกิดหรือหาย
                 t.money[w.tier] = t.money.get(w.tier, 0) - stolen
                 a.money[w.tier] = a.money.get(w.tier, 0) + stolen
+                self.wrong_done(a, t, "ปล้น", stolen)
                 a.moral = getattr(a, "moral", 0) - 3
                 if hasattr(a, "update_title"): a.update_title()
                 t.bonds[a.cid] = min(-10, t.bonds.get(a.cid, 0) - 30)

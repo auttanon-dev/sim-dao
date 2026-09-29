@@ -1162,6 +1162,7 @@ def crime_weight(ch) -> int:
         n += 1
     if getattr(ch, "moral", 0) <= C.CRIMINAL_MORAL * 2:
         n += 1
+    n += getattr(ch, "robberies", 0) // C.ROBBERIES_PER_CRIME     # ปล้นซ้ำหลายครั้งหนักเท่าความผิดหนึ่ง
     return n
 
 

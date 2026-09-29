@@ -66,7 +66,11 @@ def resolve(sim, ch, cause, killer=None, natural=False):
         w.n_mortal -= 1
     # P6 ปราณคืนสู่ฟ้า
     R.death_return(w, ch, natural)
-    # P7 มรดก: กระเป๋าครัวเรือนก่อน แล้วทอง/ของ แล้วคู่ครองเป็นหม้าย
+    # P7 มรดก: ผู้ฆ่าริบของใช้ในถุงและวัตถุดิบ แล้วกระเป๋าครัวเรือน แล้วทอง/ของที่เหลือ แล้วคู่ครองเป็นหม้าย
+    # ทองที่พกไม่ถูกริบ — ตกถึงทายาทหรือคลังชุมชนตามเดิม วัด 9 seed: ให้ผู้ฆ่าริบทอง (ราว 4,400 ทองต่อปี)
+    # เด็กอดตายเพิ่ม 7.3 ± 2.0 คนต่อ seed ใน 50 ปี (แย่ลง 8 จาก 9 seed) เพราะทองนั้นเคยเลี้ยงเด็กผ่านทายาทและคลังชุมชน
+    if killer is not None:
+        _killer_takes_bag(sim, ch, killer)
     HH.on_death(sim, ch)                     # คนสุดท้ายของครัวเรือน: กระเป๋าเข้าเงินของเขาก่อนแบ่งมรดก (ไม่มีทายาท: คลังตระกูล)
     sim.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
     mate = sim.cast[ch.spouse] if ch.spouse is not None and 0 <= ch.spouse < len(sim.cast) else None
@@ -130,6 +134,23 @@ def _record(sim, ch, cause, killer, natural):
     sim.__dict__.setdefault("deaths", []).append(DeathRecord(
         sim.death_seq, ch.cid, sim.day, ch.world_id, ch.place if ch.place is not None else -1,
         cause, killer.cid if killer is not None else -1, bool(natural)))
+
+
+def _killer_takes_bag(sim, ch, killer):
+    """ผู้ฆ่าริบของใช้ในถุง (ยา อาวุธ) และวัตถุดิบที่ผู้ตายพก — ของที่มีชื่อ (ch.items) ริบใน P8 ทองไม่ถูกริบ"""
+    bag = getattr(ch, "inventory", None) or {}
+    for name, v in list(bag.items()):
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0:
+            killer.inventory[name] = killer.inventory.get(name, 0) + v
+            bag[name] = 0
+        elif v and killer.inventory.get(name) is None:
+            killer.inventory[name] = v
+            bag[name] = None
+    for name, n in sorted(getattr(ch, "mat_stock", {}).items()):
+        if n > 0:
+            killer.mat_stock[name] = killer.mat_stock.get(name, 0) + n
+    ch.mat_stock = {}
+    sim.wrong_done(killer, ch, "ริบ", 0.0)
 
 
 def _killer_takes(sim, ch, killer):

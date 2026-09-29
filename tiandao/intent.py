@@ -685,6 +685,9 @@ def weigh(ch, sim, table, has_others, loot_nearby=None,
     elif not _BODY.can_fight(ch):
         for k in COMBAT_KINDS:
             w[k] = 0.0
+    # เพิ่งได้ของมามาก (ปล้นหรือริบจากผู้ถูกฆ่า ≥ ข้าวหนึ่งปี) — มีทุนและมีเหตุให้หายตัวไปปิดด่าน
+    if w.get("ปิดด่าน", 0) > 0 and sim.day - getattr(ch, "big_haul_day", -10 ** 9) <= C.BIG_HAUL_DAYS:
+        w["ปิดด่าน"] *= C.BIG_HAUL_SECLUDE_X
     return {k: v for k, v in w.items() if v > 0 and k in valid}
 
 

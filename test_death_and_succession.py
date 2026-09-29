@@ -88,7 +88,7 @@ class InheritanceTests(World):
         self.assertEqual(len(spouse.items), 1)
         self.die(dead2, killer=killer)
         self.assertEqual(len(killer.items), 1, "ผู้ฆ่าริบของ")
-        self.assertAlmostEqual(spouse2.money.get(0, 0), 10.0, msg="แต่ทองยังตกถึงทายาท")
+        self.assertAlmostEqual(spouse2.money.get(0, 0), 10.0, msg="แต่ทองยังตกถึงทายาท (วัด 9 seed: ให้ผู้ฆ่าริบทอง เด็กอดตายเพิ่ม)")
 
 
 class SuccessionAndCleanupTests(World):

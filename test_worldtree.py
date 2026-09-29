@@ -56,8 +56,34 @@ def test_branches_exist(sim):
     return br
 
 
+POOL_SEEDS = (6, 7)
+
+
 def test_branches_teach_differently(sim, br):
     print("\n=== 2. สาขาต้องผลิตคนคนละแบบจริง (วิชาประจำแดนต้องเด่นขึ้นมา) ===")
+    # รวมหลายโลก (seed 5–7) เหมือน test_coalition: โลกเดียวอยู่ที่เส้นพอดี — seed 5 ได้ 20/40 = 50% หลังเส้นทางเปลี่ยนเล็กน้อย
+    import multiprocessing
+    hits, misses = _branch_share(sim, br)
+    with multiprocessing.Pool(len(POOL_SEEDS)) as pool:
+        for h, m in pool.map(_branch_share_of_seed, POOL_SEEDS):
+            hits, misses = hits + h, misses + m
+    ratio = hits / max(1, hits + misses)
+    print(f"  ตรวจ {hits + misses} สาขาจาก {1 + len(POOL_SEEDS)} โลก — สาขาที่วิชาประจำแดนคิดเป็น >15% ของวิชาทั้งหมด: "
+          f"{hits} ({ratio:.0%})")
+    assert ratio > 0.5, "วิชาประจำแดนไม่ได้เด่นขึ้นมาจริง สาขาจึงเหมือนกันหมด"
+
+
+def _branch_share_of_seed(seed):
+    sim = S.Sim(seed=seed, tiers=3)
+    with contextlib.redirect_stdout(io.StringIO()):
+        for _ in range(STEPS):
+            if sim.step() is None:
+                break
+    return _branch_share(sim, [w for w in sim.worlds if getattr(w, "skill_line", None)])
+
+
+def _branch_share(sim, br):
+    """(สาขาที่วิชาประจำแดนเกิน 15% ของวิชาทั้งหมด, สาขาที่ไม่ถึง) — นับเฉพาะสาขาที่มีคนมีวิชาอย่างน้อยสามคน"""
     from tiandao.rules import SKILL_INDEX   # ดัชนีวิชาอยู่ใน rules ไม่ใช่ skills
     hits = misses = 0
     for w in br:
@@ -73,10 +99,7 @@ def test_branches_teach_differently(sim, br):
             hits += 1
         else:
             misses += 1
-    ratio = hits / max(1, hits + misses)
-    print(f"  ตรวจ {hits + misses} สาขา — สาขาที่วิชาประจำแดนคิดเป็น >15% ของวิชาทั้งหมด: "
-          f"{hits} ({ratio:.0%})")
-    assert ratio > 0.5, "วิชาประจำแดนไม่ได้เด่นขึ้นมาจริง สาขาจึงเหมือนกันหมด"
+    return hits, misses
 
 
 def test_tree_acts(sim):

@@ -60,7 +60,8 @@ class WorldClockTests(unittest.TestCase):
         sim.queue = [(wake, cid) for cid in sleepers]
         heapq.heapify(sim.queue)
         ticks = record_ticks(sim)
-        with mock.patch.object(sim, "repopulate"):      # แยกนาฬิกาออกจากการเติมประชากร
+        # แยกนาฬิกาออกจากการเติมประชากร และจากบัญชาสวรรค์ (สุ่มโจมตีคนที่อาจอยู่ในด่าน — ถูกโจมตีแล้วตื่นเป็นเรื่องถูก)
+        with mock.patch.object(sim, "repopulate"), mock.patch.object(C, "CRUSADE_PER_YEAR", 0.0):
             event = quiet(sim.step)
 
         # ใครก็ตามที่ถึงคิวก่อนวันออกจากด่าน ต้องเป็นคนที่โลกสร้างขึ้นระหว่างนั้น (เช่นต้นไม้โลกตั้ง
