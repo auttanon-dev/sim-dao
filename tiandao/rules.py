@@ -1059,6 +1059,8 @@ def check_world(sim, world: World, rng):
                 and world.tier + 1 < len(C.TIER_NAMES)
                 and world.kind == "mortal" and rng.random() < C.RECOVER_P):
             world.tier += 1
+            from . import wages as WAGES
+            WAGES.retier(sim, world, world.tier - 1)        # ทองในลิ้นชักของแดนนี้เป็นทองของชั้นใหม่
             world.flourish_day = None
             world.era += 1
             world.era_day = sim.day
@@ -1096,6 +1098,8 @@ def check_world(sim, world: World, rng):
     world.fall_streak = getattr(world, "fall_streak", 0) + 1
     if world.tier > 0 and world.fall_streak >= C.DEMOTE_AFTER:
         world.tier -= 1          # โลกที่เสื่อม **ซ้ำซาก** จึงกลายเป็นโลกระดับต่ำลง
+        from . import wages as WAGES
+        WAGES.retier(sim, world, world.tier + 1)
         world.fall_streak = 0
     # เดิมเขียน `world.heaven = world.cap() * 0.7` ตรงนี้ — **เสกปราณ 49,000 หน่วยจาก
     # อากาศทุกครั้งที่ยุคล่ม** เป็นบั๊กคลาสเดียวกับ org.monthly_resource = 10000 เป๊ะ

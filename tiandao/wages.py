@@ -75,6 +75,16 @@ def clear_gold(sim, ch, cause) -> None:
     ch.money = {}
 
 
+def retier(sim, world, old_tier) -> None:
+    """แดนเปลี่ยนชั้น (rules: ฟื้นขึ้นชั้นหรือเสื่อมลงชั้น) — ทองในลิ้นชักตลาดและไร่ของแดนนี้คีย์ด้วยที่ ไม่ใช่ชั้น
+    จึงกลายเป็นทองของชั้นใหม่ บันทึกเป็นทองออกจากชั้นเดิมเข้าชั้นใหม่ (`realm_retier`) บัญชีทองทุกชั้นจึงยังปิด"""
+    if world.tier == old_tier:
+        return
+    moved = sum(v for till in (sim.market_till, sim.farm_till) for (wid, _p), v in till.items() if wid == world.wid)
+    record(sim, "realm_retier", old_tier, -moved)
+    record(sim, "realm_retier", world.tier, moved)
+
+
 def settlement_purse(sim, spot):
     """คลังของชุมชนที่ (แดน, สถานที่) {tier: ทอง} — รับมรดกที่ไม่มีทายาท สำนัก หรือตระกูลรับ (Sim.settle_estate)"""
     return sim.__dict__.setdefault("settlement_treasury", {}).setdefault(spot, {})

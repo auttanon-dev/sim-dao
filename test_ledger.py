@@ -76,6 +76,21 @@ class LedgerTests(unittest.TestCase):
         WAGES.set_gold(sim, ch, tier, ch.money[tier] - 7.0, "test")
         self.assertAlmostEqual(WAGES.gold_gap(sim, tier), 7.0, msg="set_gold บันทึกส่วนต่าง ช่องว่างเดิมยังอยู่")
 
+    def test_a_realm_changing_tier_with_gold_in_its_tills_keeps_every_tier_closed(self):
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 1500)
+        world = next(w for w in sim.worlds if w.tier > 0)
+        old = world.tier
+        WAGES.record(sim, "test", old, 25.0)                # ทองในลิ้นชักของแดนนี้ที่มีบัญชีรองรับ
+        sim.farm_till[(world.wid, 0)] = sim.farm_till.get((world.wid, 0), 0.0) + 25.0
+        self.assertClosed(sim, "ก่อนเปลี่ยนชั้น")
+        world.tier = old - 1
+        WAGES.retier(sim, world, old)
+        self.assertClosed(sim, "หลังเสื่อมลงชั้น")
+        world.tier = old
+        WAGES.retier(sim, world, old - 1)
+        self.assertClosed(sim, "หลังฟื้นขึ้นชั้น")
+
     def test_save_and_load_keep_the_ledger_closed(self):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 2000)
