@@ -115,7 +115,9 @@ class TestWholeWorld(unittest.TestCase):
         quiet(sim.run, 60000)
         liv = [c for c in sim.cast if c.alive and c.sentient]
         cult = [c for c in liv if c.skills]
-        elders = [c for c in cult if c.age(sim.day) >= 60]
+        # นับเฉพาะผู้ที่ไต่ขึ้นมาแล้วจริง (rank ≥ 1) — หลังแก้อายุขัยพื้น (§7.3) ปุถุชนที่มีวิชาแต่ขั้น 0 อยู่ถึง 60+
+        # ได้มากขึ้น (seed 11: ขั้น 0–1 ในกลุ่ม 60+ จาก 72 เป็น 135 คน) ค่าเฉลี่ยของทุกคนจึงลดลงเพราะใครรอดมา ไม่ใช่เพราะไต่ช้าลง
+        elders = [c for c in cult if c.age(sim.day) >= 60 and c.rank() >= 1]
         self.assertGreater(len(elders), 20)
         # วัดด้วย rank() (บันไดทั้งเส้น 0-29) ไม่ใช่ realm (0-9 ภายในชั้นฟ้า) — ไม่งั้นค่าเฉลี่ย
         # เอาคนละบันไดมาปนกัน: คนแดนบนที่เพิ่งข้ามฟ้ามี realm 0 ทั้งที่ไต่มาไกลกว่าใครในโลกล่าง

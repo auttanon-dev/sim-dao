@@ -600,7 +600,7 @@ class Sim:
             name=name,
             world_id=world.wid, dao=dao, dao_tags=list(C.DAO_POOL[dao]),
             born_day=self.day - age_years * 365,
-            natural_lifespan=rng.randint(C.MORTAL_LIFESPAN_MIN, C.MORTAL_LIFESPAN_MAX),
+            natural_lifespan=0,           # สุ่มท้าย spawn เมื่อรู้ขั้นแล้ว — ต้องรอดมาถึงอายุตอนสร้าง (R.natural_lifespan)
             blood=blood,
             fate=rng.randint(C.FATE_MIN, C.FATE_MAX), origin=origin,
             gender=gender, fear=fear, greed=greed, compassion=compassion,
@@ -686,6 +686,8 @@ class Sim:
                 if CL.CLANS[ch.clan][2] == 2 and age_years > 14:
                     ch.realm = min(C.REALM_CAP, ch.realm + CL.HEIR_HEADSTART)
                     ch.peak_realm = ch.realm
+        # อายุขัยพื้น: มีเงื่อนไขว่ารอดมาถึงอายุตอนสร้าง — lifespan() ตอนนี้คือโบนัสขั้นล้วน (natural_lifespan ยังเป็น 0)
+        ch.natural_lifespan = R.natural_lifespan(rng.random(), age_years - ch.lifespan())
         # ใจของคนคนนี้ — สุ่มหลังนิสัย/วิถี/ลักษณะพิเศษถูกตั้งครบแล้ว เพราะ roll() อ่านค่าพวกนั้น
         # ไปกำหนดทิศของอารมณ์และปรารถนา (คนขลาดกลัวจะ 'กลัว' สูงจริง ไม่ขัดกันเอง)
         ch.birth_wid = world.wid

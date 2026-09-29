@@ -64,8 +64,14 @@ def realm_name(tier: int, realm: int) -> str:
     pre = REALM_PREFIX[min(tier, len(REALM_PREFIX) - 1)]
     return pre + REALM_RANKS[realm]
 # อายุขัยเป็นคุณสมบัติประจำตัวตั้งแต่เกิด แล้วสะสมตามเส้นทางบำเพ็ญข้ามแดน
-MORTAL_LIFESPAN_MIN = 0
-MORTAL_LIFESPAN_MAX = 100
+# อายุขัยพื้นของคน (ก่อนโบนัสขั้น) — ปกติตัดปลาย μ 72 σ 10 ในช่วง [45, 95] (§7.3) สุ่มแบบมีเงื่อนไขว่ารอดมาถึงอายุตอนเกิด
+# เดิมสุ่มเท่ากัน 0–100 ไม่ขึ้นกับอายุ: วัด (seed 11–13 เดิน 50 ปี) "สิ้นอายุขัย" เป็นเหตุตายอันดับหนึ่ง 26% ของความตาย
+# ปุถุชนตายด้วยชราที่อายุมัธยฐาน 33 ปี 166–209 คนต่อ seed ตายด้วยชราก่อนอายุ 20 และคนที่สร้างเป็นผู้ใหญ่ 27–29% เกิดมาเกินอายุขัยแล้ว
+MORTAL_LIFESPAN_MU = 72.0
+MORTAL_LIFESPAN_SIGMA = 10.0
+MORTAL_LIFESPAN_MIN = 45
+MORTAL_LIFESPAN_MAX = 95
+LIFESPAN_TAIL_YEARS = 10             # คนที่สร้างมาแก่กว่าเพดานของเส้นแล้ว (อายุหลังหักโบนัสขั้นเกิน 95) อยู่ต่อได้อีก 1–11 ปี
 LIFESPAN_PER_MINOR_REALM = 100
 LIFESPAN_PER_MAJOR_REALM = 300
 SUPREME_LIFESPAN = 20000

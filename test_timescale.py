@@ -159,8 +159,11 @@ class TestSeclusion(unittest.TestCase):
         # เหตุการณ์ของโลกที่ "เกิดกับเขา" ระหว่างอยู่ในด่านยังเกิดได้ (ภัยพิบัติ · จิตมารกำเริบ
         # จนตกเป็นมารกลางด่าน ซึ่งเป็นหายนะคลาสสิกของการปิดด่านอยู่แล้ว) ที่ต้องไม่มีคือ
         # **การกระทำที่เขาเลือกเอง** — ปิดประตูแล้วต้องไม่โผล่ไปเดินตลาดหรือประลองกับใคร
-        acted = [e.kind for e in sim.log[start:]
-                 if e.actor == ch.cid and e.kind in chosen and e.kind != "ปิดด่าน"]
+        # นับเฉพาะช่วงที่ยังอยู่ในด่านจริง — ภัยของโลก (เช่นตกเป็นมารกลางด่าน) ทำให้ออกจากด่านก่อนกำหนดได้ ออกแล้วลงมือเป็นเรื่องปกติ
+        mine = [e for e in sim.log[start:] if e.actor == ch.cid]
+        out = next((e.day for e in mine if e.kind == "ออกจากด่าน"), None)
+        acted = [e.kind for e in mine
+                 if e.kind in chosen and e.kind != "ปิดด่าน" and (out is None or e.day < out)]
         self.assertEqual(acted, [], "คนปิดด่านต้องไม่โผล่ไปลงมือทำอะไรข้างนอก")
 
     def test_coming_out_reports_what_changed(self):
@@ -241,34 +244,31 @@ class TestSeclusion(unittest.TestCase):
         self.assertIn("ปิดด่าน", menu_near,
                       "ถึงคอขวดแล้วตัวเลือกนี้ต้องอยู่ในสิ่งที่ตัวละคร 'เห็น' จริงๆ")
 
-    def test_the_menu_share_across_a_live_world(self):
-        """วัดทั้งโลกจริง ไม่ใช่ตัวละครที่เซ็ตค่าเอง — ต้องเห็นตัวเลือกนี้บ้าง แต่ไม่ใช่ทุกคน
+    def test_the_seclusion_share_across_a_live_world(self):
+        """วัดทั้งโลกจริง ไม่ใช่ตัวละครที่เซ็ตค่าเอง — ผู้ฝึกต้องปิดด่านจริงบ้าง แต่ไม่ใช่ทุกคน
 
-        รวมสิบโลก (seed 7–16) เพราะคน 120 คนจากโลกเดียวแกว่งตามเส้นทางของโลกมาก เกณฑ์ตั้งจากการกระจายที่วัดได้:
-        หลังการบำเพ็ญเป็น ActionProcess (จ่ายตามวันที่บำเพ็ญจริง ไม่จ่ายล่วงหน้า) วัด 16 seed (7–22) ได้ 0–13 คนต่อ 120
-        รวม 4.5% (ก่อนเปลี่ยน 13 seed ได้ 4.6% — เกณฑ์ 5% เดิมอยู่ในสัญญาณรบกวนอยู่แล้ว) seed 7–16 รวม 4.2%
-        พื้น 2.5% ต่ำกว่าค่ารวมสิบโลกราวสองส่วนเบี่ยงเบน ยังจับกรณีที่ตัวเลือกนี้หายไปจากเมนูทั้งโลกได้
+        นับผู้ฝึกที่มีชีวิต (ขั้น ≥ 1) ที่เข้าด่านจริงอย่างน้อยหนึ่งครั้งระหว่างเดินโลก รวมสิบโลก (seed 7–16 ขนานกัน)
+        เดิมนับว่าตัวเลือกนี้อยู่ในเมนูของคน 120 อันดับแรก ณ วินาทีเดียวตอนจบ — หลังแก้อายุขัยพื้น (§7.3) ค่านั้นตกจาก 3.4% เป็น 1.9%
+        ทั้งที่ทั้งโลกเข้าด่านจริงมากขึ้น 5% และพยายามข้ามขั้นมากขึ้น 6% (ภาพวินาทีเดียวไม่ใช่พฤติกรรม) และคน 120 อันดับแรก
+        แทบไม่เคยเข้าด่าน (10 จาก 1,200) ผู้ที่เข้าด่านจริงคือผู้ฝึกขั้นต้น
+        วัดแล้ว: ก่อนแก้ 19.6% หลังแก้ 19.1% (ต่อ seed 17–22%) พื้น 10% ราวครึ่งหนึ่งของค่าที่วัด ยังจับกรณีที่ไม่มีใครปิดด่านได้
         """
-        from tiandao.mind import actions as A
-        from tiandao.mind import config as MC
-        seen = total = 0
-        for seed in range(7, 17):
-            sim = quiet(S.Sim, seed=seed)
-            quiet(sim.run, 30000)
-            pool = [c for c in sim.cast
-                    if c.alive and getattr(c, "sentient", True) and c.age(sim.day) > 20]
-            pool.sort(key=lambda c: -c.rank())
-            pool = pool[:120]
-            total += len(pool)
-            seen += sum(1 for c in pool
-                        if "ปิดด่าน" in A.build_menu(
-                            IN.weigh(c, sim, E.EVENT_TABLE, False),
-                            E.EVENT_TABLE, MC.MENU_MAX_ACTIONS))
-        self.assertGreater(seen, total * 0.025,
-                           "น้อยเกินไป = ผู้มีจิตใจจะไม่มีวันเลือกปิดด่านเลย")
-        self.assertLess(seen, total * 0.8,
-                        "มากเกินไป = ทั้งโลกเอาแต่ปิดด่าน เรื่องจะหยุดเดิน")
+        import multiprocessing
+        with multiprocessing.Pool(5) as pool:
+            rows = pool.map(_seclusion_share_of_seed, range(7, 17))
+        did = sum(r[0] for r in rows)
+        total = sum(r[1] for r in rows)
+        self.assertGreater(did, total * 0.10, "น้อยเกินไป = ผู้ฝึกแทบไม่มีใครปิดด่านเลย")
+        self.assertLess(did, total * 0.8, "มากเกินไป = ทั้งโลกเอาแต่ปิดด่าน เรื่องจะหยุดเดิน")
 
+
+def _seclusion_share_of_seed(seed):
+    """(ผู้ฝึกที่มีชีวิตซึ่งเข้าด่านจริงระหว่างเดินโลก, ผู้ฝึกที่มีชีวิตทั้งหมด) หลังเดิน 30,000 เหตุการณ์"""
+    sim = quiet(S.Sim, seed=seed)
+    quiet(sim.run, 30000)
+    cult = {c.cid for c in sim.cast if c.alive and getattr(c, "sentient", True) and c.rank() >= 1}
+    did = {e.actor for e in sim.log if e.kind == "ปิดด่าน" and e.outcome == "เข้าด่าน" and e.actor in cult}
+    return len(did), len(cult)
 
 if __name__ == "__main__":
     unittest.main()

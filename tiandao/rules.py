@@ -921,6 +921,19 @@ def hold_realm(ch: Character, qi_per_year: float, gap_days: int) -> int:
     return fell
 
 
+def natural_lifespan(u: float, alive_at: float) -> int:
+    """อายุขัยพื้นจากเลขสุ่มหนึ่งตัว `u` (0..1) — ปกติตัดปลาย (MORTAL_LIFESPAN_*) แบบมีเงื่อนไขว่ายังมีชีวิตที่อายุ `alive_at`
+    (อายุตอนสร้างลบโบนัสขั้น) จึงเหลือชีวิตอย่างน้อยหนึ่งปีเสมอ แก่กว่าปลายบนของเส้นแล้วได้อีก 1–LIFESPAN_TAIL_YEARS+1 ปี"""
+    from statistics import NormalDist
+    lo, hi = C.MORTAL_LIFESPAN_MIN, C.MORTAL_LIFESPAN_MAX
+    floor = max(lo, int(math.floor(alive_at)) + 1)
+    if floor >= hi:
+        return int(floor + C.LIFESPAN_TAIL_YEARS * u)
+    dist = NormalDist(C.MORTAL_LIFESPAN_MU, C.MORTAL_LIFESPAN_SIGMA)
+    a, b = dist.cdf(floor), dist.cdf(hi)
+    return min(hi, max(floor, int(round(dist.inv_cdf(a + u * (b - a))))))
+
+
 def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     years = gap_days / 365.0
     # เซฟก่อน Phase 8 ไม่มี body_age: ใช้อายุจริงจากวันเกิดเป็นพื้น ไม่ทำให้เซียนอายุหลายร้อย
