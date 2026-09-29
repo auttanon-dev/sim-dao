@@ -68,6 +68,16 @@ class DeathTransactionTests(unittest.TestCase):
         self.assertEqual((rec.cid, rec.cause, rec.day, rec.killer), (ch.cid, "ทดสอบ", day, -1))
         self.assertEqual(ch.death_cause, "ทดสอบ")
 
+    def test_dying_mid_seclusion_still_counts_the_days_actually_spent(self):
+        ch = self.victim()
+        quiet(self.sim.start_process, ch, "seclusion", 365, {}, 1.0)
+        self.sim.day += 100
+        insight = ch.insight
+        quiet(self.sim.kill, ch, "ทดสอบ")
+        self.assertIsNone(ch.process)
+        self.assertAlmostEqual(ch.insight - insight, C.SECLUDE_INSIGHT_PER_YEAR * 100 / 365.0,
+                               msg="ได้ผล 100 วันที่ปิดด่านไปจริง ไม่ถูกล้างทิ้ง")
+
     def test_the_chaos_lord_dissolves_instead_of_dying_and_leaves_no_record(self):
         lord = self.sim.cast[self.sim.lord_cid]
         n = len(getattr(self.sim, "deaths", []))

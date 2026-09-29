@@ -83,7 +83,10 @@ def resolve(sim, ch, cause, killer=None, natural=False):
     sim.succeed(ch, killer)
     for cid in sim.alive_cids:               # เหมือน fade_grudges แต่ทันที
         sim.cast[cid].rivals.pop(ch.cid, None)
-    # P10 ปิดกิจกรรมที่ค้าง
+    # P10 ปิดกิจกรรมที่ค้าง — ได้ผลตามวันที่ทำไปจริงก่อน (ปิดด่าน บำเพ็ญ เลี้ยงดู) เดิมถูกล้างทิ้ง
+    # ผลที่ยังมีความหมายหลังตายคือของผู้ที่จะเกิดใหม่ (P12) ซึ่งรับความเข้าใจและพื้นฐานจากร่างเดิม
+    if ch.process is not None:
+        sim.accrue_process(ch)
     ch.process, ch.building_dest = None, -1  # ไม่มีศพที่ยังเดินทาง ปิดด่าน หรือเดินในเมืองค้างอยู่
     sim.end_pregnancy(ch, "มารดาเสียชีวิต")
     # P11 ตรวจ
