@@ -64,7 +64,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  26 — ทุนตั้งต้นเฉพาะคนที่สร้างพร้อมโลก (Sim.genesis_cast = คนที่มีอยู่ตอนโหลด) ทองในซากมีจำกัด (Sim.ruin_gold ตั้งเมื่อค้นครั้งแรก)
 #  27 — ราคาข้าวตามข้าวในยุ้งฉาง (Sim.food_price คิดใหม่ทุกรอบ ไม่มีสถานะที่ต้องย้าย)
 #  28 — บันทึกความตาย (Sim.deaths: models.DeathRecord) เริ่มว่าง
-SAVE_VERSION = 28
+#  29 — ระบบนิเวศคีย์ (แดน, สถานที่) (Sim.place_stock, eco_scarce, eco_recovered) ค่าเดิมของสถานที่คัดลอกให้ทุกแดนที่มีสถานที่นั้น
+SAVE_VERSION = 29
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -345,6 +346,25 @@ def _migrate(sim, version):
     if version < 28:
         sim.__dict__.setdefault("deaths", [])
         sim.__dict__.setdefault("death_seq", 0)
+    if version < 29:
+        _eco_by_realm(sim)              # ไม่แตะ RNG
+
+
+def _eco_by_realm(sim):
+    """ระบบนิเวศก่อนรุ่น 29 คีย์ด้วยสถานที่อย่างเดียว ทุกแดนที่ใช้ผังเดียวกันใช้ค่าเดียวกัน — คัดลอกค่าเดิมให้ทุกแดนที่มีสถานที่นั้น"""
+    from . import places as PL
+    stock, scarce, recovered = (getattr(sim, "place_stock", {}), getattr(sim, "eco_scarce", {}),
+                                getattr(sim, "eco_recovered", set()))
+    new_stock, new_scarce, new_recovered = {}, {}, set()
+    for w in sim.worlds:
+        for idx in PL.places_in(w.place_key):
+            if idx in stock:
+                new_stock[(w.wid, idx)] = stock[idx]
+            if idx in scarce:
+                new_scarce[(w.wid, idx)] = scarce[idx]
+            if idx in recovered:
+                new_recovered.add((w.wid, idx))
+    sim.place_stock, sim.eco_scarce, sim.eco_recovered = new_stock, new_scarce, new_recovered
 
 
 def _cities_into_save(sim):

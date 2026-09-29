@@ -127,7 +127,7 @@ def encode(sim, ch, others=()):
     out += [(1.0 if ptype == t else 0.0) * gw["place"] for t in PLACE_TYPES]
     out += [x * gw["place"] for x in (
         (pv[2] / 2.0) if pv else 0.0,
-        q(sim.eco_ratio(ch.place) if ch.place is not None else 1.0, 3),
+        q(sim.eco_ratio(ch.world_id, ch.place) if ch.place is not None else 1.0, 3),
         w.tier / max(1, len(C.TIER_NAMES) - 1),
     )]
 

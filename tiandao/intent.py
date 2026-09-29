@@ -298,7 +298,7 @@ def weigh(ch, sim, table, has_others, loot_nearby=None,
             w[k] += bonus
 
     pv = sim.place_of(ch)
-    eco = sim.eco_ratio(ch.place) if hasattr(sim, "eco_ratio") else 1.0
+    eco = sim.eco_ratio(ch.world_id, ch.place) if hasattr(sim, "eco_ratio") else 1.0
     # ถึงคอขวดแล้วต้องหาตัวช่วย ไม่ใช่นั่งรอ
     if not hurt and ch.at_bottleneck():
         # ปิดด่าน: จังหวะรายปีที่ตัวละคร "เลือกเอง" ว่าจะหายไปจากโลกหลายปีเพื่อทะลวงขั้น

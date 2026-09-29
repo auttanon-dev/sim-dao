@@ -425,7 +425,7 @@ class SimDecisionEngine(DecisionEngine):
         if fact is not None:
             danger = max(danger, fact.danger)            # ความรู้จากประสบการณ์ตรง (ai/memory.py)
         allies = sum(1 for e in ents if e.relation.affection > 0.3)
-        eco = sim.eco_ratio(ch.place) if hasattr(sim, "eco_ratio") else 1.0
+        eco = sim.eco_ratio(ch.world_id, ch.place) if hasattr(sim, "eco_ratio") else 1.0
         return Environment(danger=danger, allies_nearby=allies, crowd=min(1.0, len(ents) / 10.0),
                            features={"eco": eco, "feud_heat": heat})
 

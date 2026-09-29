@@ -47,7 +47,7 @@ def maybe_trigger_disaster(sim, world, rng):
             return None
         n_hit = max(1, len(spots) // 3)
         for idx in rng.sample(spots, n_hit):
-            sim.eco_harvest(idx, sim.place_stock.get(idx, 0.0) * 0.6)
+            sim.eco_harvest(world.wid, idx, sim.place_stock.get((world.wid, idx), 0.0) * 0.6)
         text = f"{name}แผดเผา{world.name} แหล่งวัตถุดิบ {n_hit} แห่งเหือดแห้งลงหนัก"
 
     elif kind == "น้ำท่วม":

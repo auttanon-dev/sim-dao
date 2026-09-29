@@ -126,9 +126,10 @@ class Sim:
         self.bounties = {} # cid -> reward amount
         self.queue = []
         self.rumors = []
-        self.place_stock = {}     # place_idx -> ปริมาณทรัพยากร/สัตว์อสูรที่เหลืออยู่ตอนนี้ (ระบบนิเวศ)
-        self.eco_scarce = {}      # place_idx -> True ขณะที่ยังอยู่ในสถานะขาดแคลน (ค้างจนกว่าจะฟื้นจริง)
-        self.eco_recovered = set()  # place_idx ที่เพิ่งฟื้นจากขาดแคลน — ใช้เป็นข่าวลือครั้งเดียวแล้วเคลียร์ทิ้ง
+        # คีย์ (wid, place_idx) — หลายแดนใช้ผังสถานที่ชุดเดียวกัน คีย์ด้วยสถานที่อย่างเดียวทำให้ขุดแดนหนึ่งแล้วอีกแดนโทรมไปด้วย (§6.2 R1)
+        self.place_stock = {}     # (wid, place_idx) -> ปริมาณทรัพยากร/สัตว์อสูรที่เหลืออยู่ตอนนี้ (ระบบนิเวศ)
+        self.eco_scarce = {}      # (wid, place_idx) -> True ขณะที่ยังอยู่ในสถานะขาดแคลน (ค้างจนกว่าจะฟื้นจริง)
+        self.eco_recovered = set()  # (wid, place_idx) ที่เพิ่งฟื้นจากขาดแคลน — ใช้เป็นข่าวลือครั้งเดียวแล้วเคลียร์ทิ้ง
         self.skill_fragments = []   # ชิ้นส่วนวิชาแก้ทางโกลาหลที่ฝังกระจายไว้ทั่วโลกมนุษย์
         self.next_id = {"c": 0, "i": 0, "k": 0, "o": 0, "r": 0, "f": 0}
         self.apex_blessings = {}  # cid ผู้สูงสุด -> {ชนิดสายเลือด: ความแรง}; มีเฉพาะผู้ที่ยังครองขั้น
@@ -1667,7 +1668,7 @@ class Sim:
         """
         pv = PL.PLACES[place_idx] if 0 <= place_idx < len(PL.PLACES) else None
         grade = pv[2] if pv else 0
-        eco = self.eco_ratio(place_idx) if place_idx is not None and place_idx >= 0 else 1.0
+        eco = self.eco_ratio(world.wid, place_idx) if place_idx is not None and place_idx >= 0 else 1.0
         field = self.qi_field_at(place_idx)
         # สนาม 0 -> คูณ (1-W) · สนาม 1 -> คูณ (1+W) · สนาม 0.5 -> คูณ 1 พอดี
         # เขียนแบบนี้เพื่อให้ W = 0 คืนพฤติกรรมเดิมเป๊ะ ปรับกลับได้ถ้าไม่ชอบ
@@ -1919,14 +1920,14 @@ class Sim:
             it = self.items.get(iid)
             if it:
                 pool.append(("สมบัติ", iid, it.name))
-        for idx in self.place_stock:
-            p = PL.PLACES[idx]
-            if p[1] != world.place_key:
+        for key in sorted(self.place_stock):
+            if key[0] != world.wid:
                 continue
-            if self.eco_scarce.get(idx):
-                pool.append(("ขาดแคลน", idx, p[0]))
-            elif idx in self.eco_recovered:
-                pool.append(("อุดมสมบูรณ์", idx, p[0]))
+            p = PL.PLACES[key[1]]
+            if self.eco_scarce.get(key):                 # หัวข้อข่าวลือเป็นเลขสถานที่ (rumor_leads) — แดนคือแดนของข่าวนี้
+                pool.append(("ขาดแคลน", key[1], p[0]))
+            elif key in self.eco_recovered:
+                pool.append(("อุดมสมบูรณ์", key[1], p[0]))
         for f in self.skill_fragments:
             if f["found"] or PL.PLACES[f["place"]][1] != world.place_key:
                 continue
@@ -1939,7 +1940,7 @@ class Sim:
             text = f"มีคนบ่นว่า{label}เริ่มหาของกินของใช้ยากขึ้นมากในระยะหลัง"
         elif kind == "อุดมสมบูรณ์":
             place = subject
-            self.eco_recovered.discard(subject)   # ข่าวฟื้นตัวเป็นข่าวครั้งเดียว ไม่ใช่สถานะค้าง
+            self.eco_recovered.discard((world.wid, subject))   # ข่าวฟื้นตัวเป็นข่าวครั้งเดียว ไม่ใช่สถานะค้าง
             text = f"มีคนเล่าว่า{label}กลับมาอุดมสมบูรณ์อีกครั้งหลังจากเงียบไปพักใหญ่"
         elif kind == "ชิ้นส่วนวิชา":
             frag = next(f for f in self.skill_fragments if f["fid"] == subject)
@@ -2049,15 +2050,16 @@ class Sim:
                   f"{actor.name}{source} {r['text']}", 0, {})
 
     # ------------------------------------------------------------ ระบบนิเวศ
-    def eco_ratio(self, place_idx):
-        """สัดส่วนความอุดมสมบูรณ์ของแหล่งนี้ตอนนี้ (0..1)
+    def eco_ratio(self, wid, place_idx):
+        """สัดส่วนความอุดมสมบูรณ์ของแหล่ง `place_idx` ในแดน `wid` ตอนนี้ (0..1)
         ยิ่งถูกเก็บเกี่ยวหนัก ยิ่งลดลง ฟื้นเองตามเวลาที่ผ่านไป"""
         if place_idx is None or place_idx < 0:
             return 1.0
-        stock = self.place_stock.get(place_idx)
+        key = (wid, place_idx)
+        stock = self.place_stock.get(key)
         if stock is None:
             stock = C.ECO_CAP
-            self.place_stock[place_idx] = stock
+            self.place_stock[key] = stock
         return max(C.ECO_MIN_YIELD, min(1.0, stock / C.ECO_CAP))
 
     def eco_regen(self, elapsed_days):
@@ -2075,19 +2077,20 @@ class Sim:
         if not self.place_stock or elapsed_days <= 0:
             return
         rate = (C.ECO_REGEN_PER_YEAR / C.ECO_CAP) * SEASONS.regen_multiplier(self.day) / 365.0
-        for idx in list(self.place_stock):
+        for key in list(self.place_stock):
             # เมล็ดเล็กๆ ด้วยเหตุผลเดียวกับคลังฟ้า: ลอจิสติกที่ศูนย์โตไม่ได้ตลอดกาล
-            now = max(C.ECO_SEED, self.place_stock[idx])
+            now = max(C.ECO_SEED, self.place_stock[key])
             stock = PHYS.logistic_growth(now, C.ECO_CAP, rate, elapsed_days)
-            self.place_stock[idx] = stock
-            self._update_eco_state(idx, stock)
+            self.place_stock[key] = stock
+            self._update_eco_state(key, stock)
 
-    def eco_harvest(self, place_idx, amount):
+    def eco_harvest(self, wid, place_idx, amount):
         if place_idx is None or place_idx < 0:
             return
-        stock = max(0.0, self.place_stock.get(place_idx, C.ECO_CAP) - amount)
-        self.place_stock[place_idx] = stock
-        self._update_eco_state(place_idx, stock)
+        key = (wid, place_idx)
+        stock = max(0.0, self.place_stock.get(key, C.ECO_CAP) - amount)
+        self.place_stock[key] = stock
+        self._update_eco_state(key, stock)
 
     def _update_eco_state(self, idx, stock):
         """สถานะขาดแคลนค้างอยู่จนกว่าจะฟื้นข้ามเกณฑ์ recover จริง — ไม่ใช่แค่กระเตื้องนิดหน่อยแล้วนับว่าอุดมสมบูรณ์"""
@@ -4657,13 +4660,13 @@ class Sim:
             if not pool and not MAT.is_core_site(a.place):
                 return ("ไม่มีอะไรให้เก็บ",
                         f"{a.name}มองหาวัตถุดิบที่{self.place_name(a)} แต่ที่นี่ไม่มีอะไรให้เก็บ", d)
-            eco = self.eco_ratio(a.place)
+            eco = self.eco_ratio(a.world_id, a.place)
             if not pool:
                 # แหล่งแก่นพลัง — เก็บแก่นจากซากอสูรโดยไม่ต้องออกล่าเอง (ไม่มีความเสี่ยงตาย
                 # แต่ได้น้อยกว่าล่าจริง) ก่อนหน้านี้ 9 แหล่งนี้ไม่มีทางเก็บอะไรได้เลย
                 got_cores = max(1, round(rng.randint(*C.GATHER_CORE_PER_TRIP) * eco))
                 a.cores += got_cores
-                self.eco_harvest(a.place, float(got_cores))
+                self.eco_harvest(a.world_id, a.place, float(got_cores))
                 d["เก็บได้"] = f"แก่นพลัง×{got_cores}"
                 # สายหินวิญญาณที่แทรกอยู่ในแหล่งแก่นพลัง — ขุดขึ้นมาก็คือดูดปราณออกจากโลก
                 if rng.random() < C.VEIN_FIND_P and w.heaven > 0:
@@ -4696,7 +4699,7 @@ class Sim:
                         a.wants[pick] = left
                     else:
                         a.wants.pop(pick, None)
-            self.eco_harvest(a.place, float(n))
+            self.eco_harvest(a.world_id, a.place, float(n))
             if not got:
                 return "มือเปล่า", f"{a.name}ออกเก็บวัตถุดิบแต่กลับมามือเปล่า", d
             d["เก็บได้"] = ", ".join(f"{m}×{q}" for m, q in got.items())
@@ -4709,7 +4712,7 @@ class Sim:
 
         if k == "ล่าอสูร":
             pv = self.place_of(a)
-            eco = self.eco_ratio(a.place)
+            eco = self.eco_ratio(a.world_id, a.place)
             n = max(1, round(rng.randint(*C.CORE_PER_HUNT) * eco))
             if pv and pv[4] == "แก่นพลัง":
                 n += 2
@@ -4720,7 +4723,7 @@ class Sim:
             a.insight += C.HUNT_INSIGHT
             got = max(1, round(rng.randint(1, 4) * eco))
             a.mats += got
-            self.eco_harvest(a.place, got + n * 0.3)
+            self.eco_harvest(a.world_id, a.place, got + n * 0.3)
 
             if rng.random() < 0.4:
                 a.mat_stock["โลหิตอสูรกลั่น"] = a.mat_stock.get("โลหิตอสูรกลั่น", 0) + rng.randint(1, 2)
@@ -4740,7 +4743,7 @@ class Sim:
                 pick = MAT.roll_material(a.place, rng, eco)
                 if pick:
                     a.mat_stock[pick] = a.mat_stock.get(pick, 0) + 1
-                    self.eco_harvest(a.place, 1.0)
+                    self.eco_harvest(a.world_id, a.place, 1.0)
                     tail = " (แหล่งนี้เริ่มร่อยหรอ)" if eco < 0.5 else ""
                     d["เก็บได้"] = f"{pick} ที่{self.place_name(a)}{tail}"
                     if a.wants.get(pick):
@@ -5860,7 +5863,8 @@ class Sim:
         if key in cache:
             return cache[key]
         sites = MAT.sites_of(name) if hasattr(MAT, "sites_of") else ()
-        vals = [self.eco_ratio(idx) for idx in sites] if sites else []
+        here = set(PL.places_in(world.place_key))
+        vals = [self.eco_ratio(world.wid, idx) for idx in sites if idx in here]   # แหล่งในแดนนี้เท่านั้น
         cache[key] = (sum(vals) / len(vals)) if vals else 1.0
         return cache[key]
 

@@ -189,7 +189,7 @@ class TestEachSeedIsADifferentWorldToLiveIn(unittest.TestCase):
                 grade = PL.PLACES[i][2]
                 plain = ((grade + 1) * C.QI_PER_GRADE
                          * (1.0 + C.QI_PER_TIER * w.tier)
-                         * max(0.2, min(1.5, sim.eco_ratio(i))))
+                         * max(0.2, min(1.5, sim.eco_ratio(w.wid, i))))
                 self.assertAlmostEqual(sim.qi_density(i, w), plain, places=9)
         finally:
             C.QI_FIELD_W = old_w
