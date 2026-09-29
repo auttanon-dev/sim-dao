@@ -100,6 +100,10 @@ class Sim:
         self.guardian_stats = GUARD.new_stats()
         self.households, self.household_seq = {}, 0   # tiandao/household.py
         self.clan_treasury = {}   # clan -> {tier: ทอง} กระเป๋าของครัวเรือนที่สลายโดยไม่มีทายาท (household.on_death)
+        self.mine_purse = {}      # tier -> ทองที่ขุดได้ซึ่งรอรับซื้อวัตถุดิบ (wages._mine)
+        self.mine_recent = {}     # tier -> ทองที่ขุดได้ในราวหนึ่งปีล่าสุด (เพดานกองทุนเหมือง)
+        self.market_demand = {}   # (wid, place) -> มูลค่าของที่คนมาขายที่นี่ในราวหนึ่งปีล่าสุด (ลดลงตามเวลา)
+        self.market_reserve = {}  # (wid, place) -> ทุนสำรองของตลาด (ทองชั้นของแดน) รับซื้อของ — wages.tick กันไว้จากเงินที่ใช้จ่าย
         self.settlement_treasury = {}   # (wid, place) -> {tier: ทอง} มรดกที่ไม่มีผู้รับตกเป็นของชุมชน (settle_estate)
         self.gold_flows = {}      # สาเหตุ -> {tier: ทอง} ทุกทางที่ทองเกิดหรือหาย (wages.record) ยอดรวม = wages.total_gold
         self.cities = copy.deepcopy(C.CITIES)   # เมืองของโลกนี้ — เจ้าเมืองอยู่ในเซฟ (เดิมแก้ config.CITIES ของ module)
@@ -5313,9 +5317,22 @@ class Sim:
             if at_market_place and not self.route_to_building(a, ("market",)):
                 return "เดินไปตลาด", f"{a.name}มุ่งหน้าไปยังตลาดกลาง{self.place_name(a)}", d
             mult = 3.0 if at_market_place else 1.0
-            gain = rng.uniform(0.5, 3.0) * mult
-            # ขายวัตถุดิบที่สะสมไว้ตามราคาประเมิน
-            sold = []
+            # ตลาดจ่ายจากทุนสำรองของที่นี้ (เงินที่ชาวบ้านใช้จ่ายเข้าตลาด wages.tick) ไม่เกินความลึกของตลาด — ขั้น B3b
+            # เดิมทองเกิดจากอากาศราวหมื่นต่อปี และของที่เกินความลึกหายจากถุงทั้งที่ไม่ได้เงิน
+            # ปิดค่าแรงอยู่ = ไม่มีเงินใช้จ่ายเข้าตลาดให้กันเป็นทุน ตลาดจ่ายแบบเดิม (ทองเกิด บันทึก market_sale) เหมือน fiat_pay
+            # ทุนสำรองที่รับซื้อได้: ที่นี่ก่อน แล้วตลาดในระยะส่งข้าวถึง (FOOD_REACH_HOPS) ใกล้ไปไกล — วัดแล้วถ้าใช้ของที่นี่อย่างเดียว
+            # ขายได้แค่ราว 200 ทองต่อปี เพราะคนขายของที่แหล่งวัตถุดิบ แต่เงินใช้จ่ายเข้าตลาดในเมือง
+            spot = (a.world_id, a.place)
+            depth = WAGES.market_depth(self, a.world_id, a.place)
+            funds = [spot] + ([(a.world_id, p) for p, _h in TR.places_within(self, a.place, C.FOOD_REACH_HOPS)]
+                              if a.place is not None and a.place >= 0 else [])
+            # แล้วกองทุนเหมืองของชั้นนี้ (ทองที่ขุดได้ รับซื้อวัตถุดิบ — wages._mine)
+            reserve = (sum(self.market_reserve.get(f, 0.0) for f in funds)
+                       + self.mine_purse.get(w.tier, 0.0)) if C.WAGES_ENABLED else depth
+            budget = min(reserve, depth)
+            gain = min(rng.uniform(0.5, 3.0) * mult, budget)       # กำไรจากการค้าเล็ก ๆ น้อย ๆ ก็จ่ายจากทุนสำรอง
+            # ขายวัตถุดิบที่สะสมไว้ตามราคาประเมิน ทีละชิ้นเท่าที่ทุนสำรองรับไหว ที่เหลืออยู่ในถุง
+            sold, unsold = [], 0.0
             # ช่างเก็บของที่สูตรของตัวเองต้องใช้ไว้ ไม่เทขายทิ้งแล้วมาบ่นว่าขาดวัตถุดิบทีหลัง
             useful = ()
             if a.alch_rank >= 0 or a.forge_rank >= 0:
@@ -5327,10 +5344,15 @@ class Sim:
                     keep = max(keep, C.CRAFT_KEEP_STOCK)
                 n_sell = n - keep
                 if price and n_sell > 0:
-                    gain += price * n_sell / C.MAT_COIN_DIV
-                    sold.append(f"{name} x{n_sell}")
-                    if keep:
-                        a.mat_stock[name] = keep
+                    unit = price / C.MAT_COIN_DIV
+                    fit = min(n_sell, int((budget - gain) // unit)) if unit > 0 else n_sell
+                    unsold += unit * (n_sell - fit)
+                    if fit <= 0:
+                        continue
+                    gain += unit * fit
+                    sold.append(f"{name} x{fit}")
+                    if n - fit > 0:
+                        a.mat_stock[name] = n - fit
                     else:
                         a.mat_stock.pop(name, None)
             # ความลึกของตลาด — ตลาดหมู่บ้านไม่มีเงินพอจะรับของระดับสมบัติ
@@ -5338,12 +5360,32 @@ class Sim:
             # (วัดจริง: คนรวยที่สุดของโลกลงมือแค่ 27 ครั้งตลอดชีวิต ค้าขาย 5 ครั้ง)
             # ของที่ขายไม่หมดยังอยู่ในถุง ต้องเอาไปตลาดใหญ่กว่าหรือรอรอบหน้า —
             # ซึ่งเป็นเหตุผลที่งานประมูลมีอยู่ในโลกนี้ตั้งแต่แรก
-            depth = C.MARKET_DEPTH_BASE * (1 + w.tier) * (C.MARKET_DEPTH_CITY if at_market_place else 1.0)
-            if gain > depth:
-                d["ตลาดรับไม่ไหว"] = (f"ขายได้แค่ {depth:,.0f} จากมูลค่า {gain:,.0f} "
+            if unsold > 0:
+                d["ตลาดรับไม่ไหว"] = (f"ขายได้ {gain:,.0f} ยังเหลือของมูลค่า {unsold:,.0f} "
                                        f"— ที่นี่ไม่มีเงินพอ ต้องไปตลาดใหญ่กว่าหรือเข้าประมูล")
-                gain = depth
-            WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0.0) + gain, "market_sale")
+            if not C.WAGES_ENABLED:
+                WAGES.set_gold(self, a, w.tier, a.money.get(w.tier, 0.0) + gain, "market_sale")
+            else:
+                # ของที่มาขาย (เพดานทุนสำรอง wages.tick) แบ่งเท่ากันให้ทุกตลาดในระยะ — ผลรวมเพดานเท่ากับของที่มาขายจริง
+                demand = self.__dict__.setdefault("market_demand", {})
+                for f in funds:
+                    demand[f] = demand.get(f, 0.0) + (gain + unsold) / len(funds)
+                if unsold > 0:
+                    self.wage_stats["market_unsold"] = self.wage_stats.get("market_unsold", 0.0) + unsold
+                if gain > 0:
+                    owed = gain
+                    for f in funds:                                     # จ่ายจากที่ใกล้ก่อน
+                        part = min(self.market_reserve.get(f, 0.0), owed)
+                        if part > 0:
+                            self.market_reserve[f] -= part
+                            owed -= part
+                        if owed <= 1e-12:
+                            break
+                    if owed > 1e-12:                                    # ส่วนที่เหลือ กองทุนเหมืองรับซื้อ
+                        self.mine_purse[w.tier] = self.mine_purse.get(w.tier, 0.0) - owed
+                        self.wage_stats["mine_bought"] = self.wage_stats.get("mine_bought", 0.0) + owed
+                    a.money[w.tier] = a.money.get(w.tier, 0.0) + gain
+                    self.wage_stats["market_paid"] = self.wage_stats.get("market_paid", 0.0) + gain
 
             # ซื้อของที่ "ตัวเองต้องการจริง" ไม่ใช่ของสุ่มที่ไม่มีสูตรไหนใช้
             # ตลาดมีของตามระดับโลกที่ตลาดนั้นตั้งอยู่ ของสูงกว่านั้นต้องขึ้นไปซื้อเอง
@@ -5367,7 +5409,12 @@ class Sim:
                         else:
                             a.wants.pop(name, None)
                         bought.append(f"{name} x{qty}")
-                WAGES.set_gold(self, a, w.tier, budget, "market_purchase")
+                if not C.WAGES_ENABLED:
+                    WAGES.set_gold(self, a, w.tier, budget, "market_purchase")
+                else:
+                    paid = a.money.get(w.tier, 0.0) - budget   # ซื้อจากตลาด — ทองเข้าทุนสำรองของที่นี้ (เดิมหายไป)
+                    a.money[w.tier] = budget
+                    self.market_reserve[spot] = self.market_reserve.get(spot, 0.0) + paid
             if bought:
                 d["ซื้อ"] = ", ".join(bought[:3])
             if a.wants:

@@ -48,8 +48,8 @@ def _walk(seed):
         quiet(sim.step)
         n += 1
         if n % 25 == 0 and _gaps(sim):
-            return [f"ก้าวที่ {n} วันที่ {sim.day}: {_gaps(sim)}"], sim.gold_flows
-    return _gaps(sim), sim.gold_flows
+            return [f"ก้าวที่ {n} วันที่ {sim.day}: {_gaps(sim)}"], sim.gold_flows, sim.wage_stats
+    return _gaps(sim), sim.gold_flows, sim.wage_stats
 
 
 class LedgerTests(unittest.TestCase):
@@ -62,10 +62,11 @@ class LedgerTests(unittest.TestCase):
         import multiprocessing
         with multiprocessing.Pool(len(SEEDS)) as pool:
             results = pool.map(_walk, SEEDS)
-        for seed, (problems, flows) in zip(SEEDS, results):
+        for seed, (problems, flows, wages) in zip(SEEDS, results):
             self.assertEqual(problems, [], f"seed {seed}")
             self.assertGreater(flows["start_gold"][0], 0.0)
-            self.assertGreater(sum(flows.get("market_sale", {}).values()), 0.0)
+            self.assertNotIn("market_sale", flows, "ตลาดจ่ายจากทุนสำรอง ไม่เสกทอง (B3b)")
+            self.assertGreater(wages.get("market_paid", 0.0), 0.0)
 
     def test_a_raw_write_outside_the_ledger_is_caught(self):
         sim = quiet(S.Sim, seed=11)

@@ -10,6 +10,7 @@
   · ค่าข้าวไปถึงคนผลิตที่ไร่ต้นทาง ผู้ใหญ่ที่จ่ายไม่ไหวทำงานแลกข้าว นักโทษกินข้าวคุก เด็กให้พ่อแม่จ่ายหรือหมู่บ้านเลี้ยง
 """
 import contextlib
+import math
 import io
 import os
 import pickle
@@ -53,6 +54,68 @@ class WageRulesTests(unittest.TestCase):
         for ch in self.people:
             ch.gold_endowed = True
             ch.money = {}
+        self.sim.market_reserve = {}
+        for name in ("MARKET_RESERVE_SHARE", "MINE_GOLD_PER_YEAR"):    # เทสต์การแบ่งค่าแรง — ทุนสำรองและเหมืองมีเทสต์ของตัวเอง
+            patch = mock.patch.object(C, name, 0.0)
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def test_the_market_keeps_its_share_of_spending_as_a_reserve_up_to_its_depth(self):
+        rich = setup_person(self.sim, self.people[0], self.a, realm=5)
+        worker = setup_person(self.sim, self.people[1], self.a)
+        self.give(rich, 1000.0)
+        self.sim.market_demand = {(0, self.a): 10.0 ** 9}       # มีคนมาขายของมาก — เพดานคือความลึก
+        before = money_everywhere(self.sim)                 # นับทุนสำรองด้วย (wages.total_gold)
+        with switches(), only(self.sim, rich, worker), mock.patch.object(C, "MARKET_RESERVE_SHARE", 0.03):
+            WAGES.tick(self.sim, 30)
+        spent = self.sim.wage_stats["spent"]
+        kept = min(spent * 0.03, WAGES.market_depth(self.sim, 0, self.a))
+        self.assertAlmostEqual(self.sim.market_reserve[(0, self.a)], kept)
+        self.assertAlmostEqual(WAGES.gold(self.sim, worker), spent - kept)
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6)
+        self.sim.market_reserve[(0, self.a)] = WAGES.market_depth(self.sim, 0, self.a)
+        with switches(), only(self.sim, rich, worker), mock.patch.object(C, "MARKET_RESERVE_SHARE", 0.03):
+            WAGES.tick(self.sim, 30)
+        self.assertAlmostEqual(self.sim.market_reserve[(0, self.a)], WAGES.market_depth(self.sim, 0, self.a),
+                               msg="เต็มความลึกแล้วไม่กันเพิ่ม")
+
+    def test_a_reserve_above_a_years_sales_goes_back_to_wages(self):
+        worker = setup_person(self.sim, self.people[1], self.a)
+        self.sim.market_reserve = {(0, self.a): 50.0}
+        self.sim.market_demand = {(0, self.a): 20.0}
+        before = money_everywhere(self.sim)
+        with switches(), only(self.sim, worker), mock.patch.object(C, "MARKET_RESERVE_SHARE", 0.03):
+            WAGES.tick(self.sim, 30)
+        cap = 20.0 * math.exp(-30 / 365.0)
+        self.assertAlmostEqual(self.sim.market_reserve[(0, self.a)], cap)
+        self.assertAlmostEqual(WAGES.gold(self.sim, worker), 50.0 - cap, msg="ส่วนเกินเป็นค่าแรง")
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6)
+
+    def test_a_worked_mine_fills_its_tiers_purse_and_pays_miners_only_what_exceeds_a_years_output(self):
+        world, mine = next((w, p) for w in self.sim.worlds for p in PL.places_in(w.place_key) if WAGES.is_mine(p))
+        miner = setup_person(self.sim, self.people[1], mine)
+        self.sim.move_world(miner, world.wid)
+        miner.place = mine
+        self.sim.mine_purse, self.sim.mine_recent = {}, {}
+        before = money_everywhere(self.sim)
+        with switches(), only(self.sim, miner), mock.patch.object(C, "MINE_GOLD_PER_YEAR", 365.0):
+            WAGES.tick(self.sim, 30)
+        self.assertAlmostEqual(self.sim.mine_purse[world.tier], 30.0, msg="ทองที่ขุดได้รอรับซื้อวัตถุดิบ")
+        self.assertAlmostEqual(WAGES.gold(self.sim, miner), 0.0)
+        self.assertAlmostEqual(money_everywhere(self.sim) - before, 30.0)
+        self.assertAlmostEqual(sum(self.sim.gold_flows["mine_output"].values()), 30.0)
+        self.sim.mine_purse[world.tier] += 100.0                 # กองทุนเกินผลผลิตหนึ่งปี (ไม่มีใครขายของมานาน)
+        WAGES.record(self.sim, "test", world.tier, 100.0)
+        with switches(), only(self.sim, miner), mock.patch.object(C, "MINE_GOLD_PER_YEAR", 365.0):
+            WAGES.tick(self.sim, 30)
+        recent = self.sim.mine_recent[world.tier]
+        self.assertAlmostEqual(self.sim.mine_purse[world.tier], recent)
+        self.assertAlmostEqual(WAGES.gold(self.sim, miner), 160.0 - recent, msg="ส่วนเกินเป็นค่าแรงคนงานเหมือง")
+        mined = sum(self.sim.gold_flows["mine_output"].values())
+        miner.place = next(p for p in PL.places_in(world.place_key) if not WAGES.is_mine(p))
+        with switches(), only(self.sim, miner), mock.patch.object(C, "MINE_GOLD_PER_YEAR", 365.0):
+            WAGES.tick(self.sim, 30)
+        self.assertAlmostEqual(sum(self.sim.gold_flows["mine_output"].values()), mined, msg="ไม่มีคนงานในเหมือง ไม่มีทองขุด")
 
     def give(self, ch, gold):
         WAGES.move_gold(self.sim, ch, gold)

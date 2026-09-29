@@ -36,6 +36,7 @@ import math
 
 from . import config as C
 from . import household as HH
+from . import places as PL
 from . import travel as TR
 
 STAT_KEYS = ("issued", "spent", "paid", "food_bought", "farm_paid")
@@ -86,7 +87,8 @@ def retier(sim, world, old_tier) -> None:
         return
     from . import household as HH
     new = world.tier
-    moved = sum(v for till in (sim.market_till, sim.farm_till) for (wid, _p), v in till.items() if wid == world.wid)
+    moved = sum(v for till in (sim.market_till, sim.farm_till, getattr(sim, "market_reserve", {}))
+                for (wid, _p), v in till.items() if wid == world.wid)
     purses = ([ch.money for ch in sim.living_in(world.wid)]
               + [t for (wid, _p), t in sorted(getattr(sim, "settlement_treasury", {}).items()) if wid == world.wid]
               + [hh.purse for _hid, hh in sorted(HH._table(sim).items()) if hh.home is not None and hh.home[0] == world.wid])
@@ -97,6 +99,12 @@ def retier(sim, world, old_tier) -> None:
             moved += gold
     record(sim, "realm_retier", old_tier, -moved)
     record(sim, "realm_retier", world.tier, moved)
+
+
+def market_depth(sim, wid, place) -> float:
+    """เงินที่ตลาดของที่นี้รับซื้อของได้มากสุด — ตลาดหรือเมืองลึกกว่าหมู่บ้าน MARKET_DEPTH_CITY เท่า (เพดานของทุนสำรองด้วย)"""
+    city = place is not None and 0 <= place < len(PL.PLACES) and PL.PLACES[place][3] in ("ตลาด", "เมือง")
+    return C.MARKET_DEPTH_BASE * (1 + sim.world(wid).tier) * (C.MARKET_DEPTH_CITY if city else 1.0)
 
 
 def settlement_purse(sim, spot):
@@ -159,11 +167,34 @@ def tick(sim, days) -> None:
         if earns_wages(ch, day):
             workers_at[(ch.world_id, ch.place)].append(ch)
 
+    _mine(sim, workers_at, days)
+
+    # ทุนสำรองของตลาดไม่เกินของที่คนมาขายที่นี่ในหนึ่งปี (market_demand ลดลงตามเวลา) และไม่เกินความลึก — ส่วนเกินคืนลิ้นชัก
+    # จ่ายเป็นค่าแรง (ขั้น B3b) วัดแล้วถ้าใช้ความลึกเป็นเพดานอย่างเดียว ทุนสำรองกองนิ่งแสนกว่าทองใน 50 ปี
+    fade = math.exp(-days / 365.0)
+    demand = sim.__dict__.setdefault("market_demand", {})
+    for spot in sorted(demand):
+        demand[spot] *= fade
+    for spot in sorted(sim.market_reserve):
+        extra = sim.market_reserve[spot] - _reserve_cap(sim, spot)
+        if extra > _EPS:
+            sim.market_reserve[spot] -= extra
+            sim.market_till[spot] = sim.market_till.get(spot, 0.0) + extra
+            stats["reserve_released"] = stats.get("reserve_released", 0.0) + extra
+
     for spot in sorted(sim.market_till):
         till = sim.market_till[spot]
         if till <= _EPS:
             continue
         wid, place = spot
+        # ตลาดกันส่วนหนึ่งไว้เป็นทุนรับซื้อของ (ขั้น B3b) ไม่เกินเพดาน ที่เหลือจ่ายเป็นค่าแรง
+        reserve = sim.market_reserve.get(spot, 0.0)
+        keep = max(0.0, min(till * C.MARKET_RESERVE_SHARE, _reserve_cap(sim, spot) - reserve))
+        if keep > 0:
+            sim.market_reserve[spot] = reserve + keep
+            till -= keep
+            sim.market_till[spot] = till
+            stats["reserve_kept"] = stats.get("reserve_kept", 0.0) + keep
         payees = [(ch, 1.0) for ch in workers_at.get(spot, ())]
         for other, hops in TR.places_within(sim, place, C.WAGE_REACH_HOPS):
             payees += [(ch, 1.0 / (1.0 + hops)) for ch in workers_at.get((wid, other), ())]
@@ -177,6 +208,48 @@ def tick(sim, days) -> None:
         stats["paid"] += till
 
 
+def _reserve_cap(sim, spot) -> float:
+    wid, place = spot
+    return min(market_depth(sim, wid, place), getattr(sim, "market_demand", {}).get(spot, 0.0))
+
+
+def is_mine(place) -> bool:
+    return place is not None and 0 <= place < len(PL.PLACES) and "เหมือง" in PL.PLACES[place][0]
+
+
+def _mine(sim, workers_at, days) -> None:
+    """ทองที่ขุดได้จากเหมือง — แหล่งกำเนิดทองที่ประกาศ (§6.1 ขั้น B3b) แทนทองที่ตลาดเสกให้คนขายของ
+
+    MINE_GOLD_PER_YEAR ทั้งจักรวาล แบ่งตามจำนวนคนที่ทำงานในเหมืองรอบนี้ ไม่มีใครทำงานที่เหมืองก็ไม่มีทองถูกขุด บันทึก `mine_output`
+    ทองเข้ากองทุนเหมืองของชั้นนั้น (`Sim.mine_purse[tier]`) ซึ่งรับซื้อวัตถุดิบที่คนเก็บมาขาย (Sim ค้าขาย) — วัดแล้วถ้าทองจากเหมือง
+    เป็นค่าแรงคนงานอย่างเดียว ผู้ฝึกที่หาเงินจากการขายวัตถุดิบจนลง คนที่เห็นตัวเลือกปิดด่านลดจาก 4.2% เหลือ 2.1%
+    กองทุนเกินผลผลิตราวหนึ่งปีของชั้นนั้น (`mine_recent`) ส่วนเกินเป็นค่าแรงของคนงานในเหมืองชั้นนั้นรอบนี้"""
+    fade = math.exp(-days / 365.0)
+    recent = sim.__dict__.setdefault("mine_recent", {})
+    for tier in sorted(recent):
+        recent[tier] *= fade
+    purse = sim.__dict__.setdefault("mine_purse", {})
+    total = C.MINE_GOLD_PER_YEAR * days / 365.0
+    mines = [(spot, len(chs)) for spot, chs in sorted(workers_at.items()) if chs and is_mine(spot[1])]
+    crew = sum(n for _spot, n in mines)
+    if total > 0 and crew:
+        for spot, n in mines:
+            tier, gold = sim.world(spot[0]).tier, total * n / crew
+            purse[tier] = purse.get(tier, 0.0) + gold
+            recent[tier] = recent.get(tier, 0.0) + gold
+            record(sim, "mine_output", tier, gold)
+    for tier in sorted(purse):
+        extra = purse[tier] - recent.get(tier, 0.0)
+        crews = [(spot, n) for spot, n in mines if sim.world(spot[0]).tier == tier]
+        if extra <= _EPS or not crews:
+            continue
+        purse[tier] -= extra
+        size = sum(n for _spot, n in crews)
+        for spot, n in crews:                          # เข้าลิ้นชักของเหมือง จ่ายเป็นค่าแรงตามกฎเดิม
+            sim.market_till[spot] = sim.market_till.get(spot, 0.0) + extra * n / size
+        sim.wage_stats["mine_wages"] = sim.wage_stats.get("mine_wages", 0.0) + extra
+
+
 def fiat_pay(amount):
     """ค่าตอบแทนแบบเดิมที่เสกจากความว่างเปล่า — เมื่อเปิดค่าแรงตามเวลา งานเหล่านี้ไม่จ่ายเงินตรงอีก
     เพราะเวลาที่ทำงานได้ค่าแรงจากตลาดท้องถิ่นแล้ว (ถ้ายังจ่ายซ้ำ จะเป็นเงินสองก้อนสำหรับงานเดียว)"""
@@ -188,10 +261,11 @@ def total_gold(sim, tier) -> float:
     เป็นบันทึกแล้ว (Sim.prune_departed) คลังทองของสำนัก (มรดกของสมาชิกที่ไม่มีทายาท) กระเป๋ากลางของครัวเรือน คลังตระกูล
     คลังชุมชน และทองที่ผนึกในแดนลับ"""
     held = sum(ch.money.get(tier, 0.0) for ch in sim.cast)
-    tills = sum(v for till in (sim.market_till, sim.farm_till)
+    tills = sum(v for till in (sim.market_till, sim.farm_till, getattr(sim, "market_reserve", {}))
                 for (wid, _place), v in till.items() if sim.world(wid).tier == tier)
     sects = sum(getattr(o, "treasury_gold", {}).get(tier, 0.0) for o in getattr(sim, "orgs", ()))
     return (held + tills + sects + HH.purse_gold(sim, tier) + HH.clan_gold(sim, tier)
             + getattr(sim, "buried_gold", {}).get(tier, 0.0)
             + sum(t.get(tier, 0.0) for t in getattr(sim, "settlement_treasury", {}).values())
-            + sum(getattr(k, "gold", {}).get(tier, 0.0) for k in getattr(sim, "caches", ())))   # เซฟก่อนรุ่น 24 ยังไม่มี
+            + sum(getattr(k, "gold", {}).get(tier, 0.0) for k in getattr(sim, "caches", ()))    # เซฟก่อนรุ่น 24 ยังไม่มี
+            + getattr(sim, "mine_purse", {}).get(tier, 0.0))

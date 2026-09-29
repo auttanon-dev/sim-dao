@@ -60,7 +60,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  22 — ตระกูลสืบผ่านครัวเรือน: คู่ครองและเด็กในครัวเรือนที่หัวหน้ามีตระกูลรับตระกูลนั้น (household.backfill_clans)
 #  23 — คลังชุมชน (Sim.settlement_treasury) เริ่มว่าง
 #  24 — ทองในแดนลับต่อชั้น (Cache.gold นับในบัญชีทอง) แทน Cache.currency ที่รวมทุกชั้นและหายตอนเปิด
-SAVE_VERSION = 24
+#  25 — ทุนสำรองของตลาด (Sim.market_reserve) เริ่มว่าง
+SAVE_VERSION = 25
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -330,6 +331,11 @@ def _migrate(sim, version):
                 tier = sim.world(k.world_id).tier
                 k.gold[tier] = amount
                 WAGES.record(sim, "cache_opening", tier, amount)
+    if version < 25:
+        sim.__dict__.setdefault("market_reserve", {})
+        sim.__dict__.setdefault("market_demand", {})
+        sim.__dict__.setdefault("mine_purse", {})
+        sim.__dict__.setdefault("mine_recent", {})
 
 
 def _cities_into_save(sim):
