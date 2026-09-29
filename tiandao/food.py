@@ -27,7 +27,8 @@
   ผู้ปิดด่านที่ไม่มีข้าวส่งถึงและเสบียงหมดออกจากด่านก่อนกำหนด ถ้าหิวครบ FOOD_STARVE_DAYS จะอดตาย
 - ราคา: เมื่อเปิดค่าแรง (WAGES_ENABLED, tiandao/wages.py) ข้าวจากยุ้งฉางราคา FOOD_PRICE ทองต่อสำรับ เงินเข้า
   ลิ้นชักของไร่ต้นทาง แล้วจ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้ เด็กที่ไม่มีเงินให้พ่อแม่ที่อยู่ที่เดียวกันจ่ายแทน
-  ส่วนที่ยังขาด หมู่บ้านเลี้ยงเด็กฟรีจากยุ้งฉาง (นับใน stats["charity"]) — ยังไม่มีระบบผู้ปกครอง และวัดแล้ว
+  ส่วนที่ยังขาด คลังชุมชนจ่ายค่ามื้อของเด็ก (ขั้น A5, stats["charity"]) คลังหมดเด็กขาดมื้อ (stats["charity_unfunded"])
+  เดิมหมู่บ้านเลี้ยงเด็กฟรีจากยุ้งฉางโดยไม่มีใครจ่าย — ตอนนั้นยังไม่มีระบบผู้ปกครอง และวัดแล้ว
   ถ้าไม่เลี้ยง เด็กกำพร้า (คนที่ repopulate สร้างขึ้นโดยไม่มีพ่อแม่) อดตาย 1,516 จาก 2,238 รายใน 12 ปี ทั้งที่
   ยุ้งฉางมีข้าวค้างสองล้านสำรับ ผู้ใหญ่ที่ซื้อไม่ไหวทำงานให้หมู่บ้านแลกข้าวถ้าทำงานได้ นักโทษได้ข้าวจากคุก (`_relief`)
   นอกนั้นไม่ได้ข้าว ข้าวนั้นอยู่ในยุ้งฉางต่อ
@@ -279,11 +280,15 @@ def _payers(sim, ch):
     return payers
 
 
-def _buy(sim, ch, amount):
+def _buy(sim, ch, amount, meal=True):
     """ซื้อข้าวจากยุ้งฉางได้เท่าไรจาก `amount` ที่แบ่งให้ — คืน (สำรับที่ได้, ทองที่จ่าย)
 
     ปิดค่าแรงอยู่ = ยุ้งฉางแจกฟรี เปิดค่าแรง = ได้เท่าที่ตัวเองหรือพ่อแม่ (ถ้าเป็นเด็ก) จ่ายไหว
-    เด็กได้ส่วนที่ยังขาดฟรีจากหมู่บ้าน ผู้ใหญ่ไม่ได้
+    มื้อของเด็ก (`meal`) ที่ยังขาด คลังชุมชนจ่ายให้ (ขั้น A5, stats['charity']): ที่ที่เด็กอยู่ก่อน แล้วชุมชนในระยะส่งข้าวถึง
+    (FOOD_REACH_HOPS แดนเดียวกัน) ใกล้ไปไกล — วัดแล้วคลังของที่เดียวไม่พอ เด็กอดตาย 78–95 คนต่อ seed ข้างยุ้งฉางที่มีข้าว
+    ขณะที่ชุมชนใกล้ ๆ ในแดนเดียวกันมีทอง (มรดกตกเป็นของที่ที่คนตาย) ทุกที่ในระยะหมดก็ขาดมื้อ
+    (stats['charity_unfunded']) — เดิมหมู่บ้านให้ฟรีโดยไม่มีใครจ่าย เสบียงติดตัวของเด็กไม่ได้จากคลังชุมชน
+    ผู้ใหญ่ไม่ได้
     """
     if amount <= _EPS or not C.WAGES_ENABLED:
         return amount, 0.0
@@ -297,11 +302,24 @@ def _buy(sim, ch, amount):
             paid += part
         if cost - paid <= _EPS:
             break
-    got = paid / C.FOOD_PRICE
-    if ch.age(sim.day) < 14 and amount - got > _EPS:
-        sim.food_stats["charity"] += amount - got
-        got = amount
-    return got, paid
+    if meal and ch.age(sim.day) < 14 and cost - paid > _EPS:
+        tier = WAGES.tier_of(sim, ch)
+        towns = getattr(sim, "settlement_treasury", {})
+        near = [] if ch.place is None or ch.place < 0 else (
+            [ch.place] + [p for p, _hops in TR.places_within(sim, ch.place, C.FOOD_REACH_HOPS)])
+        for place in near:                     # ที่ที่เด็กอยู่ก่อน แล้วชุมชนในระยะส่งข้าวถึง ใกล้ไปไกล
+            town = towns.get((ch.world_id, place), {})
+            part = min(max(0.0, town.get(tier, 0.0)), cost - paid)
+            if part > 0:
+                town[tier] -= part
+                paid += part
+                sim.food_stats["charity"] += part / C.FOOD_PRICE
+                sim.wage_stats["civic_paid"] = sim.wage_stats.get("civic_paid", 0.0) + part
+            if cost - paid <= _EPS:
+                break
+        if cost - paid > _EPS:
+            sim.food_stats["charity_unfunded"] = sim.food_stats.get("charity_unfunded", 0.0) + (cost - paid) / C.FOOD_PRICE
+    return paid / C.FOOD_PRICE, paid
 
 
 def _relief(sim, ch, amount):
@@ -388,7 +406,7 @@ def _stock_larders(sim, eaters_at):
 
 def _sell_to_pack(sim, ch, spot, amount):
     """ขายข้าวจากยุ้งฉาง `spot` ใส่เสบียงติดตัวเท่าที่จ่ายไหว — ทองเข้าลิ้นชักของไร่ที่นั้น คืนสำรับที่ได้"""
-    got, cost = _buy(sim, ch, amount)
+    got, cost = _buy(sim, ch, amount, meal=False)
     ch.food += got
     sim.granary[spot] -= got
     if cost > 0:

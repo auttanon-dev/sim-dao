@@ -198,6 +198,9 @@ class FoodMoneyTests(unittest.TestCase):
         orphan.parents = []
         WAGES.move_gold(self.sim, parent, 100.0)
         self.sim.granary[(0, self.a)] = 1000.0
+        tier = self.sim.world(0).tier
+        self.sim.settlement_treasury = {(0, self.a): {tier: 50.0}}       # คลังชุมชนจ่ายค่ามื้อของเด็กที่ไม่มีใครจ่าย (A5)
+        till = sum(self.sim.farm_till.values())
         with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), \
                 only(self.sim, parent, child, orphan):
             FOOD.tick(self.sim, 30)
@@ -207,6 +210,40 @@ class FoodMoneyTests(unittest.TestCase):
         kid = 30 * C.FOOD_RATION_CHILD * C.FOOD_PRICE
         self.assertGreaterEqual(100.0 - WAGES.gold(self.sim, parent), own + kid - 1e-9)
         self.assertGreaterEqual(self.sim.food_stats["charity"], 30 * C.FOOD_RATION_CHILD - 1e-9)
+        self.assertAlmostEqual(50.0 - self.sim.settlement_treasury[(0, self.a)][tier], kid, msg="คลังชุมชนจ่ายค่ามื้อ")
+        self.assertGreaterEqual(sum(self.sim.farm_till.values()) - till, own + 2 * kid - 1e-9, msg="ทองถึงไร่")
+
+    def test_a_nearby_settlement_pays_when_the_local_one_is_empty_but_not_one_out_of_reach(self):
+        from tiandao import travel as TR
+        orphan = setup_person(self.sim, self.people[2], self.a, age=6)
+        orphan.parents = []
+        self.sim.granary[(0, self.a)] = 1000.0
+        tier = self.sim.world(0).tier
+        near = {p for p, _h in TR.places_within(self.sim, self.a, C.FOOD_REACH_HOPS)}
+        close = min(near)
+        far = next(p for p in PL.places_in(self.sim.worlds[0].place_key) if p != self.a and p not in near)
+        self.sim.settlement_treasury = {(0, far): {tier: 50.0}}
+        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), only(self.sim, orphan):
+            FOOD.tick(self.sim, 30)
+        self.assertGreater(orphan.hunger_days, 0.0, "คลังนอกระยะส่งข้าวถึงไม่จ่าย")
+        self.assertEqual(self.sim.settlement_treasury[(0, far)][tier], 50.0)
+        self.sim.settlement_treasury[(0, close)] = {tier: 50.0}
+        orphan.hunger_days = 0.0
+        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), only(self.sim, orphan):
+            FOOD.tick(self.sim, 30)
+        self.assertEqual(orphan.hunger_days, 0.0, "ชุมชนใกล้ ๆ จ่ายแทน")
+        self.assertAlmostEqual(50.0 - self.sim.settlement_treasury[(0, close)][tier], 30 * C.FOOD_RATION_CHILD * C.FOOD_PRICE)
+
+    def test_with_the_settlement_treasury_empty_an_orphan_misses_meals(self):
+        orphan = setup_person(self.sim, self.people[2], self.a, age=6)
+        orphan.parents = []
+        self.sim.granary[(0, self.a)] = 1000.0
+        self.sim.settlement_treasury = {}
+        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), only(self.sim, orphan):
+            FOOD.tick(self.sim, 30)
+        self.assertGreater(orphan.hunger_days, 0.0)
+        self.assertAlmostEqual(self.sim.food_stats["charity_unfunded"], 30 * C.FOOD_RATION_CHILD)
+        self.assertAlmostEqual(self.sim.granary[(0, self.a)], 1000.0, msg="ข้าวที่ไม่มีใครจ่ายยังอยู่ในยุ้งฉาง")
 
 
 class WagesInTheRunningWorldTests(unittest.TestCase):

@@ -175,6 +175,7 @@ class UpbringingTests(unittest.TestCase):
             self.assertEqual([e.outcome for e in self.sim.log if e.kind == "พึ่งพิงยุ้งฉาง"], ["ได้ที่พึ่ง"])
             self.assertEqual(self.sim.guardian_stats["granary_ward"], 1)
             held, before = FOOD.total_held(self.sim), dict(self.sim.food_stats)
+            self.sim.settlement_treasury = {(0, hub): {self.sim.world(0).tier: 100.0}}   # คลังชุมชนที่นั่นจ่ายค่ามื้อ (A5)
             with only(self.sim, kid):
                 FOOD.tick(self.sim, 30)
             self.assertEqual(kid.hunger_days, 0.0, "กินข้าวของยุ้งฉางที่นั่นได้")
