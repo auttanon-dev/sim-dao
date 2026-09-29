@@ -538,6 +538,7 @@ class RunningWorldTests(unittest.TestCase):
         self.assertGreater(sim.household_stats.get("purse_paid", 0.0), 0.0)
         from tiandao import food as FOOD
         before = {t: WAGES.total_gold(sim, t) for t in (0, 1, 2)}
+        flows = sum(sum(v.values()) for v in sim.gold_flows.values())
         issued, tithe, paid = (sim.wage_stats["issued"], sim.household_stats.get("tithe", 0.0),
                                sim.household_stats.get("purse_paid", 0.0))
         sim.day += C.WORLD_TICK_DAYS
@@ -549,7 +550,9 @@ class RunningWorldTests(unittest.TestCase):
         self.assertGreater(sim.household_stats["tithe"] - tithe, 0.0)
         self.assertGreater(sim.household_stats["purse_paid"] - paid, 0.0)
         after = {t: WAGES.total_gold(sim, t) for t in (0, 1, 2)}
-        self.assertAlmostEqual(sum(after.values()) - sum(before.values()), sim.wage_stats["issued"] - issued, places=6)
+        declared = sum(sum(v.values()) for v in sim.gold_flows.values())
+        self.assertAlmostEqual(sum(after.values()) - sum(before.values()), declared - flows, places=6,
+                               msg="ทองเปลี่ยนเฉพาะทางที่ประกาศ (ทุนตั้งต้น ทองจากเหมือง — B1)")
 
     def test_the_invariant_holds_through_a_running_world_and_a_save(self):
         sim = quiet(S.Sim, seed=11)

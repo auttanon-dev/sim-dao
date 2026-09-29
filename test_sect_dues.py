@@ -18,6 +18,10 @@ def quiet(fn, *a, **kw):
         return fn(*a, **kw)
 
 
+def declared(sim):
+    return sum(sum(v.values()) for v in sim.gold_flows.values())
+
+
 def ledger(sim):
     return {t: WAGES.total_gold(sim, t) for t in range(3)}
 
@@ -64,9 +68,10 @@ class SectDuesTests(unittest.TestCase):
         sim = quiet(S.Sim, seed=11)
         quiet(sim.run, 12000)
         for _ in range(3):
-            before, issued = sum(ledger(sim).values()), sim.wage_stats["issued"]
+            before, flows = sum(ledger(sim).values()), declared(sim)
             quiet(sim._world_tick, sim.rng)
-            self.assertAlmostEqual(sum(ledger(sim).values()) - before, sim.wage_stats["issued"] - issued, places=6)
+            # ทองเปลี่ยนได้เฉพาะทางที่ประกาศในบัญชีสาเหตุ (ทุนตั้งต้น ทองจากเหมือง ฯลฯ — B1)
+            self.assertAlmostEqual(sum(ledger(sim).values()) - before, declared(sim) - flows, places=6)
 
 
 if __name__ == "__main__":
