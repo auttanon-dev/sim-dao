@@ -131,12 +131,18 @@ class LedgerTests(unittest.TestCase):
         k.trap = False
         k.sealed_day = sim.day - 10 ** 6                  # ผนึกเสื่อมหมดแล้ว — ทองเสื่อมตาม CACHE_ROT เต็มที่
         rot = 1.0 - C.CACHE_ROT
+        deposit = sim.ruin_deposit(sim.world(k.world_id))
         d = quiet(sim.open_cache, opener, k, sim.rng)
         self.assertAlmostEqual(opener.money[0], 40.0 * rot)
         self.assertAlmostEqual(opener.money[1], 10.0 * rot, msg="ทองชั้น 1 ไม่ถูกรวมเข้าชั้นของแดน")
         self.assertEqual(k.gold, {})
         self.assertIn("ทองในแดนลับ", d)
-        self.assertAlmostEqual(-sum(sim.gold_flows["cache_rot"].values()), 50.0 * (1 - rot))
+        here = sim.world(k.world_id)
+        local = {0: 40.0, 1: 10.0}[here.tier]
+        self.assertAlmostEqual(-sum(sim.gold_flows.get("cache_rot", {}).values()), (50.0 - local) * (1 - rot),
+                               msg="ทองต่างชั้นที่เสื่อมหายไปกับผนึก")
+        self.assertAlmostEqual(sim.ruin_gold[here.wid] - deposit, local * (1 - rot),
+                               msg="ทองชั้นของแดนที่เสื่อมตกค้างเป็นเหรียญในซาก (B3c)")
         self.assertClosed(sim, "หลังเปิด")
 
     def test_a_version_23_save_turns_cache_currency_into_gold_of_its_realms_tier(self):
@@ -160,6 +166,33 @@ class LedgerTests(unittest.TestCase):
             self.assertFalse(hasattr(kb, "currency"))
             self.assertEqual(back.rng.getstate(), state)
         self.assertClosed(back, "เซฟรุ่น 20 หลังย้ายทองแดนลับ")
+
+    def test_ruin_coins_come_from_a_finite_deposit_that_runs_dry(self):
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 1500)
+        ch = next(c for c in sim.living() if c.sentient)
+        w = sim.world(ch.world_id)
+        sim.ruin_deposit(w)
+        WAGES.record(sim, "test", w.tier, 5.0 - sim.ruin_gold[w.wid])
+        sim.ruin_gold[w.wid] = 5.0
+        before = ch.money.get(w.tier, 0.0)
+        for _ in range(20):
+            quiet(sim.ruined_cache_find, ch, sim.rng, {})
+        self.assertAlmostEqual(ch.money.get(w.tier, 0.0) - before, 5.0, msg="ได้ไม่เกินที่เหลือในซาก")
+        self.assertEqual(sim.ruin_gold[w.wid], 0.0)
+        self.assertClosed(sim, "หลังซากหมด")
+
+    def test_only_those_made_with_the_world_get_starting_gold(self):
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 1500)
+        late = quiet(sim.spawn, sim.worlds[0], age_years=30)
+        self.assertGreaterEqual(late.cid, sim.genesis_cast)
+        self.assertFalse(late.gold_endowed)
+        issued = sum(sim.gold_flows["start_gold"].values())
+        quiet(WAGES.tick, sim, 30)
+        self.assertTrue(late.gold_endowed)
+        self.assertEqual(sum(sim.gold_flows["start_gold"].values()), issued, "คนที่มาทีหลังมาตัวเปล่า (ค่าแรงรอบนี้ไม่นับ)")
+        self.assertClosed(sim, "หลังรอบค่าแรง")
 
     def test_save_and_load_keep_the_ledger_closed(self):
         sim = quiet(S.Sim, seed=11)

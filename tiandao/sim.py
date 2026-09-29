@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import collections
 import copy
 import heapq
 import math
@@ -230,6 +231,7 @@ class Sim:
         self.legend_iids = [iid for iid, it in self.items.items() if it.legend]
         self.seed_ancient_rumors()
         self.seed_skill_fragments()
+        self.genesis_cast = len(self.cast)      # คนที่สร้างพร้อมโลก — ได้ทุนตั้งต้น (wages.tick) คนที่มาทีหลังไม่ได้ (B3c)
 
     def spawn_chaos_race(self):
         """เผ่าโกลาหล — ผู้นำมีคนเดียว ที่เหลือลดหลั่นลงมา"""
@@ -1389,7 +1391,11 @@ class Sim:
         if C.FOOD_ENABLED:
             child.food = 0.0       # ทารกไม่ได้พกเสบียงมา กินจากยุ้งฉางของที่ที่เกิด
         if C.WAGES_ENABLED:
-            child.gold_endowed = True   # ทารกไม่ได้ทุนตั้งต้น พ่อแม่จ่ายค่าข้าวให้
+            child.gold_endowed = True   # ทารกไม่ได้ทุนตั้งต้นจากอากาศ — ได้จากกระเป๋ากลางของครัวเรือนแม่เท่าที่มี (B3c)
+            home = HH.of(self, mother)
+            gift = min(C.WAGE_START_GOLD, max(0.0, home.purse.get(w.tier, 0.0))) if home is not None else 0.0
+            if gift > 0:
+                HH.transfer(self, home, child, -gift, w.tier)
         blood = {}
         for kk in C.BLOODS:
             v = (a.blood.get(kk, 0.0) + t.blood.get(kk, 0.0)) * CL.INHERIT_MIX
@@ -1763,6 +1769,25 @@ class Sim:
         self.caches.append(k)
         return k
 
+    def ruin_deposit(self, w):
+        """ทองที่ยังเหลือในซากของแดน `w` — ตั้งทุกแดนครั้งแรกที่มีคนค้น แบ่งตามคนในแดน (แหล่งกำเนิดที่ประกาศ `ruin_genesis`)
+        แล้วเพิ่มเมื่อแดนลับถูกเปิด (ทองส่วนที่เสื่อมตามผนึกตกค้างอยู่ในซาก) ไม่มีวันเกิดเพิ่มเอง"""
+        gold = self.__dict__.setdefault("ruin_gold", {})
+        if not gold:
+            # ตั้งทุกแดนพร้อมกันครั้งแรกที่มีคนค้น: ทองรวมของแต่ละชั้น (RUIN_GOLD_DEPOSIT × (1 + ชั้น) ต่อแดน) แบ่งตามจำนวนคนในแดน
+            # วัดแล้วถ้าแบ่งเท่ากันทุกแดน แดนที่คนค้นมากหมดในไม่กี่ปี ขณะที่ราวแสนทองค้างในแดนที่ไม่มีใครค้น
+            by_tier = collections.defaultdict(list)
+            for x in self.worlds:
+                by_tier[x.tier].append(x)
+            for tier, worlds in sorted(by_tier.items()):
+                total = C.RUIN_GOLD_DEPOSIT * (1 + tier) * len(worlds)
+                pops = [len(self.living_in(x.wid)) for x in worlds]
+                people = sum(pops)
+                for x, n in zip(worlds, pops):
+                    gold[x.wid] = total * (n / people if people else 1.0 / len(worlds))
+                    WAGES.record(self, "ruin_genesis", tier, gold[x.wid])
+        return gold.setdefault(w.wid, 0.0)
+
     def ruined_cache_find(self, ch, rng, d):
         """ชั้นเล็กที่สุดของการค้นแดนลับ — ซากแดนลับที่ถูกกวาดไปก่อนหน้าแล้ว
 
@@ -1794,9 +1819,11 @@ class Sim:
         ch.insight += gain
         d["อ่านรอยจารึกที่เหลืออยู่"] = f"ความเข้าใจ +{gain:.1f}"
 
-        coins = int(rng.randint(*C.RUIN_MONEY) * luck)
+        # เหรียญในซากมาจากกองทองของซากในแดนนี้ (`ruin_gold`) ซึ่งมีจำกัด หมดแล้วก็ไม่มีอีก (B3c) — เดิมเสกจากอากาศราว 7,800 ทองต่อปี
+        coins = min(int(rng.randint(*C.RUIN_MONEY) * luck), self.ruin_deposit(w))
         if coins > 0:
-            WAGES.set_gold(self, ch, w.tier, ch.money.get(w.tier, 0) + coins, "ruin_coins")
+            self.ruin_gold[w.wid] -= coins
+            ch.money[w.tier] = ch.money.get(w.tier, 0) + coins
             d["เหรียญทองที่ร่วงอยู่"] = f"{coins:,}"
         # หินวิญญาณที่คนก่อนหน้าทำหล่นไว้ — **ไม่หักจากคลังฟ้า** เพราะปราณก้อนนี้ถูกขุด
         # ออกจากโลกไปแล้วตั้งแต่รุ่นก่อน มันแค่เปลี่ยนมือ ถ้าหักซ้ำคือทำบัญชีพัง
@@ -1876,9 +1903,14 @@ class Sim:
         k.items = []                          # ของออกจากแดนลับแล้ว ห้ามค้างชื่อไว้ซ้ำ
         # ทองที่ผนึกไว้ถึงผู้เปิดตามชั้นเดิม ส่วนที่เสื่อมตามผนึก (rot) หายไป — เดิมตั้ง k.currency = 0 ก่อนอ่าน ผู้เปิดจึงได้ศูนย์ทุกครั้ง
         # และ currency รวมทุกชั้นเป็นก้อนเดียว
+        here = self.world(k.world_id)
         for tier, gold in sorted(k.gold.items()):
             ch.money[tier] = ch.money.get(tier, 0.0) + gold * rot
-            WAGES.record(self, "cache_rot", tier, -gold * (1.0 - rot))
+            if tier == here.tier:                     # ส่วนที่เสื่อมตกค้างเป็นเหรียญในซากของแดนนี้ (B3c)
+                self.ruin_deposit(here)
+                self.ruin_gold[here.wid] += gold * (1.0 - rot)
+            else:                                     # ทองต่างชั้นใช้ในซากของแดนนี้ไม่ได้ — หายไปกับผนึก
+                WAGES.record(self, "cache_rot", tier, -gold * (1.0 - rot))
         if k.gold:
             d["ทองในแดนลับ"] = f"{sum(k.gold.values()) * rot:,.1f}"
         k.gold = {}

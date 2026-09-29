@@ -61,7 +61,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  23 — คลังชุมชน (Sim.settlement_treasury) เริ่มว่าง
 #  24 — ทองในแดนลับต่อชั้น (Cache.gold นับในบัญชีทอง) แทน Cache.currency ที่รวมทุกชั้นและหายตอนเปิด
 #  25 — ทุนสำรองของตลาด (Sim.market_reserve) เริ่มว่าง
-SAVE_VERSION = 25
+#  26 — ทุนตั้งต้นเฉพาะคนที่สร้างพร้อมโลก (Sim.genesis_cast = คนที่มีอยู่ตอนโหลด) ทองในซากมีจำกัด (Sim.ruin_gold ตั้งเมื่อค้นครั้งแรก)
+SAVE_VERSION = 26
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -336,6 +337,9 @@ def _migrate(sim, version):
         sim.__dict__.setdefault("market_demand", {})
         sim.__dict__.setdefault("mine_purse", {})
         sim.__dict__.setdefault("mine_recent", {})
+    if version < 26:
+        sim.__dict__.setdefault("genesis_cast", len(sim.cast))
+        sim.__dict__.setdefault("ruin_gold", {})
 
 
 def _cities_into_save(sim):

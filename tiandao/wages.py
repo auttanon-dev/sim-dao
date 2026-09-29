@@ -89,6 +89,7 @@ def retier(sim, world, old_tier) -> None:
     new = world.tier
     moved = sum(v for till in (sim.market_till, sim.farm_till, getattr(sim, "market_reserve", {}))
                 for (wid, _p), v in till.items() if wid == world.wid)
+    moved += getattr(sim, "ruin_gold", {}).get(world.wid, 0.0)   # ทองในซากคีย์ด้วยแดน เป็นทองชั้นใหม่ไปด้วย
     purses = ([ch.money for ch in sim.living_in(world.wid)]
               + [t for (wid, _p), t in sorted(getattr(sim, "settlement_treasury", {}).items()) if wid == world.wid]
               + [hh.purse for _hid, hh in sorted(HH._table(sim).items()) if hh.home is not None and hh.home[0] == world.wid])
@@ -152,9 +153,12 @@ def tick(sim, days) -> None:
         ch = sim.cast[cid]
         if not ch.gold_endowed:
             ch.gold_endowed = True
-            move_gold(sim, ch, C.WAGE_START_GOLD)
-            stats["issued"] += C.WAGE_START_GOLD
-            record(sim, "start_gold", tier_of(sim, ch), C.WAGE_START_GOLD)
+            # ทุนตั้งต้นเฉพาะคนที่สร้างพร้อมโลก (B3c) — คนที่มาเติมทีหลัง (repopulate ผู้ปกครองใหม่ ฯลฯ) มาตัวเปล่า
+            # เดิมได้ทุกคนที่ระบบเห็นครั้งแรก เป็นทองเสกราว 2,900 ต่อปี
+            if cid < getattr(sim, "genesis_cast", 0):
+                move_gold(sim, ch, C.WAGE_START_GOLD)
+                stats["issued"] += C.WAGE_START_GOLD
+                record(sim, "start_gold", tier_of(sim, ch), C.WAGE_START_GOLD)
         if not _present(ch, day):
             continue
         spare = gold(sim, ch) - C.WAGE_KEEP_GOLD
@@ -268,4 +272,5 @@ def total_gold(sim, tier) -> float:
             + getattr(sim, "buried_gold", {}).get(tier, 0.0)
             + sum(t.get(tier, 0.0) for t in getattr(sim, "settlement_treasury", {}).values())
             + sum(getattr(k, "gold", {}).get(tier, 0.0) for k in getattr(sim, "caches", ()))    # เซฟก่อนรุ่น 24 ยังไม่มี
-            + getattr(sim, "mine_purse", {}).get(tier, 0.0))
+            + getattr(sim, "mine_purse", {}).get(tier, 0.0)
+            + sum(g for wid, g in getattr(sim, "ruin_gold", {}).items() if sim.world(wid).tier == tier))
