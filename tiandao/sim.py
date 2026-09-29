@@ -37,6 +37,7 @@ from . import household as HH
 from . import food as FOOD
 from . import wages as WAGES
 from . import guardians as GUARD
+from . import death as DEATH
 from .ai import BrainManager, EventBus
 from .console import safe_print
 
@@ -856,100 +857,8 @@ class Sim:
 
     # ------------------------------------------------------------ ตาย
     def kill(self, ch, cause, killer=None, natural=False):
-        if not ch.alive:
-            return
-        ch.alive = False
-        ch.death_day = self.day
-        ch.death_cause = cause
-        if ch.is_lord and ch.hidden:
-            # มันสลายไปแล้ว ฆ่าซ้ำไม่ได้ — วัดจริง 150 ปี: "ยุคล่ม" ของแดนที่มันสังกัดเรียก kill()
-            # ใส่มันทั้งที่มันสลายอยู่ ซึ่งรีเซ็ตพลังที่มันสะสมมากลับเป็น 0 ให้โลกฟรีๆ
-            ch.alive = True
-            ch.death_day = None
-            ch.death_cause = ""
-            return
-        if ch.is_lord:
-            # เจ้าโกลาหล **ฆ่าได้** แต่ไม่มีอายุขัย — ที่ถูกฆ่าคือร่างที่ก่อขึ้น มันสลายกลับเป็นความ
-            # โกลาหล แล้วก่อร่างใหม่เมื่อสะสมพลังจากความตายทั่วจักรวาลได้ครบ ไม่ใช่เมื่อครบเวลา
-            # ที่หมอนสุ่มไว้ล่วงหน้า — ของเดิมตั้ง return_day = day + randint(2000, 12000) ตั้งแต่
-            # วินาทีที่มันตาย แปลว่าโลกจะทำอะไรก็ไม่มีผล วันคืนกลับถูกล็อกไว้แล้ว การฆ่ามันจึงไม่มี
-            # ความหมายเชิงกลไกเลยนอกจากพักหน้าจอ และการ "ส่งคนไปผนึก" ก็ไม่มีอะไรให้ผนึก
-            ch.alive = True
-            ch.death_day = None
-            ch.death_cause = ""
-            ch.hidden = True
-            ch.decay = 0.0
-            ch.return_day = 0
-            self.lord_pool = 0.0
-            cw = self.world(self.chaos_wid) if self.chaos_wid is not None else self.worlds[0]
-            self.emit(cw, "เจ้าโกลาหลสลาย", ch, killer, ["ทำลาย", "ความตาย"], "สลายเป็นโกลาหล",
-                      f"{ch.name}ถูกสังหารจนร่างสลายกลับเป็นความโกลาหล "
-                      f"จะก่อร่างใหม่ได้ต่อเมื่อสะสมพลังจากความตายทั่วจักรวาลจนครบ", 0,
-                      {"ผู้ลงมือ": killer.name if killer else "ไม่ปรากฏ",
-                       "เหตุ": cause,
-                       "สลายมาแล้ว": f"{ch.lord_returns} ครั้ง",
-                       "พลังที่ต้องสะสมใหม่": f"0/{C.LORD_POOL_TARGET:,.0f}"})
-            # Its existing turn (or the current actor's normal reschedule) wakes it.
-            # Adding another turn here duplicates the lord's scheduler entries on
-            # every defeat and makes it act increasingly often after returning.
-            return
-        # ทุกความตายในจักรวาลคือพลังที่ไหลกลับสู่ฟ้า และเผ่าโกลาหลแย่งส่วนแบ่งนั้นไป — ตราบใดที่
-        # เจ้าโกลาหลยังสลายอยู่และยังไม่ถูกผนึก ความตายทุกครั้งคือการนับถอยหลังสู่การกลับมาของมัน
-        lord = self.cast[self.lord_cid] if self.lord_cid is not None else None
-        if lord is not None and lord.hidden and getattr(self, "lord_seal", 0.0) <= 0.0:
-            gain = C.LORD_POOL_PER_DEATH * (1.0 + C.LORD_POOL_PER_REALM * ch.realm)
-            if not natural:
-                gain *= C.LORD_POOL_VIOLENT_X
-            self.lord_pool = getattr(self, "lord_pool", 0.0) + gain
-        if C.FOOD_ENABLED:
-            FOOD.on_death(self, ch)
-        if C.GUARDIANS_ENABLED:
-            GUARD.on_death(self, ch)
-        self.alive_cids.discard(ch.cid)
-        self._alive_ver = getattr(self, "_alive_ver", 0) + 1
-        self._world_counts_dirty = True
-        if ch.cid in getattr(self, "apex_blessings", {}):
-            self.apex_blessings.pop(ch.cid, None)
-            self.refresh_bloodline_buffs()
-        w = self.world(ch.world_id)
-        w.n_alive -= 1
-        if ch.realm == 0:
-            w.n_mortal -= 1
-        R.death_return(w, ch, natural)
-        HH.on_death(self, ch)                    # คนสุดท้ายของครัวเรือน: กระเป๋ากลางเข้าเงินของเขาก่อนแบ่งมรดก (ไม่มีทายาท: คลังตระกูล)
-        self.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
-        mate = self.cast[ch.spouse] if ch.spouse is not None and 0 <= ch.spouse < len(self.cast) else None
-        if mate is not None and mate.spouse == ch.cid:
-            mate.spouse = None               # เป็นหม้ายแล้วแต่งงานใหม่ได้ (ch.spouse ของผู้ตายคงไว้เป็นประวัติ)
-        if killer:
-            killer.kills += 1
-            if ch.is_unique_beast:
-                killer.cores += 10
-                killer.mats += 5
-            if not ch.hated():        # ฆ่ามนุษย์มารถือเป็นการชอบธรรม ไม่เกิดหนี้ค้างคา
-                R.add_debt(killer, "ฆ่า", ch.cid, ch.name, self.day)
-            for iid in ch.items:                      # ของตกอยู่กับคนฆ่า
-                killer.items.append(iid)
-            ch.items = []
-            if ch.sentient and not ch.is_lord:
-                self.raise_corpse(killer, ch, self.rng)
-            self.org_avenge(ch, killer)
-            self.kin_avenge(ch, killer)
-        elif ch.realm >= C.CACHE_MIN_REALM or any(
-                self.items[i].legend for i in ch.items):
-            # สมบัติฟ้าดินที่มีชื่อไม่มีวันสูญหาย เจ้าของตายก็ถูกผนึกรอผู้มีวาสนาคนต่อไป
-            self.make_cache(ch, faked=False)
-            WAGES.clear_gold(self, ch, "sealed_in_cache")
-            ch.money = {}           # ทองที่ไม่มีทายาทรับไปอยู่ในแดนลับแล้ว (เดิมถูกนับทั้งในแดนลับและบนศพ)
-        self.succeed(ch, killer)
-        for cid in self.alive_cids:                  # แค้นคนตายชำระไม่ได้ (เหมือน fade_grudges แต่ทันที)
-            self.cast[cid].rivals.pop(ch.cid, None)
-        ch.process, ch.building_dest = None, -1      # ไม่มีศพที่ยังเดินทาง ปิดด่าน หรือเดินในเมืองค้างอยู่
-        self.end_pregnancy(ch, "มารดาเสียชีวิต")
-
-        # ผู้ฝึกสายวัฏจักร: ร่างตายแล้ว แต่ดวงจิตไปเกิดใหม่ — ทำหลังกระบวนการตายครบทุกอย่าง
-        if ch.sentient and not ch.is_lord and self._knows_cycle(ch):
-            self.reincarnate(ch)
+        """ความตายทุกกรณีผ่านทางเดียว — ขั้นทั้งหมดอยู่ที่ tiandao/death.py (แบบ §7.4)"""
+        DEATH.resolve(self, ch, cause, killer, natural)
 
     # ------------------------------------------------------------ มรดกและตำแหน่งของผู้ตาย
     def marry(self, a, b):
@@ -1292,6 +1201,9 @@ class Sim:
                     buried[tier] = buried.get(tier, 0.0) + gold
             cast[i] = Departed(ch)
             pruned += 1
+        if pruned and getattr(self, "deaths", None):      # บันทึกความตายย่อไปพร้อมกับผู้ตาย — เซฟไม่โตไม่จำกัด
+            gone = {i for i, c in enumerate(cast) if type(c) is Departed}
+            self.deaths = [d for d in self.deaths if d.cid not in gone]
         self.pruned_total = getattr(self, "pruned_total", 0) + pruned
         return pruned
 

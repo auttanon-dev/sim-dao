@@ -63,7 +63,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  25 — ทุนสำรองของตลาด (Sim.market_reserve) เริ่มว่าง
 #  26 — ทุนตั้งต้นเฉพาะคนที่สร้างพร้อมโลก (Sim.genesis_cast = คนที่มีอยู่ตอนโหลด) ทองในซากมีจำกัด (Sim.ruin_gold ตั้งเมื่อค้นครั้งแรก)
 #  27 — ราคาข้าวตามข้าวในยุ้งฉาง (Sim.food_price คิดใหม่ทุกรอบ ไม่มีสถานะที่ต้องย้าย)
-SAVE_VERSION = 27
+#  28 — บันทึกความตาย (Sim.deaths: models.DeathRecord) เริ่มว่าง
+SAVE_VERSION = 28
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -341,6 +342,9 @@ def _migrate(sim, version):
     if version < 26:
         sim.__dict__.setdefault("genesis_cast", len(sim.cast))
         sim.__dict__.setdefault("ruin_gold", {})
+    if version < 28:
+        sim.__dict__.setdefault("deaths", [])
+        sim.__dict__.setdefault("death_seq", 0)
 
 
 def _cities_into_save(sim):

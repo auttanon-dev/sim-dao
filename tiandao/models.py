@@ -114,6 +114,19 @@ class World:
 
 
 @dataclass
+class DeathRecord:
+    """บันทึกความตายหนึ่งครั้ง (death.resolve ขั้น P1) — ย่อไปพร้อมกับผู้ตายใน Sim.prune_departed"""
+    death_id: int
+    cid: int
+    day: int
+    world_id: int
+    place: int
+    cause: str
+    killer: int = -1
+    natural: bool = False
+
+
+@dataclass
 class Household:
     """ครัวเรือน (แบบ §7.1) — กฎสมาชิกภาพอยู่ที่ tiandao/household.py
     - hid: เลขประจำครัวเรือน
