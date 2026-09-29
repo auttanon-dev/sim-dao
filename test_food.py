@@ -224,6 +224,9 @@ class SeclusionMealsTests(unittest.TestCase):
 
     def setUp(self):
         self.sim = quiet(S.Sim, seed=5)
+        fixed = mock.patch.object(C, "FOOD_PRICE_ELASTICITY", 0.0)   # เทสต์การจ่ายค่าข้าว — ราคาตายตัว ราคาตามข้าวมีเทสต์ของตัวเอง
+        fixed.start()
+        self.addCleanup(fixed.stop)
         self.sim.granary, self.sim.market_till, self.sim.farm_till = {}, {}, {}
         self.a, self.near, self.far = places_by_hops(self.sim)
         # เสบียงติดตัวเต็มแล้ว จะได้วัดแค่ข้าวส่งถึงถ้ำ ไม่ปนกับการซื้อเสบียงเติม
@@ -396,6 +399,45 @@ class FoodInTheRunningWorldTests(unittest.TestCase):
         self.assertEqual(sim.granary, {})
         self.assertTrue(all(v == 0 for v in sim.food_stats.values()))
         self.assertTrue(all(ch.food is None for ch in sim.cast))
+
+
+class FoodPriceTests(unittest.TestCase):
+    """ราคาข้าวตามข้าวในยุ้งฉางเทียบกับที่คนที่นั่นกิน (food._set_prices)"""
+
+    def setUp(self):
+        self.sim = quiet(S.Sim, seed=5)
+        self.person = setup_person(self.sim, self.sim.cast[0], 3, food=0.0, age=30)
+        self.spot = (0, 3)
+        self.day_need = FOOD.ration(self.person, self.sim.day)
+
+    def price_with(self, days):
+        self.sim.granary = {self.spot: days * self.day_need}
+        with mock.patch.multiple(C, FOOD_PRICE_ELASTICITY=0.5, FOOD_PRICE_BOUNDS=(0.25, 4.0)):
+            FOOD._set_prices(self.sim, {self.spot: [self.person]})
+        return FOOD.price_at(self.sim, self.spot)
+
+    def test_the_keep_level_sells_at_the_base_price_a_glut_cheaper_a_shortage_dearer(self):
+        self.assertAlmostEqual(self.price_with(C.FOOD_GRANARY_KEEP_DAYS), C.FOOD_PRICE)
+        self.assertAlmostEqual(self.price_with(C.FOOD_GRANARY_KEEP_DAYS * 4), C.FOOD_PRICE * 0.5)
+        self.assertAlmostEqual(self.price_with(C.FOOD_GRANARY_KEEP_DAYS / 4), C.FOOD_PRICE * 2.0)
+
+    def test_switched_off_every_place_sells_at_the_base_price_even_an_empty_granary(self):
+        for days in (0, C.FOOD_GRANARY_KEEP_DAYS, 10 ** 6):
+            self.sim.granary = {self.spot: days * self.day_need}
+            with mock.patch.object(C, "FOOD_PRICE_ELASTICITY", 0.0):
+                FOOD._set_prices(self.sim, {self.spot: [self.person]})
+            self.assertEqual(FOOD.price_at(self.sim, self.spot), C.FOOD_PRICE)
+
+    def test_the_price_stays_within_its_bounds(self):
+        self.assertAlmostEqual(self.price_with(10 ** 6), C.FOOD_PRICE * 0.25, msg="ข้าวล้นไม่ฟรี")
+        self.assertAlmostEqual(self.price_with(0), C.FOOD_PRICE * 4.0, msg="ยุ้งฉางว่างแพงสุดแต่ไม่ไม่จำกัด")
+
+    def test_a_meal_is_paid_at_the_local_price(self):
+        self.price_with(C.FOOD_GRANARY_KEEP_DAYS * 16)                  # ข้าวล้น — ราคาต่ำสุด
+        self.person.money = {self.sim.world(0).tier: 10.0}
+        with mock.patch.multiple(C, WAGES_ENABLED=True):
+            got, paid = FOOD._buy(self.sim, self.person, 30.0)
+        self.assertAlmostEqual((got, paid), (30.0, 30.0 * C.FOOD_PRICE * 0.25))
 
 
 class FoodSaveTests(unittest.TestCase):

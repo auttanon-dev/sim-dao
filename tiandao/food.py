@@ -174,6 +174,42 @@ def _account(sim, ch, need, eaten, days):
     ch.food_missed += missed_days
 
 
+def price_at(sim, spot) -> float:
+    """ราคาข้าวต่อสำรับที่ `spot` รอบนี้ (`_set_prices`) — ที่ที่ไม่มีคนกินใช้ราคาฐาน FOOD_PRICE"""
+    return getattr(sim, "food_price", {}).get(spot, C.FOOD_PRICE)
+
+
+def _set_prices(sim, eaters_at):
+    """ราคาข้าวของแต่ละที่ตามข้าวในยุ้งฉางเทียบกับที่คนที่นั่นกิน (ขั้นราคาข้าว) — คิดก่อนกินทุกรอบ ไม่มีสถานะค้าง
+
+        ราคา = FOOD_PRICE × clamp((FOOD_GRANARY_KEEP_DAYS / วันที่ข้าวพอกิน) ^ FOOD_PRICE_ELASTICITY, ต่ำสุด, สูงสุด)
+
+    ยุ้งฉางที่มีข้าวพอกินเท่าระดับที่ต้องเก็บ (60 วัน) ขายราคาเดิม ข้าวล้นถูกลง ข้าวขาดแพงขึ้น ราคาขึ้นกับข้าวจริงเท่านั้น
+    (ไม่ขึ้นกับราคารอบก่อน และไม่ขึ้นกับว่าคนที่นั่นรวยแค่ไหน — การช่วยคนจนเป็นงานของการกุศล) จึงไม่หมุนวนเกินจริง
+    วัดก่อนแก้ (seed 11): ข้าวในยุ้งฉางต่างกันตั้งแต่ศูนย์ถึงกินได้สิบปี ขณะราคาเท่ากันทุกที่ เด็กอดตายข้างยุ้งฉางที่มีข้าว 1,576 วัน"""
+    lo, hi = C.FOOD_PRICE_BOUNDS
+    prices = {}
+    if C.FOOD_PRICE_ELASTICITY <= 0:            # ปิดอยู่ = ราคาตายตัว FOOD_PRICE ทุกที่ (รวมยุ้งฉางว่าง)
+        sim.food_price = prices
+        return
+    for spot in sorted(eaters_at):
+        need = sum(ration(ch, sim.day) for ch in eaters_at[spot])
+        if need <= 0:
+            continue
+        days = sim.granary.get(spot, 0.0) / need
+        factor = hi if days <= _EPS else (C.FOOD_GRANARY_KEEP_DAYS / days) ** C.FOOD_PRICE_ELASTICITY
+        prices[spot] = C.FOOD_PRICE * min(hi, max(lo, factor))
+    sim.food_price = prices
+
+
+def _price_meals(sim, spot, meals):
+    """บันทึกสำรับที่ซื้อตามราคา (ฮิสโตแกรมทีละ 0.005 ทอง) ไว้วัดการกระจายของราคา"""
+    if meals > _EPS:
+        hist = sim.__dict__.setdefault("price_hist", {})
+        key = round(price_at(sim, spot) / 0.005) * 0.005
+        hist[key] = hist.get(key, 0.0) + meals
+
+
 def _spot(ch):
     """ยุ้งฉางที่คนนี้กินอยู่ — (แดน, สถานที่)"""
     return (ch.world_id, ch.place)
@@ -225,6 +261,7 @@ def tick(sim, days) -> None:
     # เด็กที่อยู่ในระยะส่งถึงบ้านกินจากครัวของครัวเรือนก่อน (ขั้น H3) ส่วนที่เหลือซื้อจากยุ้งฉาง
     fed = HH.draw(sim, [ch for spot in sorted(eaters_at) for ch in eaters_at[spot] if ch.age(day) < 14],
                   days, lambda ch: ration(ch, day))
+    _set_prices(sim, eaters_at)
     sources, short = {}, {}
     for spot in sorted(eaters_at):
         total = sum(days * ration(ch, day) - fed.get(ch.cid, 0.0) for ch in eaters_at[spot])
@@ -292,7 +329,8 @@ def _buy(sim, ch, amount, meal=True):
     """
     if amount <= _EPS or not C.WAGES_ENABLED:
         return amount, 0.0
-    cost = amount * C.FOOD_PRICE
+    price = price_at(sim, _spot(ch))                    # ราคาของที่ที่กิน
+    cost = amount * price
     # เด็ก: กระเป๋ากลางของครัวเรือนก่อน (ขั้น H2) แล้วผู้ปกครอง (_payers) แล้วหมู่บ้าน (charity ข้างล่าง)
     paid = HH.pay_for(sim, ch, cost) if ch.age(sim.day) < 14 and C.GUARDIANS_ENABLED else 0.0
     for payer in _payers(sim, ch):
@@ -322,13 +360,14 @@ def _buy(sim, ch, amount, meal=True):
             if part > 0:
                 town[tier] -= part
                 paid += part
-                sim.food_stats["charity"] += part / C.FOOD_PRICE
+                sim.food_stats["charity"] += part / price
                 sim.wage_stats["civic_paid"] = sim.wage_stats.get("civic_paid", 0.0) + part
             if cost - paid <= _EPS:
                 break
         if cost - paid > _EPS:
-            sim.food_stats["charity_unfunded"] = sim.food_stats.get("charity_unfunded", 0.0) + (cost - paid) / C.FOOD_PRICE
-    return paid / C.FOOD_PRICE, paid
+            sim.food_stats["charity_unfunded"] = sim.food_stats.get("charity_unfunded", 0.0) + (cost - paid) / price
+    _price_meals(sim, _spot(ch), paid / price)
+    return paid / price, paid
 
 
 def _relief(sim, ch, amount):
@@ -408,7 +447,7 @@ def _stock_larders(sim, eaters_at):
     day = sim.day
     spare = {spot: sim.granary[spot] - C.FOOD_GRANARY_KEEP_DAYS * sum(ration(ch, day) for ch in eaters_at.get(spot, ()))
              for spot in sim.granary}
-    for home, cost in sorted(HH.stock(sim, spare, lambda ch: ration(ch, day)).items()):
+    for home, cost in sorted(HH.stock(sim, spare, lambda ch: ration(ch, day), lambda spot: price_at(sim, spot)).items()):
         sim.farm_till[home] = sim.farm_till.get(home, 0.0) + cost
         sim.wage_stats["food_bought"] += cost
 
@@ -518,7 +557,7 @@ def _leave_before_broke(sim, people):
     for ch in sorted(people, key=lambda c: c.cid):
         if not _secluded(ch, day):
             continue
-        keep = C.FOOD_SECLUDE_KEEP_DAYS * ration(ch, day) * C.FOOD_PRICE
+        keep = C.FOOD_SECLUDE_KEEP_DAYS * ration(ch, day) * price_at(sim, _spot(ch))
         if WAGES.gold(sim, ch) < keep:
             _end_seclusion(sim, ch, "เงินค่าข้าวใกล้หมด ออกมาหาเลี้ยงชีพ")
 
@@ -633,7 +672,7 @@ def provision(sim, ch, travel_days) -> bool:
                  - C.FOOD_GRANARY_KEEP_DAYS * sum(ration(c, day) for c in staying))
         can = min(want, max(0.0, spare))
         if C.WAGES_ENABLED:
-            can = min(can, max(0.0, WAGES.gold(sim, ch)) / C.FOOD_PRICE)
+            can = min(can, max(0.0, WAGES.gold(sim, ch)) / price_at(sim, _spot(ch)))
     if travel_days > trip_endurance(ch, day, ch.food + can):
         sim.food_stats["trips_put_off"] += 1
         return False

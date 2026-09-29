@@ -269,10 +269,10 @@ def draw(sim, children, days, ration):
     return fed
 
 
-def stock(sim, spare, ration):
+def stock(sim, spare, ration, price=lambda spot: C.FOOD_PRICE):
     """กระเป๋ากลางซื้อข้าวเข้าครัวจากยุ้งฉางของที่บ้าน ถึง LARDER_DAYS วันของเด็กที่อยู่ในระยะส่งถึงบ้าน
     `spare` = {(แดน, สถานที่): ข้าวที่ยุ้งฉางมีเกินระดับที่ต้องเก็บ} ลดลงตามที่ซื้อไป — คืน {บ้าน: ทองที่จ่าย}
-    ทองออกจากกระเป๋าไปลิ้นชักของไร่ที่บ้านตามทางของผู้เรียก"""
+    ทองออกจากกระเป๋าไปลิ้นชักของไร่ที่บ้านตามทางของผู้เรียก ซื้อตามราคาข้าวของที่บ้าน `price(บ้าน)`"""
     paid_at = {}
     stats = _stats(sim)
     for hid in sorted(_table(sim)):
@@ -282,10 +282,10 @@ def stock(sim, spare, ration):
         kids = [ch for ch in children_of(sim, hh) if in_reach(sim, hh, ch)]
         tier = sim.world(hh.home[0]).tier
         got = min(C.LARDER_DAYS * sum(ration(ch) for ch in kids) - hh.larder,
-                  spare[hh.home], hh.purse.get(tier, 0.0) / C.FOOD_PRICE)
+                  spare[hh.home], hh.purse.get(tier, 0.0) / price(hh.home))
         if got <= 0:
             continue
-        cost = got * C.FOOD_PRICE
+        cost = got * price(hh.home)
         hh.purse[tier] -= cost
         hh.larder += got
         sim.granary[hh.home] -= got

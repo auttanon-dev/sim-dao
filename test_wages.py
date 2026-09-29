@@ -202,6 +202,9 @@ class WageRulesTests(unittest.TestCase):
 class FoodMoneyTests(unittest.TestCase):
     def setUp(self):
         self.sim = quiet(S.Sim, seed=5)
+        fixed = mock.patch.object(C, "FOOD_PRICE_ELASTICITY", 0.0)   # เทสต์การจ่ายค่าข้าว — ราคาตายตัว ราคาตามข้าวมีเทสต์ของตัวเอง
+        fixed.start()
+        self.addCleanup(fixed.stop)
         self.sim.granary, self.sim.market_till, self.sim.farm_till = {}, {}, {}
         self.a, self.near, self.far = places_by_hops(self.sim)
         self.people = list(self.sim.cast[:6])
