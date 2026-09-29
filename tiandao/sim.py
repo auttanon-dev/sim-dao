@@ -271,7 +271,9 @@ class Sim:
                 k = Cache(kid=self.nid("k"), world_id=w.wid, owner=-1,
                           owner_name="ผู้วางฟ้าดิน", sealed_day=0,
                           seal=C.SEAL_BASE * rng.uniform(0.2, 2.5), items=[it.iid],
-                          currency=rng.uniform(0, 50), era_sealed=0)
+                          era_sealed=0)
+                k.gold = {w.tier: rng.uniform(0, 50)}          # ทองที่ผู้วางฟ้าดินทิ้งไว้ — แหล่งกำเนิดที่ประกาศ
+                WAGES.record(self, "cache_genesis", w.tier, k.gold[w.tier])
                 self.caches.append(k)
 
     # ------------------------------------------------------------ helpers
@@ -1744,8 +1746,10 @@ class Sim:
         k = Cache(kid=self.nid("k"), world_id=ch.world_id, owner=ch.cid,
                   owner_name=ch.name, sealed_day=self.day,
                   seal=C.SEAL_BASE * (0.5 + 0.25 * ch.realm),
-                  items=list(ch.items), currency=sum(ch.money.values()),
-                  trap=faked, era_sealed=self.world(ch.world_id).era)
+                  items=list(ch.items), trap=faked, era_sealed=self.world(ch.world_id).era)
+        for tier in sorted(ch.money):                  # ทองทุกชั้นย้ายเข้าแดนลับ (ยังนับในบัญชีทอง) ไม่ใช่หายไป
+            if ch.money[tier] > 0:
+                k.gold[tier] = ch.money.pop(tier)
         # ผู้เก็บตัวมักจารึกวิชาหรือวางยันต์ทิ้งไว้ให้คนยุคหลัง
         if self.rng.random() < C.CACHE_RELIC_P:
             relic = self.stash_relic(ch, self.rng)
@@ -1866,9 +1870,14 @@ class Sim:
                 rotted += 1
                 self.items.pop(iid, None)     # ผุจนสูญสลาย ออกจากโลกอย่างเป็นทางการ
         k.items = []                          # ของออกจากแดนลับแล้ว ห้ามค้างชื่อไว้ซ้ำ
-        k.currency = 0.0
-        tier = self.world(k.world_id).tier
-        WAGES.set_gold(self, ch, tier, ch.money.get(tier, 0.0) + k.currency * rot, "cache_opened")
+        # ทองที่ผนึกไว้ถึงผู้เปิดตามชั้นเดิม ส่วนที่เสื่อมตามผนึก (rot) หายไป — เดิมตั้ง k.currency = 0 ก่อนอ่าน ผู้เปิดจึงได้ศูนย์ทุกครั้ง
+        # และ currency รวมทุกชั้นเป็นก้อนเดียว
+        for tier, gold in sorted(k.gold.items()):
+            ch.money[tier] = ch.money.get(tier, 0.0) + gold * rot
+            WAGES.record(self, "cache_rot", tier, -gold * (1.0 - rot))
+        if k.gold:
+            d["ทองในแดนลับ"] = f"{sum(k.gold.values()) * rot:,.1f}"
+        k.gold = {}
         d["แดนลับ"] = f"มรดกของ{k.owner_name}จากยุคที่ {k.era_sealed} — ได้ของ {got} ชิ้น"
         if rotted:
             d["ผุสูญสลาย"] = f"{rotted} ชิ้น"
@@ -1901,7 +1910,7 @@ class Sim:
         w = self.worlds[0]
         k = Cache(kid=self.nid("k"), world_id=w.wid, owner=-1,
                   owner_name="ผู้วางฟ้าดิน", sealed_day=self.day,
-                  seal=C.SEAL_BASE, items=list(lost), currency=0.0,
+                  seal=C.SEAL_BASE, items=list(lost),
                   trap=False, era_sealed=w.era)
         self.caches.append(k)
         names = " · ".join(self.items[i].name for i in lost[:5])
@@ -4948,6 +4957,8 @@ class Sim:
             if a.race() == "อสูร":
                 a.insight += cache.seal * 0.2
                 d["วิวัฒนาการ"] = f"{a.name}ดูดซับพลังแดนลับเพื่อวิวัฒนาการก้าวกระโดด"
+                for tier, gold in cache.gold.items():         # ทองในแดนลับไปกับพลังที่ถูกกลืน
+                    WAGES.record(self, "cache_devoured", tier, -gold)
                 self.caches.remove(cache)
                 return "ค้นพบ", f"{a.name}พบแดนลับของ{cache.owner_name} กลืนกินแก่นพลัง{tail}", d
             d.update(self.open_cache(a, cache, rng))

@@ -59,7 +59,8 @@ REPLACE_RETRY_SECONDS = 10.0
 #  21 — บัญชีสาเหตุทองเกิด/หาย (Sim.gold_flows) เปิดด้วยยอดทองที่มีอยู่ตอนโหลด (สาเหตุ "opening")
 #  22 — ตระกูลสืบผ่านครัวเรือน: คู่ครองและเด็กในครัวเรือนที่หัวหน้ามีตระกูลรับตระกูลนั้น (household.backfill_clans)
 #  23 — คลังชุมชน (Sim.settlement_treasury) เริ่มว่าง
-SAVE_VERSION = 23
+#  24 — ทองในแดนลับต่อชั้น (Cache.gold นับในบัญชีทอง) แทน Cache.currency ที่รวมทุกชั้นและหายตอนเปิด
+SAVE_VERSION = 24
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -320,6 +321,15 @@ def _migrate(sim, version):
         HH.backfill_clans(sim)          # ไม่แตะ RNG
     if version < 23:
         sim.__dict__.setdefault("settlement_treasury", {})
+    if version < 24:
+        from . import wages as WAGES
+        for k in getattr(sim, "caches", ()):          # ทองเดิมรวมทุกชั้นไว้ — ตกเป็นทองชั้นของแดนที่แดนลับอยู่ ไม่แตะ RNG
+            amount = k.__dict__.pop("currency", 0.0)
+            k.__dict__.setdefault("gold", {})
+            if amount > 0 and not k.opened:
+                tier = sim.world(k.world_id).tier
+                k.gold[tier] = amount
+                WAGES.record(sim, "cache_opening", tier, amount)
 
 
 def _cities_into_save(sim):

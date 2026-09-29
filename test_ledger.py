@@ -13,6 +13,7 @@ import pickle
 import tempfile
 import unittest
 
+from tiandao import config as C
 from tiandao import food as FOOD
 from tiandao import persist as PS
 from tiandao import sim as S
@@ -114,6 +115,50 @@ class LedgerTests(unittest.TestCase):
         self.assertNotIn(old, hh.purse)
         self.assertEqual(outsider.money[old], outsider_old, "คนแดนอื่นไม่เปลี่ยน")
         self.assertClosed(sim, "หลังเสื่อมลงชั้น")
+
+    def test_gold_sealed_in_a_secret_realm_reaches_the_opener_per_tier_less_its_decay(self):
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 1500)
+        owner, opener = [c for c in sim.living() if c.sentient][:2]
+        WAGES.clear_gold(sim, opener, "test")
+        WAGES.clear_gold(sim, owner, "test")
+        WAGES.set_gold(sim, owner, 0, 40.0, "test")
+        WAGES.set_gold(sim, owner, 1, 10.0, "test")
+        k = quiet(sim.make_cache, owner, False)
+        self.assertEqual((k.gold, owner.money), ({0: 40.0, 1: 10.0}, {}))
+        self.assertClosed(sim, "หลังผนึก")
+        k.trap = False
+        k.sealed_day = sim.day - 10 ** 6                  # ผนึกเสื่อมหมดแล้ว — ทองเสื่อมตาม CACHE_ROT เต็มที่
+        rot = 1.0 - C.CACHE_ROT
+        d = quiet(sim.open_cache, opener, k, sim.rng)
+        self.assertAlmostEqual(opener.money[0], 40.0 * rot)
+        self.assertAlmostEqual(opener.money[1], 10.0 * rot, msg="ทองชั้น 1 ไม่ถูกรวมเข้าชั้นของแดน")
+        self.assertEqual(k.gold, {})
+        self.assertIn("ทองในแดนลับ", d)
+        self.assertAlmostEqual(-sum(sim.gold_flows["cache_rot"].values()), 50.0 * (1 - rot))
+        self.assertClosed(sim, "หลังเปิด")
+
+    def test_a_version_23_save_turns_cache_currency_into_gold_of_its_realms_tier(self):
+        sim = quiet(S.Sim, seed=11)
+        quiet(sim.run, 1500)
+        k = next(c for c in sim.caches if not c.opened)
+        for c in sim.caches:
+            c.__dict__.pop("gold", None)
+            c.currency = 0.0
+        k.currency = 33.0
+        state = sim.rng.getstate()
+        for version in (23, 20):                  # 20: ผ่านขั้นเปิดบัญชี (รุ่น 21) ก่อนแดนลับมี gold — เคยพังใน world.save จริง
+            with tempfile.TemporaryDirectory() as folder:
+                path = os.path.join(folder, "old.save")
+                with open(path, "wb") as f:
+                    pickle.dump({"save_version": version, "sim": sim}, f)
+                back = PS.load_sim(path)
+            tier = back.world(k.world_id).tier
+            kb = next(c for c in back.caches if c.kid == k.kid)
+            self.assertEqual(kb.gold, {tier: 33.0})
+            self.assertFalse(hasattr(kb, "currency"))
+            self.assertEqual(back.rng.getstate(), state)
+        self.assertClosed(back, "เซฟรุ่น 20 หลังย้ายทองแดนลับ")
 
     def test_save_and_load_keep_the_ledger_closed(self):
         sim = quiet(S.Sim, seed=11)

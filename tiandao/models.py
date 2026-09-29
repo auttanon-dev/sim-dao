@@ -31,7 +31,7 @@ class Cache:
     sealed_day: int
     seal: float              # ความแรงผนึก (ปี) เสื่อมลงเรื่อยๆ
     items: List[int] = field(default_factory=list)
-    currency: float = 0.0
+    gold: Dict[int, float] = field(default_factory=dict)   # ทองที่ผนึกไว้ต่อชั้น นับใน wages.total_gold
     trap: bool = False       # แกล้งตาย รออยู่ข้างใน
     opened: bool = False
     era_sealed: int = 1
