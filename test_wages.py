@@ -117,6 +117,24 @@ class WageRulesTests(unittest.TestCase):
             WAGES.tick(self.sim, 30)
         self.assertAlmostEqual(sum(self.sim.gold_flows["mine_output"].values()), mined, msg="ไม่มีคนงานในเหมือง ไม่มีทองขุด")
 
+    def test_a_settlement_treasury_pays_public_wages_only_from_gold_above_a_year_of_childrens_meals(self):
+        worker = setup_person(self.sim, self.people[1], self.a)
+        kid = setup_person(self.sim, self.people[2], self.a, age=6)
+        tier = self.sim.world(0).tier
+        floor = 365.0 * C.FOOD_RATION_CHILD * C.FOOD_PRICE             # เด็กหนึ่งคนในระยะ
+        self.sim.settlement_treasury = {(0, self.a): {tier: floor + 100.0}}
+        before = money_everywhere(self.sim)
+        with switches(), only(self.sim, worker, kid), mock.patch.object(C, "CIVIC_SPEND_RATE", 0.2):
+            WAGES.tick(self.sim, 30)
+        spent = 100.0 * (1.0 - math.exp(-0.2 * 30 / 365.0))
+        self.assertAlmostEqual(self.sim.settlement_treasury[(0, self.a)][tier], floor + 100.0 - spent)
+        self.assertAlmostEqual(WAGES.gold(self.sim, worker), spent, msg="งานสาธารณะเป็นค่าแรงของคนที่นั่น")
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6)
+        self.sim.settlement_treasury = {(0, self.a): {tier: floor}}
+        with switches(), only(self.sim, worker, kid), mock.patch.object(C, "CIVIC_SPEND_RATE", 0.2):
+            WAGES.tick(self.sim, 30)
+        self.assertAlmostEqual(self.sim.settlement_treasury[(0, self.a)][tier], floor, msg="ไม่ต่ำกว่าพื้นเลี้ยงเด็ก")
+
     def give(self, ch, gold):
         WAGES.move_gold(self.sim, ch, gold)
 

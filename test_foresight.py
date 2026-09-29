@@ -152,7 +152,8 @@ class TestFateAccounting(unittest.TestCase):
                 break
         if not ch.alive and ch.foreseen:
             self.skipTest("ผู้เห็นนิมิตตายก่อนถึงกำหนด — check_fate ตัดสินเฉพาะนิมิตของคนที่ยังมีชีวิต")
-        self.assertEqual(len(ch.foreseen), 0, "นิมิตที่หมดอายุต้องถูกตัดสินและเคลียร์ออก")
+        expired = {k: d for k, d in ch.foreseen.items() if d + C.FORESIGHT_GRACE_DAYS <= sim.day}
+        self.assertEqual(expired, {}, "นิมิตที่หมดอายุต้องถูกตัดสินและเคลียร์ออก (นิมิตใหม่ที่ยังไม่ถึงกำหนดค้างได้)")
         self.assertGreater(ch.fate_changed + ch.fate_kept, 0)
         kinds = {e.kind for e in sim.log}
         self.assertTrue({"ชะตาลิขิต", "เปลี่ยนชะตา"} & kinds,

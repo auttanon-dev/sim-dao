@@ -172,6 +172,7 @@ def tick(sim, days) -> None:
             workers_at[(ch.world_id, ch.place)].append(ch)
 
     _mine(sim, workers_at, days)
+    _public_works(sim, days)
 
     # ทุนสำรองของตลาดไม่เกินของที่คนมาขายที่นี่ในหนึ่งปี (market_demand ลดลงตามเวลา) และไม่เกินความลึก — ส่วนเกินคืนลิ้นชัก
     # จ่ายเป็นค่าแรง (ขั้น B3b) วัดแล้วถ้าใช้ความลึกเป็นเพดานอย่างเดียว ทุนสำรองกองนิ่งแสนกว่าทองใน 50 ปี
@@ -210,6 +211,39 @@ def tick(sim, days) -> None:
             HH.contribute(sim, ch, till * weight / total_w)
         sim.market_till[spot] = 0.0
         stats["paid"] += till
+
+
+def _public_works(sim, days) -> None:
+    """คลังชุมชนจ้างงานสาธารณะ (ขั้น C1) — ทองเหนือพื้น เข้าลิ้นชักตลาดของที่นั้นแล้วจ่ายเป็นค่าแรงตามกฎเดิม
+
+    พื้น = ค่ามื้อของเด็กในระยะส่งข้าวถึง (FOOD_REACH_HOPS) หนึ่งปี — คลังเลี้ยงเด็ก (A5) ก่อนจ้างงานเสมอ
+    ใช้ส่วนเหนือพื้น CIVIC_SPEND_RATE ต่อปีแบบลดลงตามเวลา (เหมือนการใช้จ่ายของคน WAGE_SPEND_RATE) เฉพาะทองชั้นของแดนตอนนี้
+    วัดแล้ว (B3c) คลังชุมชนนิ่งอยู่ 250k–330k ทองที่ปีที่ 50 ขณะค่าแรงต่ำกว่า B3b ราว 35%"""
+    towns = getattr(sim, "settlement_treasury", {})
+    if not towns:
+        return
+    day = sim.day
+    kids = collections.Counter()
+    for cid in sim.alive_cids:
+        ch = sim.cast[cid]
+        if ch.age(day) < 14 and ch.place is not None and ch.place >= 0:
+            kids[(ch.world_id, ch.place)] += 1
+    share = 1.0 - math.exp(-C.CIVIC_SPEND_RATE * days / 365.0)
+    meal_year = 365.0 * C.FOOD_RATION_CHILD * C.FOOD_PRICE
+    stats = sim.wage_stats
+    for spot in sorted(towns):
+        wid, place = spot
+        tier = sim.world(wid).tier
+        bal = towns[spot].get(tier, 0.0)
+        if bal <= _EPS or place is None or place < 0:
+            continue
+        near = kids[spot] + sum(kids[(wid, p)] for p, _h in TR.places_within(sim, place, C.FOOD_REACH_HOPS))
+        spend = (bal - near * meal_year) * share
+        if spend <= _EPS:
+            continue
+        towns[spot][tier] = bal - spend
+        sim.market_till[spot] = sim.market_till.get(spot, 0.0) + spend
+        stats["civic_works"] = stats.get("civic_works", 0.0) + spend
 
 
 def _reserve_cap(sim, spot) -> float:
