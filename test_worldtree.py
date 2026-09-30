@@ -39,7 +39,6 @@ def test_branches_exist(sim):
     print(f"  หว่านไว้ตั้งต้น {seeded} แดน | โลกตั้งเพิ่มเองระหว่างซิม {sim.tree_founded} แดน "
           f"| รวม {len(br)} แดน (เพดาน {C.TREE_BRANCH_CAP} โลก · คลังชื่อ {len(BR.build())} ชื่อ)")
     assert seeded == C.BRANCH_REALMS, f"หว่านตั้งต้นได้ {seeded} แดน ไม่ตรงกับที่ตั้งค่าไว้"
-    assert sim.tree_founded > 0, "ไม่มีใครตั้งแดนสาขาใหม่เลย — จำนวนแดนไม่ได้โตแบบ dynamic จริง"
     assert len(sim.worlds) <= C.TREE_BRANCH_CAP, "จำนวนโลกทะลุเพดานที่ตั้งไว้"
     assert C.BRANCH_REALMS <= len(BR.build()), "หว่านตั้งต้นมากกว่าชื่อที่มีในคลัง"
     names = [w.name for w in br]
@@ -64,9 +63,13 @@ def test_branches_teach_differently(sim, br):
     # รวมหลายโลก (seed 5–7) เหมือน test_coalition: โลกเดียวอยู่ที่เส้นพอดี — seed 5 ได้ 20/40 = 50% หลังเส้นทางเปลี่ยนเล็กน้อย
     import multiprocessing
     hits, misses = _branch_share(sim, br)
+    founded = sim.tree_founded
     with multiprocessing.Pool(len(POOL_SEEDS)) as pool:
-        for h, m in pool.map(_branch_share_of_seed, POOL_SEEDS):
-            hits, misses = hits + h, misses + m
+        for h, m, f in pool.map(_branch_share_of_seed, POOL_SEEDS):
+            hits, misses, founded = hits + h, misses + m, founded + f
+    # การตั้งแดนสาขาเป็นเหตุหายาก (ผู้ชนะแดนลับถึงขั้นแล้วสุ่มผ่าน) โลกเดียวได้ 0 ได้ตามโชค — seed 5–10 ได้ 0–6 แดนต่อโลก
+    print(f"  โลกตั้งแดนสาขาเพิ่มเองรวม {founded} แดนจาก {1 + len(POOL_SEEDS)} โลก")
+    assert founded > 0, "ไม่มีใครตั้งแดนสาขาใหม่เลย — จำนวนแดนไม่ได้โตแบบ dynamic จริง"
     ratio = hits / max(1, hits + misses)
     print(f"  ตรวจ {hits + misses} สาขาจาก {1 + len(POOL_SEEDS)} โลก — สาขาที่วิชาประจำแดนคิดเป็น >15% ของวิชาทั้งหมด: "
           f"{hits} ({ratio:.0%})")
@@ -79,7 +82,7 @@ def _branch_share_of_seed(seed):
         for _ in range(STEPS):
             if sim.step() is None:
                 break
-    return _branch_share(sim, [w for w in sim.worlds if getattr(w, "skill_line", None)])
+    return (*_branch_share(sim, [w for w in sim.worlds if getattr(w, "skill_line", None)]), sim.tree_founded)
 
 
 def _branch_share(sim, br):

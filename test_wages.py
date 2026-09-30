@@ -55,7 +55,7 @@ class WageRulesTests(unittest.TestCase):
             ch.gold_endowed = True
             ch.money = {}
         self.sim.market_reserve = {}
-        for name in ("MARKET_RESERVE_SHARE", "MINE_GOLD_PER_YEAR"):    # เทสต์การแบ่งค่าแรง — ทุนสำรองและเหมืองมีเทสต์ของตัวเอง
+        for name in ("MARKET_RESERVE_SHARE", "MINE_GOLD_PER_YEAR", "CIVIC_LEVY"):  # เทสต์การแบ่งค่าแรง — กลไกเหล่านี้มีเทสต์ของตัวเอง
             patch = mock.patch.object(C, name, 0.0)
             patch.start()
             self.addCleanup(patch.stop)
@@ -78,6 +78,24 @@ class WageRulesTests(unittest.TestCase):
             WAGES.tick(self.sim, 30)
         self.assertAlmostEqual(self.sim.market_reserve[(0, self.a)], WAGES.market_depth(self.sim, 0, self.a),
                                msg="เต็มความลึกแล้วไม่กันเพิ่ม")
+
+    def test_the_civic_levy_moves_a_share_of_spending_into_the_local_treasury(self):
+        rich = setup_person(self.sim, self.people[0], self.a, realm=5)
+        worker = setup_person(self.sim, self.people[1], self.a)
+        self.give(rich, 1000.0)
+        self.sim.market_demand = {(0, self.a): 10.0 ** 9}
+        self.sim.settlement_treasury = {}
+        before = money_everywhere(self.sim)
+        with switches(), only(self.sim, rich, worker), mock.patch.object(C, "CIVIC_LEVY", 0.01), \
+                mock.patch.object(C, "CIVIC_SPEND_RATE", 0.0):
+            WAGES.tick(self.sim, 30)
+        spent = self.sim.wage_stats["spent"]
+        self.assertGreater(spent, 0)
+        town = WAGES.settlement_purse(self.sim, (0, self.a))
+        self.assertAlmostEqual(sum(town.values()), spent * 0.01)
+        self.assertAlmostEqual(self.sim.wage_stats["civic_levy"], spent * 0.01)
+        self.assertAlmostEqual(WAGES.gold(self.sim, worker), spent * 0.99)
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6)
 
     def test_a_reserve_above_a_years_sales_goes_back_to_wages(self):
         worker = setup_person(self.sim, self.people[1], self.a)

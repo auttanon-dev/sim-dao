@@ -166,7 +166,14 @@ def tick(sim, days) -> None:
             spent = spare * spend_share
             move_gold(sim, ch, -spent)
             spot = (ch.world_id, ch.place)
-            sim.market_till[spot] = sim.market_till.get(spot, 0.0) + spent
+            # ภาษีชุมชน (§7.3 หลังแก้อายุขัย): ส่วนหนึ่งของการใช้จ่ายเข้าคลังชุมชนของที่นั้น — คลังเลี้ยงเด็ก (A5) ได้ทุนสม่ำเสมอ
+            # ไม่ต้องรอมรดกของคนตาย วัดแล้ว คลังชุมชนปีแรกเคยได้ ~4,900 ทองจากคนรุ่นแรกที่ตายเพราะบั๊กอายุขัย แก้แล้วเหลือ ~1,150
+            levy = spent * C.CIVIC_LEVY
+            if levy > 0:
+                town = settlement_purse(sim, spot)
+                town[tier_of(sim, ch)] = town.get(tier_of(sim, ch), 0.0) + levy
+                stats["civic_levy"] = stats.get("civic_levy", 0.0) + levy
+            sim.market_till[spot] = sim.market_till.get(spot, 0.0) + spent - levy
             stats["spent"] += spent
         if earns_wages(ch, day):
             workers_at[(ch.world_id, ch.place)].append(ch)
