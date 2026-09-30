@@ -12,6 +12,7 @@ import unittest
 from unittest import mock
 
 from tiandao import config as C
+from tiandao import news as NEWS
 from tiandao import events as E
 from tiandao import guardians as GUARD
 from tiandao import household as HH
@@ -72,6 +73,9 @@ class HouseholdTests(unittest.TestCase):
         quiet(self.sim.kill, self.man, "ทดสอบ")
         hh = self.sim.households[hid]
         self.assertEqual((hh.head, hh.members), (self.woman.cid, [self.woman.cid]))
+        if self.sim.death_news:                          # ข่าวยังเดินทาง (§7.4 ข้อ 8): รู้แล้วจึงเป็นหม้าย
+            self.sim.day = max(item[0] for item in self.sim.death_news)
+            NEWS.tick(self.sim)
         self.assertIsNone(self.woman.spouse)
         self.assertEqual(self.man.spouse, self.woman.cid, "ประวัติคู่ครองของผู้ตายคงไว้")
         self.assertTrue(self.sim.marry(self.woman, self.others[0]))

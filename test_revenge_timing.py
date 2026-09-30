@@ -20,6 +20,7 @@ import io
 import unittest
 
 from tiandao import config as C
+from tiandao import news as NEWS
 from tiandao import events as E
 from tiandao import intent as IN
 from tiandao import physics as PHYS
@@ -130,9 +131,23 @@ class TestWhoCarriesTheGrudge(unittest.TestCase):
     def grudge(self, ch):
         return ch.rivals.get(self.killer.cid, 0)
 
-    def test_the_family_carries_the_full_grudge_wherever_they_are(self):
+    def arrive(self):
+        """ส่งข่าวที่ค้างทั้งหมด (§7.4 ข้อ 8: คนไกลรู้เมื่อข่าวเดินทางถึง)"""
+        self.sim.day = max([item[0] for item in self.sim.death_news] + [self.sim.day])
+        NEWS.tick(self.sim)
+
+    def test_family_on_the_spot_knows_at_once_and_distant_family_once_the_news_arrives(self):
+        self.assertEqual(self.grudge(self.child), C.GRUDGE_KIN)
+        self.assertEqual(self.grudge(self.parent), 0, "ข่าวยังไปไม่ถึง")
+        self.arrive()
         for kin in (self.parent, self.child, self.spouse):
             self.assertEqual(self.grudge(kin), C.GRUDGE_KIN)
+
+    def test_distant_and_hidden_clansfolk_carry_the_lighter_grudge_once_the_news_arrives(self):
+        self.arrive()
+        for other in (self.clan_far, self.clan_hidden):
+            self.assertEqual(self.grudge(other), C.GRUDGE_NEAR)
+        self.assertNotIn(self.killer.cid, self.stranger.rivals, "คนนอกไม่แค้นแม้ได้ข่าว")
 
     def test_clansfolk_on_the_spot_carry_a_lighter_grudge(self):
         self.assertEqual(self.grudge(self.clan_here), C.GRUDGE_NEAR)

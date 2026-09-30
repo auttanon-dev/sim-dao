@@ -30,6 +30,7 @@ from . import travel as TR
 from . import settlement as SETTLE
 from . import chronicle as CH
 from . import seasons as SEASONS
+from . import news as NEWS
 from . import emotions as EM
 from . import body as BODY
 from . import childhood as CHILD
@@ -126,6 +127,8 @@ class Sim:
         self.bounties = {} # cid -> reward amount
         self.queue = []
         self.rumors = []
+        self.death_news = []        # คิวข่าวความตาย (tiandao/news.py) — (วันถึง, ผู้ตาย, ผู้รับ, ผู้ฆ่า, ความแค้น)
+        self.news_stats = {}
         # คีย์ (wid, place_idx) — หลายแดนใช้ผังสถานที่ชุดเดียวกัน คีย์ด้วยสถานที่อย่างเดียวทำให้ขุดแดนหนึ่งแล้วอีกแดนโทรมไปด้วย (§6.2 R1)
         self.place_stock = {}     # (wid, place_idx, ชนิด) -> ทรัพยากรที่เหลืออยู่ตอนนี้ (ระบบนิเวศ §6.2)
         self.material_stats = {}  # บัญชีคลังทรัพยากร: genesis regrown seeded harvested disaster
@@ -1021,7 +1024,7 @@ class Sim:
         if gold >= 365.0 * C.FOOD_RATION_ADULT * C.FOOD_PRICE:
             a.big_haul_day = self.day
         if kind != "ปล้น":
-            return                                  # ผู้ถูกฆ่า: ญาติแค้นและผู้ฆ่าติดหนี้ผ่าน kin_avenge / add_debt อยู่แล้ว
+            return                                  # ผู้ถูกฆ่า: ญาติแค้นเมื่อข่าวถึง (news) และผู้ฆ่าติดหนี้ผ่าน add_debt อยู่แล้ว
         a.robberies = getattr(a, "robberies", 0) + 1
         R.add_debt(a, "ปล้น", t.cid, t.name, self.day)
         t.rivals[a.cid] = t.rivals.get(a.cid, 0) + C.GRUDGE_ROB
@@ -1178,33 +1181,6 @@ class Sim:
             return
         if killer.org is not None:
             org.grudges[killer.org] = org.grudges.get(killer.org, 0) + C.GRUDGE_PER_KILL
-
-    def kin_avenge(self, victim, killer):
-        """ใครแค้นผู้ฆ่า — ครอบครัวสายตรง (พ่อแม่ ลูก คู่ครอง) แค้นเต็มที่ไม่ว่าอยู่ที่ไหน คนตระกูลหรือสำนักเดียวกัน
-        ที่อยู่ที่เดียวกันและไม่ได้ซ่อนตัวแค้นพอประมาณ ที่อยู่ไกลยังไม่แค้นเพราะข่าวยังไปไม่ถึง คนหนึ่งได้ระดับที่ใกล้ที่สุด
-
-        เดิมคนทั้งตระกูลทั่วจักรวาลแค้น +2 และสมาชิกสำนักทุกแห่งสุ่มแค้น +3 ความแค้นทำให้อยากล้างแค้น แต่คู่แค้นที่อยู่ไกล
-        ไม่อยู่ในคนที่พบได้ การล้างแค้นจึงไปตกกับคนแปลกหน้าข้างตัวเกือบครึ่งหนึ่ง แล้วตระกูลของคนนั้นก็แค้นต่อ
-        (โลกใหม่ 100 ปี: คนเป็น 63% ถือความแค้น ความตายจากการต่อสู้สูงกว่าตอนปิดระบบชีวิต 44%)
-        """
-        family = set(victim.parents or ()) | set(victim.children or ())
-        if victim.spouse is not None:
-            family.add(victim.spouse)
-        family.discard(killer.cid)
-        for cid in sorted(family):
-            if 0 <= cid < len(self.cast) and self.cast[cid].alive:
-                m = self.cast[cid]
-                m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + C.GRUDGE_KIN
-        clan = victim.clan if victim.clan >= 0 and killer.clan != victim.clan else None
-        org = victim.org if (victim.org is not None and killer.org != victim.org
-                             and self.orgs[victim.org].alive) else None
-        if (clan is None and org is None) or victim.place is None or victim.place < 0:
-            return
-        for m in self.living_in(victim.world_id):
-            if (m.place != victim.place or m.hidden or m.cid in family or m is killer
-                    or not (m.clan == clan or (org is not None and m.org == org))):
-                continue
-            m.rivals[killer.cid] = m.rivals.get(killer.cid, 0) + C.GRUDGE_NEAR
 
     def prune_departed(self):
         """คนที่ตายเกิน PRUNE_DEAD_YEARS ปีกลายเป็นบันทึกย่อ (models.Departed) ที่ cid เดิม — ปีละครั้งจากนาฬิกาโลก
@@ -2164,6 +2140,7 @@ class Sim:
             FOOD.tick(self, self.day - self.food_day)
         if C.WAGES_ENABLED:
             WAGES.tick(self, self.day - self.food_day)
+        NEWS.tick(self)                     # ข่าวความตายที่เดินทางมาถึงรอบนี้ (ก่อนความแค้นจางตามเวลา)
         self.fade_grudges(self.day - self.food_day)
         self.check_processes()
         self.food_day = self.day

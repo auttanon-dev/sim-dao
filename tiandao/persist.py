@@ -66,7 +66,7 @@ REPLACE_RETRY_SECONDS = 10.0
 #  28 — บันทึกความตาย (Sim.deaths: models.DeathRecord) เริ่มว่าง
 #  29 — ระบบนิเวศคีย์ (แดน, สถานที่) (Sim.place_stock, eco_scarce, eco_recovered) ค่าเดิมของสถานที่คัดลอกให้ทุกแดนที่มีสถานที่นั้น
 #  30 — คลังทรัพยากรแยกชนิด (Sim.place_stock คีย์ (แดน, สถานที่, ชนิด)) ค่าเดิมเป็นสัดส่วนของชนิดหลัก บัญชี material_stats
-SAVE_VERSION = 30
+SAVE_VERSION = 31
 
 # ชื่อวัตถุดิบที่เปลี่ยนตอนเลิกใช้คำทับศัพท์ — ใช้แปลงของใน save เก่าให้กลับมาใช้งานได้
 RENAMED_MATERIALS = {
@@ -351,6 +351,9 @@ def _migrate(sim, version):
         _eco_by_realm(sim)              # ไม่แตะ RNG
     if version < 30:
         _eco_by_kind(sim)               # ไม่แตะ RNG
+    if version < 31:
+        sim.__dict__.setdefault("death_news", [])       # คิวข่าวความตายว่าง — คนที่ตายก่อนเซฟรุ่นนี้รู้ข่าวไปแล้วทันที
+        sim.__dict__.setdefault("news_stats", {})
 
 
 def _eco_by_realm(sim):

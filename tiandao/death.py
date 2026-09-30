@@ -15,6 +15,7 @@ from . import config as C
 from . import food as FOOD
 from . import guardians as GUARD
 from . import household as HH
+from . import news as NEWS
 from . import rules as R
 from . import wages as WAGES
 from .models import DeathRecord
@@ -73,9 +74,6 @@ def resolve(sim, ch, cause, killer=None, natural=False):
         _killer_takes_bag(sim, ch, killer)
     HH.on_death(sim, ch)                     # คนสุดท้ายของครัวเรือน: กระเป๋าเข้าเงินของเขาก่อนแบ่งมรดก (ไม่มีทายาท: คลังตระกูล)
     sim.settle_estate(ch, items_to_heirs=killer is None)     # ผู้ฆ่าริบของ แต่ทองยังตกถึงทายาท
-    mate = sim.cast[ch.spouse] if ch.spouse is not None and 0 <= ch.spouse < len(sim.cast) else None
-    if mate is not None and mate.spouse == ch.cid:
-        mate.spouse = None                   # เป็นหม้ายแล้วแต่งงานใหม่ได้ (ch.spouse ของผู้ตายคงไว้เป็นประวัติ)
     # P8 ผู้ฆ่า หรือแดนลับ
     if killer:
         _killer_takes(sim, ch, killer)
@@ -85,6 +83,8 @@ def resolve(sim, ch, cause, killer=None, natural=False):
         WAGES.clear_gold(sim, ch, "sealed_in_cache")
     # P9 ตำแหน่งว่างมีคนรับช่วง แค้นต่อผู้ตายชำระไม่ได้
     sim.succeed(ch, killer)
+    # P9b ข่าว: คนที่ห่วงผู้ตายเศร้า แค้น หรือเป็นหม้ายเมื่อข่าวถึงตัว — ที่เดียวกันรู้ทันที ที่ไกลรอตามระยะทาง (§7.4 ข้อ 8)
+    NEWS.on_death(sim, ch, killer)
     for cid in sim.alive_cids:               # เหมือน fade_grudges แต่ทันที
         sim.cast[cid].rivals.pop(ch.cid, None)
     # P10 ปิดกิจกรรมที่ค้าง — ได้ผลตามวันที่ทำไปจริงก่อน (ปิดด่าน บำเพ็ญ เลี้ยงดู) เดิมถูกล้างทิ้ง
@@ -166,7 +166,6 @@ def _killer_takes(sim, ch, killer):
     if ch.sentient and not ch.is_lord:
         sim.raise_corpse(killer, ch, sim.rng)
     sim.org_avenge(ch, killer)
-    sim.kin_avenge(ch, killer)
 
 
 def check(sim, ch, before):
@@ -175,7 +174,7 @@ def check(sim, ch, before):
     cast = sim.cast
     for cid in sim.alive_cids:
         x = cast[cid]
-        if x.spouse == ch.cid:
+        if x.spouse == ch.cid and not NEWS.pending(sim, ch.cid, cid):     # ข่าวยังไม่ถึง: ยังไม่รู้ว่าเป็นหม้าย
             problems.append(f"{cid} ยังมีผู้ตายเป็นคู่ครอง")
         if getattr(x, "guardian", -1) == ch.cid:
             problems.append(f"{cid} ยังมีผู้ตายเป็นผู้ปกครอง")
