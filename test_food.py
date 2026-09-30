@@ -68,6 +68,9 @@ def setup_person(sim, ch, place, *, food=0.0, profession="บัณฑิต", a
     ch.alive, ch.realm, ch.place, ch.world_id = True, realm, place, 0
     ch.profession = profession
     ch.born_day = sim.day - age * 365
+    ch.body_age = float(age)                    # ร่างตรงกับอายุที่ตั้ง ไม่ติดอายุร่างของตัวละครเดิม (แรงทำงาน §7.3)
+    for system in ("muscle", "cardio", "bone"):
+        setattr(ch, system + "_adaptation", 0.0)
     ch.hidden, ch.travel_dest, ch.seclude_until = False, -1, 0
     ch.food, ch.hunger_days, ch.food_fed, ch.food_missed = food, 0.0, 0.0, 0.0
     for attr in ("is_spirit", "is_beast", "is_lord"):

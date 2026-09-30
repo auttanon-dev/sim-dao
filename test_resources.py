@@ -76,6 +76,18 @@ class EcologyTests(unittest.TestCase):
         self.assertGreater(ore, 2.0, "แต่แร่ก็ฟื้น (ช้า) ไม่ตายถาวร")
         self.assertAlmostEqual(ledger_gap(self.sim), 0.0, places=9)
 
+    def test_a_sect_member_in_another_realm_adds_no_territory_there(self):
+        from types import SimpleNamespace
+        home, foreign = next((h, f) for h in self.sim.worlds for f in self.sim.worlds
+                             if max(PL.places_in(f.place_key)) not in PL.places_in(h.place_key))
+        m = next(c for c in self.sim.cast if c.alive)
+        org = SimpleNamespace(world_id=home.wid, members=[m.cid])
+        m.world_id, m.place = foreign.wid, max(PL.places_in(foreign.place_key))
+        before = set(self.sim.place_stock)
+        self.sim.sect_territory(org)
+        for wid, idx, _kind in set(self.sim.place_stock) - before:
+            self.assertIn(idx, PL.places_in(self.sim.world(wid).place_key))
+
     def test_a_running_world_keeps_the_material_ledger_and_every_key_in_its_realm(self):
         quiet(self.sim.run, 4000)
         self.assertGreater(self.sim.material_stats.get("harvested", 0), 0)

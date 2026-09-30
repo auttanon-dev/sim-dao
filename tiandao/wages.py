@@ -34,6 +34,7 @@
 import collections
 import math
 
+from . import body as BODY
 from . import config as C
 from . import household as HH
 from . import places as PL
@@ -195,6 +196,8 @@ def tick(sim, days) -> None:
             sim.market_till[spot] = sim.market_till.get(spot, 0.0) + extra
             stats["reserve_released"] = stats.get("reserve_released", 0.0) + extra
 
+    # แรงทำงานตามร่างกาย (อายุร่างและการฝึก) เป็นน้ำหนักของค่าแรง — ยอดจ่ายรวมเท่าเดิม แบ่งต่างกันเท่านั้น (แบบ §7.3)
+    capacity = {ch.cid: BODY.work_capacity(ch) for group in workers_at.values() for ch in group}
     for spot in sorted(sim.market_till):
         till = sim.market_till[spot]
         if till <= _EPS:
@@ -208,13 +211,13 @@ def tick(sim, days) -> None:
             till -= keep
             sim.market_till[spot] = till
             stats["reserve_kept"] = stats.get("reserve_kept", 0.0) + keep
-        payees = [(ch, 1.0) for ch in workers_at.get(spot, ())]
+        payees = [(ch, capacity[ch.cid]) for ch in workers_at.get(spot, ())]
         for other, hops in TR.places_within(sim, place, C.WAGE_REACH_HOPS):
-            payees += [(ch, 1.0 / (1.0 + hops)) for ch in workers_at.get((wid, other), ())]
+            payees += [(ch, capacity[ch.cid] / (1.0 + hops)) for ch in workers_at.get((wid, other), ())]
         if not payees:
             continue
         total_w = sum(weight for _ch, weight in payees)
-        for ch, weight in payees:                  # ทุกคนทำงานเต็มรอบเท่ากัน ต่างกันแค่ระยะทาง
+        for ch, weight in payees:                  # ทุกคนทำงานเต็มรอบ ต่างกันที่แรงทำงานและระยะทาง
             move_gold(sim, ch, till * weight / total_w)
             HH.contribute(sim, ch, till * weight / total_w)
         sim.market_till[spot] = 0.0

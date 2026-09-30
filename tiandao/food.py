@@ -47,6 +47,7 @@ import math
 
 from . import config as C
 from . import places as PL
+from . import body as BODY
 from . import seasons as SEASONS
 from . import travel as TR
 from . import wages as WAGES
@@ -249,14 +250,15 @@ def tick(sim, days) -> None:
 
     season = season_mean(day - days, days)
     for spot in sorted(set(workers_at) | set(helpers_at)):
-        labour = len(workers_at.get(spot, ())) + helpers_at.get(spot, 0.0)
+        adults = sum(BODY.work_capacity(ch) for ch in workers_at.get(spot, ()))   # แรงตามร่างกาย ไม่ใช่นับหัว
+        labour = adults + helpers_at.get(spot, 0.0)
         made = land_output_per_day(labour) * days * season
         sim.granary[spot] = sim.granary.get(spot, 0.0) + made
         stats["produced"] += made
         if spot in helpers_at:
             # ส่วนที่เกิดจากแรงเด็ก = ผลผลิตทั้งหมด − ผลผลิตถ้าไม่มีเด็ก (ที่ดินใกล้เต็ม แรงเด็กได้น้อยลงตามจริง)
             stats["child_produced"] = stats.get("child_produced", 0.0) + made - (
-                land_output_per_day(len(workers_at.get(spot, ()))) * days * season)
+                land_output_per_day(adults) * days * season)
 
     # เด็กที่อยู่ในระยะส่งถึงบ้านกินจากครัวของครัวเรือนก่อน (ขั้น H3) ส่วนที่เหลือซื้อจากยุ้งฉาง
     fed = HH.draw(sim, [ch for spot in sorted(eaters_at) for ch in eaters_at[spot] if ch.age(day) < 14],
@@ -464,15 +466,17 @@ def _sell_to_pack(sim, ch, spot, amount):
 
 
 def _pay_farmers(sim, workers_at):
-    """ลิ้นชักของไร่จ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้เท่ากันทุกคน — ไม่มีใครทำงานก็ค้างไว้รอรอบหน้า"""
+    """ลิ้นชักของไร่จ่ายให้คนผลิตที่ทำงานที่นั่นรอบนี้ตามแรงทำงาน (BODY.work_capacity) — ไม่มีใครทำงานก็ค้างไว้รอรอบหน้า"""
     for spot in sorted(sim.farm_till):
         till = sim.farm_till[spot]
         farmers = workers_at.get(spot)
         if till <= _EPS or not farmers:
             continue
-        for ch in farmers:
-            WAGES.move_gold(sim, ch, till / len(farmers))
-            HH.contribute(sim, ch, till / len(farmers))
+        weights = [BODY.work_capacity(ch) for ch in farmers]
+        total = sum(weights)
+        for ch, w in zip(farmers, weights):
+            WAGES.move_gold(sim, ch, till * w / total)
+            HH.contribute(sim, ch, till * w / total)
         sim.farm_till[spot] = 0.0
         sim.wage_stats["farm_paid"] += till
 
@@ -503,17 +507,18 @@ def _adapt_labour(sim, eaters_at, workers_at, deficit, days, season):
         short_per_day = deficit[spot] / days
         if short_per_day <= _EPS:
             continue
-        n = len(workers_at.get(spot, ()))
+        n = sum(BODY.work_capacity(ch) for ch in workers_at.get(spot, ()))
         target = land_output_per_day(n) * season + short_per_day
         idle = sorted((ch for ch in eaters_at[spot] if not ch.produces_food() and _able_to_farm(ch, day)),
                       key=lambda c: ("ขยันงานไร่" not in c.traits, WAGES.gold(sim, c), c.cid))   # คนที่โตมากับงานไร่ลงก่อน
         for ch in idle:
             output = land_output_per_day(n) * season
-            if output >= target or (land_output_per_day(n + 1) * season - output) < C.FOOD_RATION_ADULT:
+            cap = BODY.work_capacity(ch)
+            if output >= target or (land_output_per_day(n + cap) * season - output) < C.FOOD_RATION_ADULT:
                 break
             ch.fieldwork = True
             stats["took_up_farming"] += 1
-            n += 1
+            n += cap
 
 
 def _reach(sim, place):

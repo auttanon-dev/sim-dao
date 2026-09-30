@@ -28,6 +28,8 @@
 migrate เซฟเก่า ไม่ต้องขยับ SAVE_VERSION และเซฟไม่บวม แคชเก็บไว้ในหน่วยความจำของโปรเซส
 เท่านั้น (ไม่ติดไปกับ pickle ของ Sim) และไม่มีจุดใดแตะ RNG หลักของโลก
 """
+import math
+
 from . import (adaptation, balance, capability, circulation, condition, constants,
                genetics, injury, joints, lod, metabolism, organs, pain, perception, skeleton)
 from .anatomy import Body, MuscleGroup
@@ -203,6 +205,14 @@ def injury_summary(character, body_seed: int = 0) -> dict:
 def condition_of(character) -> Condition:
     """สภาพร่างกายตอนนี้ — ความล้า เลือด บาดเจ็บ รวมเป็นวัตถุเดียว"""
     return Condition.of(character)
+
+
+def work_capacity(character) -> float:
+    """แรงทำงานเทียบผู้ใหญ่วัยหนุ่มสาวที่ไม่ได้ฝึก (0..1) — กล้ามเนื้อกับหัวใจตามอายุร่างและการฝึก (adaptation.factors)
+    อายุร่างของผู้ฝึกตนเดินช้ากว่าอายุจริง ผู้ฝึกอายุยืนจึงยังทำงานเต็มแรง ไม่ฆ่าใครและไม่แตะอายุขัยหรือขั้น
+    เพดาน 1 — การฝึกชดเชยความเสื่อมได้แต่ไม่ทำให้ผลผลิตของคนหนุ่มสาวเกินที่สอบเทียบไว้"""
+    f = adaptation.factors(character)
+    return min(1.0, math.sqrt(f["muscle"] * f["cardio"]))
 
 
 def exert(character, work: float = 1.0) -> float:

@@ -18,6 +18,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from tiandao import body as BODY
 from tiandao import config as C
 from tiandao import events as E
 from tiandao import food as FOOD
@@ -172,6 +173,41 @@ class WageRulesTests(unittest.TestCase):
         self.assertAlmostEqual(WAGES.gold(self.sim, close), spent * 0.5 / 1.5, places=6)
         self.assertEqual(WAGES.gold(self.sim, distant), 0.0, "ไกลเกินระยะไม่ได้ค่าแรงจากที่นี่")
         self.assertEqual(WAGES.gold(self.sim, rich), 1000.0 - spent, "ผู้ฝึกขั้นสูงใช้จ่ายแต่ไม่รับค่าแรง")
+
+    def test_wages_split_by_work_capacity_and_the_total_is_unchanged(self):
+        rich = setup_person(self.sim, self.people[0], self.a, realm=5)
+        young = setup_person(self.sim, self.people[1], self.a, age=30)
+        elder = setup_person(self.sim, self.people[2], self.a, age=80)
+        self.give(rich, 1000.0)
+        before = money_everywhere(self.sim)
+        with switches(), only(self.sim, rich, young, elder):
+            WAGES.tick(self.sim, 30)
+        spent = self.sim.wage_stats["spent"]
+        w = BODY.work_capacity(elder)
+        self.assertLess(w, 1.0)
+        self.assertAlmostEqual(WAGES.gold(self.sim, young), spent / (1.0 + w), places=6)
+        self.assertAlmostEqual(WAGES.gold(self.sim, elder), spent * w / (1.0 + w), places=6)
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6)
+
+    def test_the_farm_till_pays_farmers_by_work_capacity(self):
+        young = setup_person(self.sim, self.people[1], self.a, age=30)
+        elder = setup_person(self.sim, self.people[2], self.a, age=80)
+        self.sim.farm_till = {(0, self.a): 90.0}
+        before = money_everywhere(self.sim)
+        FOOD._pay_farmers(self.sim, {(0, self.a): [young, elder]})
+        w = BODY.work_capacity(elder)
+        self.assertAlmostEqual(WAGES.gold(self.sim, young), 90.0 / (1.0 + w))
+        self.assertAlmostEqual(WAGES.gold(self.sim, elder), 90.0 * w / (1.0 + w))
+        self.assertAlmostEqual(money_everywhere(self.sim), before, places=6)
+
+    def test_farm_output_counts_workers_by_capacity(self):
+        young = setup_person(self.sim, self.people[1], self.a, age=30, profession="ชาวนา")
+        elder = setup_person(self.sim, self.people[2], self.a, age=80, profession="ชาวนา")
+        with switches(food=True, wages=False), only(self.sim, young, elder):
+            FOOD.tick(self.sim, 30)
+        labour = 1.0 + BODY.work_capacity(elder)
+        want = FOOD.land_output_per_day(labour) * 30 * FOOD.season_mean(self.sim.day - 30, 30)
+        self.assertAlmostEqual(self.sim.food_stats["produced"], want, places=6)
 
     def test_only_those_actually_at_work_are_paid(self):
         rich = setup_person(self.sim, self.people[0], self.a, realm=5)

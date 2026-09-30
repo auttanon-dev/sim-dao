@@ -12,6 +12,8 @@ import unittest
 from tiandao import config as C
 from tiandao import rules as R
 from tiandao import sim as S
+from tiandao import body as BODY
+from types import SimpleNamespace
 
 
 def quiet(fn, *a, **kw):
@@ -56,6 +58,27 @@ class SpawnTests(unittest.TestCase):
         young = [c for c in self.sim.cast if not c.alive and c.death_cause == "สิ้นอายุขัย"
                  and (c.death_day - c.born_day) / 365 < C.MORTAL_LIFESPAN_MIN]
         self.assertEqual(young, [])
+
+
+def _body(age, trained=0.0):
+    return SimpleNamespace(body_age=float(age), muscle_adaptation=trained, cardio_adaptation=trained, bone_adaptation=trained)
+
+
+class WorkCapacityTests(unittest.TestCase):
+    def test_a_young_adult_works_at_full_strength_and_capacity_falls_with_body_age(self):
+        caps = [BODY.work_capacity(_body(a)) for a in (25, 45, 60, 75, 90)]
+        self.assertEqual(caps[0], 1.0)
+        self.assertEqual(caps, sorted(caps, reverse=True))
+        self.assertLess(caps[-1], caps[0])
+        self.assertGreater(caps[-1], 0.4, "ร่างชราทำงานได้น้อยลงแต่ไม่เป็นศูนย์")
+
+    def test_training_offsets_decline_but_never_lifts_output_above_a_young_adult(self):
+        self.assertGreater(BODY.work_capacity(_body(70, 1.0)), BODY.work_capacity(_body(70)))
+        self.assertEqual(BODY.work_capacity(_body(25, 1.0)), 1.0)
+
+    def test_capacity_follows_body_age_not_calendar_age(self):
+        old_cultivator = _body(30)            # อายุจริงเท่าไรก็ได้ — ร่างอายุ 30
+        self.assertEqual(BODY.work_capacity(old_cultivator), 1.0)
 
 
 if __name__ == "__main__":

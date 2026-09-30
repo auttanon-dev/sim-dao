@@ -1488,7 +1488,8 @@ class Sim:
             if not (0 <= cid < cast_len):
                 continue
             m = self.cast[cid]
-            if not m.alive or m.place is None or m.place < 0:
+            # อาณาเขตอยู่ในแดนของสำนัก — ศิษย์ที่อยู่แดนอื่นถือเลขสถานที่ของผังอื่น (เดิมสร้างคีย์คลังข้ามแดน)
+            if not m.alive or m.place is None or m.place < 0 or m.world_id != org.world_id:
                 continue
             if m.place not in seen:
                 seen[m.place] = self.qi_density(m.place, w)
@@ -4014,15 +4015,7 @@ class Sim:
             a.cities_visited = getattr(a, "cities_visited", 0) + 1
             if hasattr(a, "update_title"): a.update_title()
             
-            # 🤖 👶 [ระบบอายุขัยและชราภาพ]
-            age_now = a.age(self.day)
-            if age_now >= 60:
-                a.max_hp = max(50, getattr(a, "max_hp", 100) - 2)
-                a.hp = min(getattr(a, "hp", 100), a.max_hp)
-                if age_now >= 85 and rng.randint(1, 100) < 15:
-                    self.kill(a, f"สิ้นอายุขัยในวัย {age_now} ปี อย่างสงบ")
-                    return "ความสงบ", f"🧓🍂 [สิ้นอายุขัย] ปิดตำนานยอดฝีมือ... [{a.name}] สิ้นใจลงด้วยโรคชราในวัย {age_now} ปี", d
-            
+            # ความชราอยู่ที่เพดานอายุขัย (rules.age_and_decay) และร่างกายตามอายุร่าง (body.work_capacity) — ไม่มีทางตายซ้ำที่นี่
             if a.city_id >= 0:
                 city = next((c for c in self.cities if c["id"] == a.city_id), None)
                 if city:
