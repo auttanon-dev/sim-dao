@@ -52,9 +52,10 @@ class MoneyKeyTests(unittest.TestCase):
             for name in files:
                 if name.endswith(".py"):
                     path = os.path.join(folder, name)
-                    for no, line in enumerate(open(path, encoding="utf-8"), 1):
-                        if pattern.search(line):
-                            hits.append(f"{os.path.relpath(path, root)}:{no}")
+                    with open(path, encoding="utf-8") as source:
+                        for no, line in enumerate(source, 1):
+                            if pattern.search(line):
+                                hits.append(f"{os.path.relpath(path, root)}:{no}")
         self.assertEqual(hits, [])
 
     @mock.patch.object(C, "WAGES_ENABLED", False)     # ค่าครองชีพแบบเดิมเก็บเฉพาะตอนปิดค่าแรง (ดูเทสต์ถัดไป)
