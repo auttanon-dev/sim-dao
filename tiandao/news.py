@@ -23,19 +23,20 @@ def _queue(sim):
 def delay_days(sim, dead, receiver) -> int:
     """กี่วันกว่าข่าวความตายของ `dead` จะถึง `receiver` — ตำแหน่งตอนตายทั้งคู่
     คนที่ซ่อนตัวหรือปิดด่านไม่ได้เห็น: รู้เมื่อออกมา (อย่างเร็วรอบโลกถัดไป) หรือเมื่อข่าวเดินทางถึง แล้วแต่อย่างไหนช้ากว่า"""
-    wait = _travel_days(dead, receiver)
+    wait = _travel_days(dead, receiver, sim.day)
     if receiver.hidden:
         wait = max(wait, receiver.seclude_until - sim.day, C.WORLD_TICK_DAYS)
     return wait
 
 
-def _travel_days(dead, receiver) -> int:
+def _travel_days(dead, receiver, day) -> int:
+    """วันเดินทางของผู้ส่งข่าวที่ออกวันตาย — ช้าลงตามฤดูของวันนั้น (แบบ §6.3)"""
     here, there = dead.place, receiver.place
     if receiver.world_id != dead.world_id or here is None or there is None or here < 0 or there < 0:
         return C.NEWS_CROSS_REALM_DAYS
     if here == there:
         return 0
-    days = TR.shortest_path_days(here, there, 0)
+    days = TR.shortest_path_days(here, there, 0, day=day)
     return C.NEWS_CROSS_REALM_DAYS if days is None else days
 
 

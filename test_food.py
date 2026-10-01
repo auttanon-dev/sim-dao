@@ -48,6 +48,11 @@ def no_spoil():
     return mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0)
 
 
+def no_store_cap():
+    """แยกกฎที่ทดสอบออกจากเพดานยุ้งฉาง (test_food_storage ทดสอบเพดานเอง) — ยุ้งฉางในเทสต์ใส่ข้าวเกินสามเดือนของคนไม่กี่คน"""
+    return mock.patch.object(C, "FOOD_STORE_MONTHS", 10.0 ** 6)
+
+
 @contextlib.contextmanager
 def only(sim, *people):
     """ให้ FOOD.tick เห็นเฉพาะคนกลุ่มนี้ — แยกกฎหนึ่งข้อออกจากประชากรทั้งโลก
@@ -130,7 +135,7 @@ class FoodRulesTests(unittest.TestCase):
     def test_nearby_granaries_feed_a_place_that_has_none_and_the_road_costs_food(self):
         eater = setup_person(self.sim, self.people[0], self.a)
         self.sim.granary[(0, self.near)] = 1000.0
-        with food_on(), no_spoil(), only(self.sim, eater):
+        with food_on(), no_spoil(), no_store_cap(), only(self.sim, eater):
             FOOD.tick(self.sim, 30)
         self.assertEqual(eater.hunger_days, 0.0)
         sent = 1000.0 - self.sim.granary[(0, self.near)]
@@ -240,7 +245,7 @@ class SeclusionMealsTests(unittest.TestCase):
 
     def test_a_secluded_cultivator_eats_from_the_local_granary_and_stays_in(self):
         self.sim.granary[(0, self.a)] = 1000.0
-        with food_on(), no_spoil(), only(self.sim, self.monk):
+        with food_on(), no_spoil(), no_store_cap(), only(self.sim, self.monk):
             for _ in range(12):
                 FOOD.tick(self.sim, 30)
         self.assertEqual(self.monk.hunger_days, 0.0)

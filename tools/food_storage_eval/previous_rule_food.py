@@ -503,40 +503,16 @@ def store_capacity(sim, eaters_at) -> dict:
       (FOOD_BIGU_REALM) และคนที่ตายระหว่างรอบนี้ (บันทึกเก่าของผู้ที่ไปเกิดใหม่ตายแล้วเช่นกัน)
     - ที่ที่ไม่มียุ้งฉางใดส่งถึงเลย: ความต้องการไม่ถูกแบ่งให้ยุ้งฉางที่ไม่มีอยู่จริง (ไม่เพิ่มเพดานของใคร)
     """
-    daily, _places = assigned_demand(sim, eaters_at)
-    return {spot: C.FOOD_STORE_MONTHS * (365.0 / 12.0) * daily.get(spot, 0.0) for spot in sim.granary}
-
-
-def assigned_demand(sim, eaters_at):
-    """(สำรับต่อวันที่แต่ละยุ้งฉางรับผิดชอบ {ยุ้งฉาง: สำรับ}, {ที่: (สำรับต่อวันของคนที่นั่น, ยุ้งฉางที่ส่งถึง)})
-    ความต้องการของแต่ละที่แบ่งเท่ากันให้ยุ้งฉางที่ส่งถึง — ใช้ทั้งกำหนดเพดาน (store_capacity) และแบ่งข้าวที่มีอยู่ (attributed_reserve)"""
     day = sim.day
-    daily, places = collections.defaultdict(float), {}
+    daily = collections.defaultdict(float)
     for spot in sorted(eaters_at):
         need = sum(ration(ch, day) for ch in {c.cid: c for c in eaters_at[spot]}.values() if ch.alive)
         stores = serving_granaries(sim, spot)
         if need <= 0.0 or not stores:
             continue
-        places[spot] = (need, stores)
         for store in stores:
             daily[store] += need / len(stores)
-    return daily, places
-
-
-def attributed_reserve(sim, spot, assigned) -> float:
-    """ข้าวที่มีอยู่ในยุ้งฉางที่ส่งถึง `spot` ส่วนที่เป็นของคนที่นั่น — แบ่งข้าวของแต่ละยุ้งฉางตามสัดส่วนความต้องการชุดเดียวกับเพดาน
-
-        attributed(s) = Σ_g stock(g) × (need(s) / |G(s)|) / Σ_t need(t) / |G(t)|
-
-    รวมทุกที่แล้วเท่ากับข้าวที่มีจริงพอดี ยุ้งฉางที่ใช้ร่วมกันจึงไม่ถูกนับเต็มให้หลายที่ เพื่อนบ้านที่ต้องการมากได้ส่วนมาก
-    ยุ้งฉางเต็มเพดานทุกแห่งได้ FOOD_STORE_MONTHS เดือนของคนที่นี่พอดี — เป็นแบบจำลองบัญชีที่แบ่งอย่างยุติธรรม ไม่ใช่การขนจริง
-    (_carry_in ให้ที่ที่ขาดขอตามปริมาณและความใกล้) ที่ที่ไม่มียุ้งฉางส่งถึงมีส่วน 0"""
-    daily, places = assigned
-    if spot not in places:
-        return 0.0
-    need, stores = places[spot]
-    share = need / len(stores)
-    return sum(sim.granary.get(g, 0.0) * share / daily[g] for g in stores if daily[g] > 0.0)
+    return {spot: C.FOOD_STORE_MONTHS * (365.0 / 12.0) * daily.get(spot, 0.0) for spot in sim.granary}
 
 
 def serving_granaries(sim, spot) -> list:
@@ -574,43 +550,27 @@ def _adapt_labour(sim, eaters_at, workers_at, deficit, days, season, cap=None):
     - ที่ที่ข้าวรอบนี้ไม่พอแม้รวมข้าวที่ขนมาจากที่ใกล้เคียงแล้ว: ผู้ใหญ่ที่ยังอยู่ที่นั่นและไม่ได้ผลิตอาหารลงไร่ คนที่มีเงิน
       น้อยก่อน ทีละคน จนผลผลิตต่อวันของที่นั้นเพิ่มพอชดเชยส่วนที่ขาด หรือจนคนถัดไปเพิ่มผลผลิตได้ไม่ถึงสำรับที่ตัวเอง
       กิน (ที่ดินเต็มแล้ว ลงไปอีกก็ไม่ช่วย)
-    - ที่ที่ไม่ขาดรอบนี้และข้าวสำรองของคนที่นั่นถึง FOOD_DEST_STOCK_DAYS วัน: คนที่ลงไร่กลับไปทำงานเดิมทุกคน
-      มีเพดาน (`cap` จาก _cap_granaries) ข้าวสำรองคือส่วนของคนที่นี่ในยุ้งฉางทุกแห่งที่ส่งถึง (attributed_reserve) ไม่ใช่
-      ยุ้งฉางของที่นี่เอง เพราะเพดานแบ่งความต้องการของคนที่นี่ให้ยุ้งฉางเหล่านั้น — วัด seed 11 กฎเดิม (ยุ้งฉางของที่นี่ ≥ 90 วัน)
-      เอื้อมไม่ถึงใน 76% ของรอบที่มี 2 ยุ้งฉางส่งถึง คนลงไร่ติดอยู่เฉลี่ย 2,237 วัน ส่วนการปล่อยเมื่อยุ้งฉางของที่นี่เต็มเพดาน
-      ทำให้ที่ที่ไม่มีคนผลิตประจำข้าวหมดเป็นรอบ ๆ (seed 12: ขาดแคลนทางกายภาพของเด็กเพิ่ม 124 สำรับต่อปีทุก seed)
-    - ยุ้งฉางของที่นี่เต็มเพดานแต่ข้าวสำรองยังไม่ถึง: ปล่อยเฉพาะแรงงานที่เกิน ทีละคน (แรงน้อยก่อน) ตราบที่คนที่เหลือยังผลิตได้
-      ไม่น้อยกว่าที่คนที่นี่กินในฤดูนี้
+    - ที่ที่ยุ้งฉางมีข้าวพอเลี้ยงคนที่กินที่นั่นได้ FOOD_DEST_STOCK_DAYS วันแล้ว หรือเต็มเพดานของมัน (`cap` จาก
+      _cap_granaries): คนที่ลงไร่อยู่กลับไปทำงานเดิม — เพดานแบ่งความต้องการของคนที่นี่ให้ยุ้งฉางทุกแห่งที่ส่งถึง ยุ้งฉางที่
+      มีเพื่อนบ้านช่วยจึงเก็บได้น้อยกว่า 90 วันของคนที่นี่ วัด seed 11 ก่อนแก้: เกณฑ์เดิมเอื้อมไม่ถึงใน 76% ของรอบที่มี 2 ยุ้งฉาง
+      ส่งถึง คนลงไร่ติดอยู่เฉลี่ย 2,237 วัน (ก่อนมีเพดาน 276 วัน) ผลผลิตเพิ่ม 15% และส่วนเกินถูกตัดทิ้ง
     คิดหลังคนที่มีที่ไปได้ออกเดินทางหาข้าวแล้ว คนที่ลงไร่ทำงานตั้งแต่รอบหน้า (Character.produces_food)
     """
     day = sim.day
     stats = sim.food_stats
-    assigned = assigned_demand(sim, eaters_at) if cap is not None else None
     for spot in sorted(workers_at):
-        helpers = [ch for ch in workers_at[spot] if ch.fieldwork]
-        if not helpers or deficit.get(spot, 0.0) > _EPS:
-            continue                        # ยังขาดข้าวรอบนี้ — ไม่ปล่อยกลับ
         need = sum(ration(ch, day) for ch in eaters_at.get(spot, ()))
-        limit = cap.get(spot, math.inf) if cap is not None else math.inf
-        limited = _EPS < limit < math.inf
-        reserve = attributed_reserve(sim, spot, assigned) if limited else sim.granary.get(spot, 0.0)
-        if reserve >= C.FOOD_DEST_STOCK_DAYS * need - _EPS:
-            for ch in helpers:              # ข้าวสำรองของคนที่นี่พอ 90 วันแล้ว (ไม่มีเพดาน: ยุ้งฉางของที่นี่เอง เหมือนเดิม)
+        if deficit.get(spot, 0.0) > _EPS:
+            continue
+        enough = C.FOOD_DEST_STOCK_DAYS * need
+        if cap is not None and cap.get(spot, 0.0) > _EPS:
+            enough = min(enough, cap[spot])
+        if sim.granary.get(spot, 0.0) < enough - _EPS:
+            continue
+        for ch in workers_at[spot]:
+            if ch.fieldwork:
                 ch.fieldwork = False
                 stats["left_farming"] += 1
-            continue
-        if not limited or sim.granary.get(spot, 0.0) < limit - _EPS:
-            continue
-        # ยุ้งฉางของที่นี่เต็มเพดานแต่ข้าวสำรองยังไม่ถึง 90 วัน: ปล่อยเฉพาะแรงงานที่เกิน — คนที่เหลือยังผลิตพอที่คนที่นี่กินในฤดูนี้
-        # (กลับด้านของการลงไร่ข้างล่าง) ไม่งั้นที่ที่ไม่มีคนผลิตประจำปล่อยทุกคน ข้าวหมดในหนึ่งสองรอบ แล้วขาดก่อนคนกลับมาลงไร่
-        n = sum(BODY.work_capacity(ch) for ch in workers_at[spot])
-        for ch in sorted(helpers, key=lambda c: (BODY.work_capacity(c), c.cid)):
-            left = n - BODY.work_capacity(ch)
-            if land_output_per_day(left) * season < need - _EPS:
-                break
-            ch.fieldwork = False
-            stats["left_farming"] += 1
-            n = left
     for spot in sorted(deficit):
         short_per_day = deficit[spot] / days
         if short_per_day <= _EPS:

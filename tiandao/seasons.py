@@ -28,6 +28,30 @@ def regen_multiplier(day: int) -> float:
     return season_of(day)[1]
 
 
+def _normalised(raw):
+    """ตัวคูณที่เฉลี่ยทั้งปีเป็น 1 — ฤดูเปลี่ยนจังหวะในปี แต่ไม่เปลี่ยนค่ารายปีที่สอบเทียบไว้แล้ว"""
+    mean = sum(raw.values()) / len(raw)
+    return {name: v / mean for name, v in raw.items()}
+
+
+# ของเน่าเร็วตอนร้อนชื้น ช้าตอนหนาว (แบบ §6.3) — อัตราเน่ารายปียังเป็น FOOD_SPOIL_PER_YEAR
+SPOIL = _normalised({"ฤดูใบไม้ผลิ": 0.8, "ฤดูร้อน": 1.4, "ฤดูฝน": 1.8, "ฤดูหนาว": 0.4})
+# เหตุระหว่างทางบ่อยขึ้นในหน้าฝนและหน้าหนาว — อัตรารายปียังเป็น TRAVEL_MISHAP_PER_YEAR
+MISHAP = _normalised({"ฤดูใบไม้ผลิ": 0.8, "ฤดูร้อน": 1.0, "ฤดูฝน": 1.3, "ฤดูหนาว": 1.5})
+# ความเร็วเดินทางเทียบฤดูปกติ — ทางโคลนหน้าฝนและหิมะหน้าหนาวช้ากว่า (ไม่ปรับเฉลี่ย: หน้าแล้งคือความเร็วเดิม)
+TRAVEL_SPEED = {"ฤดูใบไม้ผลิ": 1.0, "ฤดูร้อน": 0.95, "ฤดูฝน": 0.85, "ฤดูหนาว": 0.75}
+
+
+def factor(table, day: int) -> float:
+    return table[season_of(day)[0]]
+
+
+def mean_over(fn, start, days) -> float:
+    """ค่าเฉลี่ยของ fn(วัน) ตลอดช่วง [start, start+days) — ช่วงยาวข้ามฤดูไม่ใช้ฤดูของวันเดียว"""
+    n = max(1, int(days))
+    return sum(fn(int(start + i * days // n)) for i in range(n)) / n
+
+
 def _resource_places(world):
     return [i for i in PL.places_in(world.place_key)
             if PL.PLACES[i][3] == "แหล่งวัตถุดิบ"]

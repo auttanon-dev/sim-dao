@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from . import config as C
 from . import physics as PHYS
 from . import geo as GEO
+from . import seasons as SEASONS
 
 _ADJ: Optional[Dict[int, List[Tuple[int, float]]]] = None  # lazy-built, cache ไว้ครั้งเดียวต่อโปรเซส
 # กราฟอีกชุดสำหรับตอนที่มหาผนึกหมื่นมารพังแล้ว (เดินข้ามแดนมารได้) — เดิมเส้นทางแบบนี้ไม่ถูก cache
@@ -109,10 +110,13 @@ def distances_from(src: int, allow_mara_barrier: bool = False) -> Dict[int, floa
     return best
 
 
-def travel_speed(realm: int, config=None, character=None, friction=None) -> float:
-    """ระยะทางต่อวันจากปราณ *และ* ร่างจริง; ไม่ส่ง character ได้พฤติกรรมเก่าเหมือนเดิม"""
+def travel_speed(realm: int, config=None, character=None, friction=None, day=None) -> float:
+    """ระยะทางต่อวันจากปราณ *และ* ร่างจริง; ไม่ส่ง character ได้พฤติกรรมเก่าเหมือนเดิม
+    ส่ง `day` = วันที่ออกเดินทาง: ความเร็วตามฤดูของวันนั้นทั้งทาง (แบบ §6.3) ไม่ส่งได้ความเร็วฤดูปกติ (ใช้วางแผน)"""
     cfg = config or C
     speed = cfg.TRAVEL_BASE_SPEED * (1.0 + cfg.TRAVEL_REALM_SPEEDUP * max(0, realm))
+    if day is not None:
+        speed *= SEASONS.factor(SEASONS.TRAVEL_SPEED, day)
     if character is not None:
         from . import body as BODY
         physical = BODY.estimated_max_speed(character, friction)
@@ -140,7 +144,7 @@ def terrain_friction(place: int) -> float:
 
 def shortest_path_days(from_place: int, to_place: int, realm: int, config=None,
                        allow_mara_barrier: bool = False, character=None,
-                       friction=None) -> Optional[int]:
+                       friction=None, day=None) -> Optional[int]:
     """ระยะทางสั้นสุดแปลงเป็นจำนวนวันเดินทางจริง (ปัดขึ้นอย่างน้อย TRAVEL_MIN_DAYS) — คืน None ถ้าไปไม่ถึง
     (ผู้เรียกต้องจัดการกรณีนี้เอง เช่น fallback ไม่เดินทาง)"""
     cfg = config or C
@@ -151,7 +155,7 @@ def shortest_path_days(from_place: int, to_place: int, realm: int, config=None,
         return 0
     if friction is None and character is not None:
         friction = terrain_friction(from_place)
-    days = dist / travel_speed(realm, cfg, character, friction)
+    days = dist / travel_speed(realm, cfg, character, friction, day)
     return max(cfg.TRAVEL_MIN_DAYS, round(days))
 
 
@@ -174,7 +178,7 @@ def places_within(sim, place: int, max_hops: int) -> List[Tuple[int, int]]:
     return got
 
 
-def roll_enroute_event(rng, config=None, days=None) -> Optional[Tuple[str, Dict[str, int]]]:
+def roll_enroute_event(rng, config=None, days=None, day=None) -> Optional[Tuple[str, Dict[str, int]]]:
     """ทอยว่าจะเจอเหตุการณ์ระหว่างทางไหม (เรียกจาก sim.py ทุกครั้งที่ตัวละครที่กำลังเดินทางตื่นมาเช็ค
     ระหว่างทาง — ดู config.TRAVEL_ENROUTE_CHECK_DAYS) — ใช้ rng ที่รับมา (ไม่ใช่ random กลาง เพื่อ
     determinism ตามที่ทั้งโปรเจกต์ยึดถือ) คืน None ถ้าไม่เจออะไร (กรณีปกติ) หรือ (outcome, deltas) ถ้าเจอ"""
@@ -182,7 +186,9 @@ def roll_enroute_event(rng, config=None, days=None) -> Optional[Tuple[str, Dict[
     # ความเสี่ยงตามวันที่เดินทางจริงตั้งแต่ตรวจครั้งก่อน (ช่วงสุดท้ายที่สั้นกว่า 15 วันเสี่ยงน้อยกว่า)
     # days=None คือเรียกแบบเดิมหนึ่งรอบตรวจเต็ม TRAVEL_ENROUTE_CHECK_DAYS
     days = cfg.TRAVEL_ENROUTE_CHECK_DAYS if days is None else days
-    if rng.random() >= PHYS.hazard_p(cfg.TRAVEL_MISHAP_PER_YEAR, days):
+    # ฤดูของวันที่ตรวจ (ส่ง `day`): หน้าฝนและหน้าหนาวเสี่ยงกว่า อัตรารายปีเฉลี่ยเท่าเดิม (แบบ §6.3)
+    rate = cfg.TRAVEL_MISHAP_PER_YEAR * (SEASONS.factor(SEASONS.MISHAP, day) if day is not None else 1.0)
+    if rng.random() >= PHYS.hazard_p(rate, days):
         return None
     r, acc = rng.random(), 0.0
     for outcome, p, deltas in _ENROUTE_OUTCOMES:

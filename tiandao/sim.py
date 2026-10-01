@@ -2672,7 +2672,7 @@ class Sim:
                     travel_ev = next(e for e in E.EVENT_TABLE if e["kind"] == "เดินทาง")
                     self.schedule(ch, rng.randint(*travel_ev["gap"]))
                     continue
-                hit = TR.roll_enroute_event(rng, days=on_road)
+                hit = TR.roll_enroute_event(rng, days=on_road, day=self.day)
                 if hit is not None:
                     outcome, deltas = hit
                     if "hp" in deltas:
@@ -5278,7 +5278,7 @@ class Sim:
                 allow_barrier = getattr(self, "mara_seal_broken", False) or (getattr(self, "mara_seal", 100.0) <= getattr(C, "MARA_SEAL_WEAK_THRESHOLD", 30.0) and rng.random() < getattr(C, "MARA_SEAL_LEAK_P", 0.15))
                 days = TR.shortest_path_days(a.place, dest, a.realm,
                                              allow_mara_barrier=allow_barrier,
-                                             character=a)
+                                             character=a, day=self.day)
                 if days is None:
                     # ไม่ควรเกิดจริง (pl มาจาก world_key เดียวกันซึ่งเชื่อมกันหมดในตัว geo.py เสมอ)
                     # กันไว้เผื่อข้อมูลกราฟผิดพลาดในอนาคต — ไม่เดินทาง แทนที่จะพัง

@@ -26,7 +26,7 @@ from tiandao import persist as PS
 from tiandao import places as PL
 from tiandao import sim as S
 from tiandao import wages as WAGES
-from test_food import only, places_by_hops, setup_person
+from test_food import no_store_cap, only, places_by_hops, setup_person
 
 
 def quiet(fn, *a, **kw):
@@ -284,7 +284,7 @@ class FoodMoneyTests(unittest.TestCase):
         self.sim.granary[(0, self.a)] = granary
         before = money_everywhere(self.sim)
         gap = FOOD.total_held(self.sim) - FOOD.ledger_balance(self.sim.food_stats)   # ข้าวที่เทสต์ใส่เองไม่มีในบัญชี
-        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), \
+        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), no_store_cap(), \
                 only(self.sim, person):
             FOOD.tick(self.sim, 30)
         self.assertAlmostEqual(money_everywhere(self.sim), before, places=6, msg="ทำงานแลกข้าวไม่เสกทอง")
@@ -411,7 +411,8 @@ class FoodMoneyTests(unittest.TestCase):
         orphan.parents = []
         self.sim.granary[(0, self.a)] = 1000.0
         self.sim.settlement_treasury = {}
-        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), only(self.sim, orphan):
+        with switches(food=True), mock.patch.object(C, "FOOD_SPOIL_PER_YEAR", 0.0), no_store_cap(), \
+                only(self.sim, orphan):
             FOOD.tick(self.sim, 30)
         self.assertGreater(orphan.hunger_days, 0.0)
         self.assertAlmostEqual(self.sim.food_stats["charity_unfunded"], 30 * C.FOOD_RATION_CHILD)
