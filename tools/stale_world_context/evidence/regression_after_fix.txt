@@ -1,0 +1,8 @@
+test_conscripted_actor_selects_destination_peers_and_target (test_event_context.EventContextTests.test_conscripted_actor_selects_destination_peers_and_target) ... ok
+test_conscripted_actor_trades_with_destination_currency_and_funds (test_event_context.EventContextTests.test_conscripted_actor_trades_with_destination_currency_and_funds) ... ok
+test_stationary_actor_keeps_trade_and_target_context (test_event_context.EventContextTests.test_stationary_actor_keeps_trade_and_target_context) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.702s
+
+OK

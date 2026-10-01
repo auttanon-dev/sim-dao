@@ -1,0 +1,79 @@
+{
+  "head": "560d879dc4f6d9f23f1421a44b2fc6aaa39cc115",
+  "changed_production_files": [
+    "tiandao/sim.py"
+  ],
+  "sim_sha256": "bec3537417dbe8725e9c2077a5ac4918ccfcda9035934ab6b3ea85271138feef",
+  "regression_sha256": "7a2adb632fb33b07ade911375aa11642c46eed0d85bcacecad491136e305a1c7",
+  "replay": {
+    "baseline": {
+      "first_gap": {
+        "day": 670,
+        "seq": 5996,
+        "gaps": {
+          "0": 55.449502905248664,
+          "1": -55.44950290542329,
+          "2": 0.0
+        }
+      },
+      "largest_abs_gap": {
+        "0": 55.449502905248664,
+        "1": 55.44950290542329,
+        "2": 3.637978807091713e-12
+      },
+      "end_total_gap": -1.6370904631912708e-10,
+      "moves": [
+        {
+          "day": 670,
+          "seq_before": 5994,
+          "actor": 2025,
+          "old": 0,
+          "new": 1
+        }
+      ]
+    },
+    "baseline_fixed": {
+      "first_gap": null,
+      "largest_abs_gap": {
+        "0": 2.9103830456733704e-11,
+        "1": 2.0372681319713593e-10,
+        "2": 3.637978807091713e-12
+      },
+      "end_total_gap": -1.4915713109076023e-10,
+      "moves": [
+        {
+          "day": 670,
+          "seq_before": 5994,
+          "actor": 2025,
+          "old": 0,
+          "new": 1
+        }
+      ]
+    },
+    "accepted_fixed": {
+      "first_gap": null,
+      "largest_abs_gap": {
+        "0": 1.4551915228366852e-11,
+        "1": 1.7462298274040222e-10,
+        "2": 3.637978807091713e-12
+      },
+      "end_total_gap": -1.2732925824820995e-10,
+      "moves": [
+        {
+          "day": 690,
+          "seq_before": 6282,
+          "actor": 2116,
+          "old": 46,
+          "new": 32
+        },
+        {
+          "day": 691,
+          "seq_before": 6313,
+          "actor": 2023,
+          "old": 0,
+          "new": 1
+        }
+      ]
+    }
+  }
+}

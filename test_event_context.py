@@ -1,0 +1,130 @@
+"""A nested conscription must precede preparation of the actor's action context."""
+import contextlib
+import copy
+import io
+import unittest
+from unittest.mock import patch
+
+from tiandao import config as C, intent as IN, places as PL, rules as R
+from tiandao import sim as S, wages as W
+
+
+class EventContextTests(unittest.TestCase):
+    def exercise(self, moved, kind):
+        with contextlib.redirect_stdout(io.StringIO()):
+            sim = S.Sim(seed=21)
+        old = sim.world(0)
+        new = sim.world(old.up)
+        old_place = next(p for p in PL.places_in(old.place_key)
+                         if PL.PLACES[p][3] not in ('ตลาด', 'เมือง'))
+        new_place = next(p for p in PL.places_in(new.place_key)
+                         if PL.PLACES[p][3] not in ('ตลาด', 'เมือง'))
+        actor, old_peer = sim.living_in(old.wid)[:2]
+        new_peer = sim.living_in(new.wid)[0]
+        people = [actor, old_peer, new_peer]
+        for ch, world, place in ((actor, old, old_place), (old_peer, old, old_place),
+                                 (new_peer, new, new_place)):
+            ch.world_id, ch.tier, ch.place = world.wid, world.tier, place
+            ch.born_day = -30 * 365
+            ch.hidden, ch.travel_dest, ch.building_dest = False, -1, -1
+            ch.is_loner, ch.org, ch.city_id = True, None, -1
+            ch.blood = {'human': 1.0}
+            ch.realm, ch.energy = 0, 100
+            ch.parents, ch.children, ch.disciples = [], [], []
+            ch.spouse, ch.master_cid = None, -1
+            ch.mat_stock, ch.wants = {}, {}
+        actor.realm = 8
+        sim.cities_initialized = True
+        sim.queue = [(1, actor.cid)]
+        sim.world_tick_day = 30
+        sim.lord_seal = 0.0
+        for world, place in ((old, old_place), (new, new_place)):
+            sim.market_reserve[(world.wid, place)] = 1.0
+            sim.mine_purse[world.tier] = 100.0
+            W.record(sim, 'test', world.tier, 101.0)
+        tiers = sorted({w.tier for w in sim.worlds})
+        before = {t: W.total_gold(sim, t) for t in tiers}
+        flows = copy.deepcopy(sim.gold_flows)
+        money = dict(actor.money)
+        reserves, mines = dict(sim.market_reserve), dict(sim.mine_purse)
+        expected_world, expected_place = (new, new_place) if moved else (old, old_place)
+        expected_peer = new_peer if moved else old_peer
+        context = {}
+        original_resolve = sim.resolve
+        original_weigh = IN.weigh
+
+        def weigh(*args, **kwargs):
+            context['others'] = list(kwargs['others'])
+            if kind != 'ค้าขาย':
+                self.assertEqual(context['others'], [expected_peer])
+            return original_weigh(*args, **kwargs)
+
+        def resolve(ev, a, t, world, gap, rng):
+            context.update(world=world, place=a.place, target=t)
+            if kind == 'ค้าขาย':
+                return original_resolve(ev, a, t, world, gap, rng)
+            return 'ผ่านไป', 'context test', {}
+
+        def choose(options):
+            if options == PL.places_in(new.place_key):
+                return new_place
+            return options[0]
+
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(C, 'CONSCRIPT_P', 2.0 if moved else 0.0))
+            stack.enter_context(patch.object(sim.rng, 'random', return_value=1.0))
+            stack.enter_context(patch.object(sim.rng, 'uniform', return_value=2.0))
+            stack.enter_context(patch.object(sim.rng, 'choice', side_effect=choose))
+            stack.enter_context(patch.object(sim, 'living_in', side_effect=lambda wid:
+                                            [c for c in people if c.alive and c.world_id == wid]))
+            stack.enter_context(patch.object(R, 'age_and_decay'))
+            stack.enter_context(patch.object(sim, 'settle_routine'))
+            stack.enter_context(patch.object(IN, 'plan_wants'))
+            stack.enter_context(patch.object(IN, 'sample_weighted', return_value=kind))
+            stack.enter_context(patch.object(IN, 'weigh', side_effect=weigh))
+            stack.enter_context(patch.object(sim, 'resolve', side_effect=resolve))
+            event = sim.step()
+
+        # Check context before ledger checks: an accounting transfer cannot pass this test.
+        self.assertEqual(actor.world_id, expected_world.wid)
+        self.assertIs(context['world'], expected_world)
+        self.assertEqual(context['place'], expected_place)
+        self.assertEqual(context['others'], [expected_peer])
+        self.assertEqual(event.world_id, expected_world.wid)
+        self.assertEqual(event.place, expected_place)
+        self.assertEqual(sum(e.kind == 'เกณฑ์ขึ้นฟ้า' for e in sim.log), int(moved))
+        if kind == 'ค้าขาย':
+            self.assertEqual(event.outcome, 'ค้าขาย')
+            self.assertIsNone(context['target'])
+            tier = expected_world.tier
+            self.assertAlmostEqual(actor.money.get(tier, 0) - money.get(tier, 0), 2.0)
+            self.assertAlmostEqual(sim.market_reserve[(expected_world.wid, expected_place)], 0.0)
+            self.assertAlmostEqual(sim.mine_purse[tier], mines[tier] - 1.0)
+            other = old if moved else new
+            other_place = old_place if moved else new_place
+            self.assertEqual(sim.market_reserve[(other.wid, other_place)], reserves[(other.wid, other_place)])
+            self.assertEqual(sim.mine_purse[other.tier], mines[other.tier])
+            self.assertEqual(actor.money.get(other.tier, 0), money.get(other.tier, 0))
+        else:
+            self.assertIs(context['target'], expected_peer)
+            self.assertEqual(event.target, expected_peer.cid)
+        self.assertEqual(sim.gold_flows, flows)
+        for t in tiers:
+            self.assertAlmostEqual(W.total_gold(sim, t), before[t], places=6)
+            self.assertAlmostEqual(W.gold_gap(sim, t), 0.0, places=6)
+        self.assertAlmostEqual(sum(W.total_gold(sim, t) for t in tiers), sum(before.values()), places=6)
+
+    def test_conscripted_actor_trades_with_destination_currency_and_funds(self):
+        self.exercise(True, 'ค้าขาย')
+
+    def test_conscripted_actor_selects_destination_peers_and_target(self):
+        self.exercise(True, 'ประลอง')
+
+    def test_stationary_actor_keeps_trade_and_target_context(self):
+        for kind in ('ค้าขาย', 'ประลอง'):
+            with self.subTest(kind=kind):
+                self.exercise(False, kind)
+
+
+if __name__ == '__main__':
+    unittest.main()

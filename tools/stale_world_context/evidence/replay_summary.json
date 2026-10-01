@@ -1,0 +1,242 @@
+{
+  "baseline": {
+    "seed": 21,
+    "until": 710,
+    "first_gap": {
+      "day": 670,
+      "seq": 5996,
+      "gaps": {
+        "0": 55.449502905248664,
+        "1": -55.44950290542329,
+        "2": 0.0
+      }
+    },
+    "largest_abs_gap": {
+      "0": 55.449502905248664,
+      "1": 55.44950290542329,
+      "2": 3.637978807091713e-12
+    },
+    "end_gaps": {
+      "0": 55.44950290523411,
+      "1": -55.44950290539418,
+      "2": -3.637978807091713e-12
+    },
+    "end_total_gap": -1.6370904631912708e-10,
+    "moves": [
+      {
+        "day": 670,
+        "seq_before": 5994,
+        "actor": 2025,
+        "old": 0,
+        "new": 1
+      }
+    ],
+    "contexts_actor_2025": [
+      {
+        "day": 670,
+        "seq_before": 5995,
+        "kind": "ค้าขาย",
+        "actor": 2025,
+        "actor_world": 1,
+        "passed_world": 0,
+        "place": 103,
+        "target": null,
+        "target_world": null
+      },
+      {
+        "day": 689,
+        "seq_before": 6187,
+        "kind": "ขูดรีดชาวบ้าน",
+        "actor": 2025,
+        "actor_world": 1,
+        "passed_world": 1,
+        "place": 103,
+        "target": null,
+        "target_world": null
+      }
+    ],
+    "steps_actor_2025": [
+      {
+        "day": 670,
+        "seq_before": 5994,
+        "seq": 5996,
+        "gaps": {
+          "0": 55.449502905248664,
+          "1": -55.44950290542329,
+          "2": 0.0
+        },
+        "event": {
+          "kind": "ค้าขาย",
+          "actor": 2025,
+          "world": 0,
+          "place": 103,
+          "outcome": "ค้าขาย"
+        }
+      },
+      {
+        "day": 689,
+        "seq_before": 6187,
+        "seq": 6188,
+        "gaps": {
+          "0": 55.449502905248664,
+          "1": -55.44950290539418,
+          "2": 0.0
+        },
+        "event": {
+          "kind": "ขูดรีดชาวบ้าน",
+          "actor": 2025,
+          "world": 1,
+          "place": 103,
+          "outcome": "สำเร็จ"
+        }
+      }
+    ]
+  },
+  "baseline_fixed": {
+    "seed": 21,
+    "until": 710,
+    "first_gap": null,
+    "largest_abs_gap": {
+      "0": 2.9103830456733704e-11,
+      "1": 2.0372681319713593e-10,
+      "2": 3.637978807091713e-12
+    },
+    "end_gaps": {
+      "0": 0.0,
+      "1": -1.4551915228366852e-10,
+      "2": -3.637978807091713e-12
+    },
+    "end_total_gap": -1.4915713109076023e-10,
+    "moves": [
+      {
+        "day": 670,
+        "seq_before": 5994,
+        "actor": 2025,
+        "old": 0,
+        "new": 1
+      }
+    ],
+    "contexts_actor_2025": [
+      {
+        "day": 670,
+        "seq_before": 5995,
+        "kind": "ประลอง",
+        "actor": 2025,
+        "actor_world": 1,
+        "passed_world": 1,
+        "place": 103,
+        "target": 296,
+        "target_world": 1
+      },
+      {
+        "day": 688,
+        "seq_before": 6179,
+        "kind": "เหตุการณ์เมือง",
+        "actor": 2025,
+        "actor_world": 1,
+        "passed_world": 1,
+        "place": 103,
+        "target": null,
+        "target_world": null
+      },
+      {
+        "day": 697,
+        "seq_before": 6295,
+        "kind": "บำเพ็ญ",
+        "actor": 2025,
+        "actor_world": 1,
+        "passed_world": 1,
+        "place": 103,
+        "target": null,
+        "target_world": null
+      }
+    ],
+    "steps_actor_2025": [
+      {
+        "day": 670,
+        "seq_before": 5994,
+        "seq": 5996,
+        "gaps": {
+          "0": 0.0,
+          "1": -1.7462298274040222e-10,
+          "2": 0.0
+        },
+        "event": {
+          "kind": "ประลอง",
+          "actor": 2025,
+          "world": 1,
+          "place": 103,
+          "outcome": "รอดตายด้วยชะตา"
+        }
+      },
+      {
+        "day": 688,
+        "seq_before": 6179,
+        "seq": 6180,
+        "gaps": {
+          "0": 0.0,
+          "1": -1.4551915228366852e-10,
+          "2": 0.0
+        },
+        "event": {
+          "kind": "เหตุการณ์เมือง",
+          "actor": 2025,
+          "world": 1,
+          "place": 103,
+          "outcome": "อันตราย"
+        }
+      },
+      {
+        "day": 697,
+        "seq_before": 6295,
+        "seq": 6296,
+        "gaps": {
+          "0": 0.0,
+          "1": -1.4551915228366852e-10,
+          "2": -3.637978807091713e-12
+        },
+        "event": {
+          "kind": "บำเพ็ญ",
+          "actor": 2025,
+          "world": 1,
+          "place": 103,
+          "outcome": "บำเพ็ญ"
+        }
+      }
+    ]
+  },
+  "accepted_fixed": {
+    "seed": 21,
+    "until": 710,
+    "first_gap": null,
+    "largest_abs_gap": {
+      "0": 1.4551915228366852e-11,
+      "1": 1.7462298274040222e-10,
+      "2": 3.637978807091713e-12
+    },
+    "end_gaps": {
+      "0": 1.4551915228366852e-11,
+      "1": -1.4551915228366852e-10,
+      "2": 3.637978807091713e-12
+    },
+    "end_total_gap": -1.2732925824820995e-10,
+    "moves": [
+      {
+        "day": 690,
+        "seq_before": 6282,
+        "actor": 2116,
+        "old": 46,
+        "new": 32
+      },
+      {
+        "day": 691,
+        "seq_before": 6313,
+        "actor": 2023,
+        "old": 0,
+        "new": 1
+      }
+    ],
+    "contexts_actor_2025": [],
+    "steps_actor_2025": []
+  }
+}

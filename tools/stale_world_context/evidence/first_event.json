@@ -1,0 +1,108 @@
+[
+  {
+    "old_day": 670,
+    "day": 670,
+    "before_gaps": {
+      "0": 0.0,
+      "1": -1.7462298274040222e-10,
+      "2": 0.0
+    },
+    "after_gaps": {
+      "0": 55.449502905248664,
+      "1": -55.44950290542329,
+      "2": 0.0
+    },
+    "event": "Event(seq=5996, day=670, gap_days=0, world_id=0, era=1, kind='ค้าขาย', actor=2025, target=None, tags=['แลกเปลี่ยน', 'คน'], outcome='ค้าขาย', text='เงาทมิฬหลิงค้าขายที่ยอดเขาอัสนีบาตไร้นาม ได้กำไร 242', deltas={'ขายของ': 'ผงมุกดารา x1, หญ้าปราณเขียว x1', 'ที่': 'ยอดเขาอัสนีบาตไร้นาม', 'กำไรรอบนี้': '242'}, surprise=0.74, place=103, realm=8, building=-1, present=(), snap=(0, -1, -1, 0, 0, 1, 0, -1, 1, 1, -1, -1, 0, 0))",
+    "changes": {
+      "cast/2025/world=0/tier=0": [
+        11.221398477918578,
+        0
+      ],
+      "cast/2025/world=1/tier=0": [
+        0,
+        252.9576586987235
+      ],
+      "market_reserve/1/102/tier=1": [
+        5.322582344493186,
+        0
+      ],
+      "market_reserve/1/103/tier=1": [
+        5.210647909090118,
+        0
+      ],
+      "market_reserve/1/104/tier=1": [
+        2.361664870798486,
+        0
+      ],
+      "market_reserve/1/106/tier=1": [
+        5.171042081949118,
+        0
+      ],
+      "market_reserve/1/107/tier=1": [
+        4.405776115341544,
+        0
+      ],
+      "market_reserve/1/108/tier=1": [
+        7.831499420728857,
+        0
+      ],
+      "market_reserve/1/111/tier=1": [
+        1.1606318802003257,
+        0
+      ],
+      "market_reserve/1/112/tier=1": [
+        2.419608016279161,
+        0
+      ],
+      "market_reserve/1/113/tier=1": [
+        0.39862426693847475,
+        0
+      ],
+      "market_reserve/1/116/tier=1": [
+        5.322582344493186,
+        0
+      ],
+      "market_reserve/1/117/tier=1": [
+        5.3396302944650085,
+        0
+      ],
+      "market_reserve/1/118/tier=1": [
+        0.26308988967534414,
+        0
+      ],
+      "market_reserve/1/121/tier=1": [
+        4.099250722928641,
+        0
+      ],
+      "market_reserve/1/122/tier=1": [
+        4.417355259357508,
+        0
+      ],
+      "market_reserve/1/123/tier=1": [
+        0.9977491236252725,
+        0
+      ],
+      "market_reserve/1/124/tier=1": [
+        0.7277683648761148,
+        0
+      ],
+      "mine_purse/tier=0": [
+        743.936216774256,
+        557.6494594586914
+      ]
+    },
+    "flow_changes": {
+      "cache_genesis": {},
+      "start_gold": {},
+      "mine_output": {},
+      "hunt_cores": {},
+      "ruin_genesis": {},
+      "gate_fee": {},
+      "robbed": {},
+      "seized_from_criminal": {},
+      "bounty": {},
+      "event_spend": {},
+      "street_sale": {}
+    }
+  }
+]

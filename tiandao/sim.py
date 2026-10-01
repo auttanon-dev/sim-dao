@@ -2826,6 +2826,11 @@ class Sim:
                 and self.chaos_wid is not None and rng.random() < C.CHAOS_INVADE_P):
             self.chaos_invade(world, elapsed, rng)
 
+        # Nested world events (notably conscription) can move the active actor.
+        # Prepare peers, eligibility, targets and action funds in the actor's
+        # current world, after those events, rather than the world of this turn's start.
+        world = self.world(actor.world_id)
+
         # เด็กมีชีวิตและประวัติของตัวเอง แต่ยังไม่ใช้เมนูการกระทำของผู้ใหญ่ การปล่อยลงไป
         # ใน intent ปกติเคยทำให้ทารกอายุ 0 ปีประลอง ปล้น ปิดด่าน และตายจากการล่าอสูร
         # เก็บหนึ่งบันทึกต่อปีไว้บน Character เพื่อให้ชั้นจิตใจที่รับเขาตอนโตย้อนอ่านได้
