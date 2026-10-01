@@ -1,0 +1,1 @@
+observer control passed: exact food stats, stocks, RNG and endpoint counts; food/gold ledgers close

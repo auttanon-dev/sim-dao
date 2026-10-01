@@ -1,0 +1,90 @@
+test_death_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_death_after_production_retains_necessary_volunteer) ... FAIL
+test_hidden_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_hidden_after_production_retains_necessary_volunteer) ... FAIL
+test_ineligible_age_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_ineligible_age_after_production_retains_necessary_volunteer) ... FAIL
+test_location_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_location_after_production_retains_necessary_volunteer) ... FAIL
+test_prison_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_prison_after_production_retains_necessary_volunteer) ... FAIL
+test_stationary_control_releases_surplus (test_food_workforce.DecisionWorkforceTests.test_stationary_control_releases_surplus) ... ok
+test_travel_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_travel_after_production_retains_necessary_volunteer) ... FAIL
+test_world_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_world_after_production_retains_necessary_volunteer) ... FAIL
+
+======================================================================
+FAIL: test_death_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_death_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 80, in test_death_after_production_retains_necessary_volunteer
+    def test_death_after_production_retains_necessary_volunteer(self): self.run_boundary('death')
+                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : death: necessary volunteer was released using stale farmer
+
+======================================================================
+FAIL: test_hidden_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_hidden_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 82, in test_hidden_after_production_retains_necessary_volunteer
+    def test_hidden_after_production_retains_necessary_volunteer(self): self.run_boundary('hidden')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : hidden: necessary volunteer was released using stale farmer
+
+======================================================================
+FAIL: test_ineligible_age_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_ineligible_age_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 86, in test_ineligible_age_after_production_retains_necessary_volunteer
+    def test_ineligible_age_after_production_retains_necessary_volunteer(self): self.run_boundary('age')
+                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : age: necessary volunteer was released using stale farmer
+
+======================================================================
+FAIL: test_location_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_location_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 84, in test_location_after_production_retains_necessary_volunteer
+    def test_location_after_production_retains_necessary_volunteer(self): self.run_boundary('location')
+                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : location: necessary volunteer was released using stale farmer
+
+======================================================================
+FAIL: test_prison_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_prison_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 83, in test_prison_after_production_retains_necessary_volunteer
+    def test_prison_after_production_retains_necessary_volunteer(self): self.run_boundary('prison')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : prison: necessary volunteer was released using stale farmer
+
+======================================================================
+FAIL: test_travel_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_travel_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 81, in test_travel_after_production_retains_necessary_volunteer
+    def test_travel_after_production_retains_necessary_volunteer(self): self.run_boundary('travel')
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : travel: necessary volunteer was released using stale farmer
+
+======================================================================
+FAIL: test_world_after_production_retains_necessary_volunteer (test_food_workforce.DecisionWorkforceTests.test_world_after_production_retains_necessary_volunteer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Sim Dao\test_food_workforce.py", line 85, in test_world_after_production_retains_necessary_volunteer
+    def test_world_after_production_retains_necessary_volunteer(self): self.run_boundary('world')
+                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Sim Dao\test_food_workforce.py", line 77, in run_boundary
+    self.assertTrue(helper.fieldwork, f'{change}: necessary volunteer was released using stale farmer')
+AssertionError: False is not true : world: necessary volunteer was released using stale farmer
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.341s
+
+FAILED (failures=7)

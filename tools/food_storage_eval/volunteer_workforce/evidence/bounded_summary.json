@@ -1,0 +1,182 @@
+{
+  "base_revision": "2fe002436c5c8a8483e2d4fa86834eae1773f265",
+  "seed": 11,
+  "years": 2,
+  "observer_controls": "passed",
+  "determinism": "passed",
+  "compared": {
+    "produced": {
+      "metrics_only": 809617,
+      "production_fix": 809617
+    },
+    "volunteer_days": {
+      "metrics_only": 11430,
+      "production_fix": 11430
+    },
+    "recruits": {
+      "metrics_only": 159,
+      "production_fix": 159
+    },
+    "releases": {
+      "metrics_only": 101,
+      "production_fix": 101
+    },
+    "kids": {
+      "metrics_only": 0,
+      "production_fix": 0
+    },
+    "adults": {
+      "metrics_only": 0,
+      "production_fix": 0
+    },
+    "food_gap": {
+      "metrics_only": 1.2034433893859386e-08,
+      "production_fix": 1.2034433893859386e-08
+    },
+    "gold_gap": {
+      "metrics_only": 2.9103830456733704e-11,
+      "production_fix": 2.9103830456733704e-11
+    },
+    "rng_sha256": {
+      "metrics_only": "53030922444b337425b15d852d16d332897ad9f70b9043cd7650171b196c2f53",
+      "production_fix": "53030922444b337425b15d852d16d332897ad9f70b9043cd7650171b196c2f53"
+    }
+  },
+  "same_food_stats": true,
+  "same_stocks": true,
+  "same_volunteer_metrics": true,
+  "schema_version": 2,
+  "endpoint_metrics": {
+    "alive_flagged": 57,
+    "alive_productive": 57,
+    "alive_produced_last_interval": 37,
+    "alive_flagged_produced_last_interval": 37,
+    "last_production_day": 720,
+    "open_flag_tenure_median": 190,
+    "productive_interval_median": 90,
+    "productive_worker_days": 22860,
+    "completed_by_reason": {
+      "policy_release": {
+        "count": 101,
+        "flag_tenure_days": [
+          150,
+          150,
+          150,
+          150,
+          120,
+          270,
+          90,
+          150,
+          90,
+          90,
+          90,
+          90,
+          120,
+          120,
+          120,
+          120,
+          150,
+          150,
+          150,
+          120,
+          60,
+          90,
+          90,
+          90,
+          90,
+          90,
+          90,
+          90,
+          90,
+          90,
+          90,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          90,
+          90,
+          90,
+          90,
+          300,
+          120,
+          150,
+          150,
+          120,
+          60,
+          60,
+          120,
+          90,
+          90,
+          120,
+          90,
+          90,
+          60,
+          60,
+          60,
+          60,
+          30,
+          60,
+          60,
+          180,
+          180,
+          180,
+          60,
+          60,
+          60,
+          60,
+          210,
+          210,
+          210,
+          60,
+          60,
+          60,
+          60,
+          60,
+          30,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          60,
+          30,
+          60,
+          60,
+          60,
+          60,
+          60,
+          90,
+          90,
+          90
+        ],
+        "median": 90
+      },
+      "death": {
+        "count": 1,
+        "flag_tenure_days": [
+          355
+        ],
+        "median": 355
+      },
+      "other": {
+        "count": 0,
+        "flag_tenure_days": [],
+        "median": null
+      }
+    }
+  },
+  "base_archive_sha256": "fbf237e02daf6785193f7a21cfa8d6ae2c180850d2a347ee22659898d207afb9",
+  "after_food_sha256": "3c853874f32d26940c05194ec9189f2ae3611944953fbf5a34ce41fd155e29c1"
+}

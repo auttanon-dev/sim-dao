@@ -585,6 +585,12 @@ def _adapt_labour(sim, eaters_at, workers_at, deficit, days, season, cap=None):
     """
     day = sim.day
     stats = sim.food_stats
+    # workers_at describes labour that already produced/was paid this interval.
+    # Hunger responses may have killed or moved someone since it was built.
+    # Future decisions must not count that person's labour at their old place;
+    # keep the original snapshot untouched for past production and accounting.
+    workers_at = {spot: [ch for ch in group if _working(ch, day) and _spot(ch) == spot]
+                  for spot, group in workers_at.items()}
     assigned = assigned_demand(sim, eaters_at) if cap is not None else None
     for spot in sorted(workers_at):
         helpers = [ch for ch in workers_at[spot] if ch.fieldwork]
@@ -617,7 +623,8 @@ def _adapt_labour(sim, eaters_at, workers_at, deficit, days, season, cap=None):
             continue
         n = sum(BODY.work_capacity(ch) for ch in workers_at.get(spot, ()))
         target = land_output_per_day(n) * season + short_per_day
-        idle = sorted((ch for ch in eaters_at[spot] if not ch.produces_food() and _able_to_farm(ch, day)),
+        idle = sorted((ch for ch in eaters_at[spot] if not ch.produces_food() and _able_to_farm(ch, day)
+                       and _spot(ch) == spot),
                       key=lambda c: ("ขยันงานไร่" not in c.traits, WAGES.gold(sim, c), c.cid))   # คนที่โตมากับงานไร่ลงก่อน
         for ch in idle:
             output = land_output_per_day(n) * season

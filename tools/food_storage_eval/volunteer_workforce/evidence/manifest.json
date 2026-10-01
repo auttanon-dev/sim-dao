@@ -1,0 +1,22 @@
+{
+  "base_revision": "2fe002436c5c8a8483e2d4fa86834eae1773f265",
+  "initial_worktree_clean": true,
+  "production_changed": [
+    "tiandao/food.py"
+  ],
+  "no_commit_push": true,
+  "18_seed_comparison_rerun": false,
+  "checks": 127,
+  "scoped_checks_exit": 0,
+  "results_18seed_sha256": "52e621f4853156ba841b95e610754b4e0d132960147d2efc10138a7fc437e8fe",
+  "files_sha256": {
+    "tiandao\\food.py": "3c853874f32d26940c05194ec9189f2ae3611944953fbf5a34ce41fd155e29c1",
+    "tools\\food_storage_eval\\balance_run.py": "943381cc21261252ebd4b80f93b3abe314ab773c1e2fdeb5f5a24391f0ece529",
+    "tools\\food_storage_eval\\volunteer_metrics.py": "16254c132d8114793da9a9b26db68c1841136c6c835e3c7d3e291cc89af11cd6",
+    "test_food_workforce.py": "6ade3e35681f9c360ec2c8673829f3702c574ab6f1e394a46497b97ac49fdb81",
+    "test_volunteer_metrics.py": "5c6dde2442b757a042a252b94df280f08cb5cc614c9af448220320112648af4d"
+  },
+  "historical_results_content_unchanged": true,
+  "review_diff_sha256": "513e0391f15a3c93f8599d9c12a0bc27ab74bb8e543e17b12ea69db0b5283a6a",
+  "metrics_draft_replays_superseded_by": "out/volunteer-workforce-fix-20261001/final-bounded"
+}
