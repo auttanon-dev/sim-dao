@@ -1,0 +1,26 @@
+{
+  "revision": "95b07ea260d19771810e7748eb61fbbb50db2174",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "source_archive_sha256": "5e4527aa328ef69770c087b75c8d5e8add11d743616a68472e5ed107f884d873",
+  "schema_version": 2,
+  "seed": 18,
+  "world_id": 8,
+  "place": 85,
+  "trace_days": [
+    10920,
+    10950,
+    11010
+  ],
+  "anchor_day": 10980,
+  "replay_end_day": 11010,
+  "workers": 1,
+  "policy": "production defaults unchanged",
+  "source": "git archive; never working tree",
+  "checkpoint": "none; old artifacts contain hashes only, bounded replay used",
+  "preflight_git_status": "clean",
+  "preflight_background_python": [],
+  "no_world_save": true,
+  "no_commit_push": true,
+  "instrumentation_repair": "cast is list indexed by cid; corrected boundary predicate, tested with list fixture; no production edits",
+  "historical_trace": "only selected ticks 10920/10950/11010; boundary observations and prior anchor10980"
+}

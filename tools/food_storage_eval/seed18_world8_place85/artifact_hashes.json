@@ -1,0 +1,25 @@
+{
+  "retained_files": {
+    "completed.json": "c4b600692626e46489262c2b28c246146fb6d2541bb0d280ed41adfa56ae73a1",
+    "control_reuse.json": "3385263d458e2cf42d33fbc7282af6519d92b6778dd82311004e30e555fe20b4",
+    "manifest.json": "646f929971f409adf4da96a9fc1c25e75592ceedf1aecb38672a1a844df465a2",
+    "observer_common.py": "05ac9d2c6fea4fc1f29a728763b9b1b769d63362020a738faccb8b4df54623fe",
+    "purity.json": "cd21813a9ad0df0b046976ed4f9585e65cd037d2a7147629b68ec3bbb1474db9",
+    "purity_evidence.json": "723b3c769460679aebc303519a87dc601291ee2c4c73e9510b30167dd4b92430",
+    "REPORT_TH.md": "4e7a759bcce35ce70ab55979538f5e0a6cd0c89d7e935299614755f24b2f00fd",
+    "stages.csv": "93e6865c7a65d1d5feb90f83cffdd2132405069a140c40dfba8ec97d26ec2a3a",
+    "summary.json": "08f60dc643a759048af3b8d8741d8db9d8ba89a6b418da174b211ea6357d49ae",
+    "tick_evidence.json": "9d0db2cc15d9271c48920bb8a52e6dd0676bcce4082d22acd6f4f4441d7619ea",
+    "tick_observer.py": "d14c8edbf0d1f09d4eeda6f14ec8df4b684b94e6b58d4c0133c0a738e0608657",
+    "worker.py": "61b83326ac3b2919064b4960ca9e9baa47cb77f6e07d8abc10e95a2e80faacab",
+    "reproduce.py": "6fadc8902baf02861607770856dd5eeef8d5ec5a5649912f3bcff6484ecd411e"
+  },
+  "original_artifacts": {
+    "out\\volunteer-bounded-diagnostic-95b07ea-seed18-20261002-retry01\\observe.json": "4f72264883a16d1499384581dc6f361acc0525e482c3257a0ad5c81bfceafcc3",
+    "out\\volunteer-bounded-diagnostic-95b07ea-seed18-20261002-retry01\\control.json": "768dc87d6164b8ff351def444930dc5eaeede8aacbe490e0bcda803fe47bb42c",
+    "out\\volunteer-bounded-diagnostic-95b07ea-seed18-20261002-retry01\\REPORT_TH.md": "d27c9a7f735bbdade4a1e3f9d13bdc6263720838b2a5eb6d17c48e1d9c4c59bd",
+    "out\\volunteer-bounded-diagnostic-95b07ea-seed18-20261002-retry01\\artifact_hashes.json": "7f5c1e7c17dbd5131a43fcb00c6ce1bcf2b0601c25a33e26ba50f6d521e2c115",
+    "out\\volunteer-tick10980-95b07ea-seed18-20261002\\observe.json": "14f0eeb6ce459829a476de7808accae7d0da5aeaa000dbb25934fd796eced77f",
+    "out\\volunteer-tick10980-95b07ea-seed18-20261002\\control.json": "719f8322a532052850e40f1a577fe57993ebad40342bb79fbc9f32a8afa3865c"
+  }
+}

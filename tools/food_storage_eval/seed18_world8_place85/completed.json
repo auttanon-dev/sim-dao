@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "end_day": 11010,
+  "traced_days": [
+    10920,
+    10950,
+    11010
+  ],
+  "schema_version": 2,
+  "purity_passed": true,
+  "source_instrumentation_hashes_unchanged": true
+}

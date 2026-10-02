@@ -1,0 +1,5 @@
+{
+  "source": "D:\\Sim Dao\\out\\volunteer-bounded-diagnostic-95b07ea-seed18-20261002\\control.json",
+  "sha256": "768dc87d6164b8ff351def444930dc5eaeede8aacbe490e0bcda803fe47bb42c",
+  "reason": "No-observer control has no instrumentation; identical archive, seed, defaults and end day; exact hashes compared at all boundaries"
+}

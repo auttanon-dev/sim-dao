@@ -1,0 +1,1470 @@
+[
+  {
+    "day": 10920,
+    "interval_start": 10890,
+    "days": 30,
+    "stocks": [
+      {
+        "stage": "entry_before_spoil",
+        "stock": 53.04808580220428
+      },
+      {
+        "stage": "after_natural_spoil",
+        "stock": 52.88977280631721
+      },
+      {
+        "stage": "after_endowment",
+        "stock": 52.88977280631721
+      },
+      {
+        "stage": "after_production",
+        "stock": 349.75823771798616
+      },
+      {
+        "stage": "after_household_draw",
+        "stock": 349.75823771798616
+      },
+      {
+        "stage": "after_local_reservations",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_transport",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_target_meals_before_unsold_return",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_target_unsold_return_before_provisions",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_target_provisions",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_feeding_all_places",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_larder_stocking",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_away_accounts",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_farmer_pay",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_leave_before_broke",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_hunger_responses",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_cap_before_adapt",
+        "stock": 0.0
+      },
+      {
+        "stage": "tick_exit_after_adapt",
+        "stock": 0.0
+      }
+    ],
+    "before_production": {
+      "eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        1029,
+        1055,
+        1077,
+        1081,
+        2210,
+        2553,
+        2578,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3403,
+        3537,
+        3580,
+        3678,
+        3720,
+        3767
+      ],
+      "daily_need": 24.0,
+      "interval_need": 720.0,
+      "normal_workers": [
+        978,
+        1029,
+        1077,
+        2578,
+        3403
+      ],
+      "volunteer_workers": [],
+      "child_helper_capacity": 0.0
+    },
+    "production": {
+      "season_multiplier": 0.5,
+      "adult_capacity": 4.803113470921757,
+      "total_capacity": 4.803113470921757,
+      "made": 296.8684649116689
+    },
+    "household_fed": 0.0,
+    "allocation": {
+      "remaining_demand_after_household": 720.0,
+      "local_take": 349.75823771798616
+    },
+    "physical_deficit": 5.659418345888298,
+    "transport": {
+      "imports_sent": 403.96935616191195,
+      "imports_arrived": 364.58234393612554,
+      "import_loss": 39.38701222578641,
+      "exports_sent": 0,
+      "exports_arrived": 0,
+      "export_loss": 0
+    },
+    "transport_edges": [
+      {
+        "source": [
+          8,
+          80
+        ],
+        "dest": [
+          8,
+          85
+        ],
+        "sent": 403.96935616191195,
+        "arrived": 364.58234393612554,
+        "loss": 39.38701222578641,
+        "hops": 2
+      }
+    ],
+    "before_adapt": {
+      "eater_snapshot_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        1029,
+        1055,
+        1077,
+        1081,
+        2210,
+        2553,
+        2578,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3403,
+        3537,
+        3580,
+        3678,
+        3720,
+        3767
+      ],
+      "eater_snapshot_daily_need": 24.0,
+      "current_local_eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        1081,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3720,
+        3767
+      ],
+      "current_local_daily_need": 19.0,
+      "decision_workers": [
+        978
+      ],
+      "decision_normal_workers": [
+        978
+      ],
+      "decision_volunteers": [],
+      "all_current_eligible_normal": [
+        978
+      ],
+      "all_current_eligible_volunteers": []
+    },
+    "adapt": {
+      "day": 10920,
+      "interval_start": 10890,
+      "days": 30,
+      "season_mean": 0.5,
+      "endpoint_season": "ฤดูหนาว",
+      "alive_flagged_before": [],
+      "physical_deficit": 5.659418345888298,
+      "local_stock": 0.0,
+      "gates": [
+        "no_eligible_helpers"
+      ],
+      "candidate_checks": [],
+      "recruit_checks": [
+        {
+          "cid": 989,
+          "capacity": 0.8316968581747334,
+          "output": 2.2682838545298614,
+          "target": 2.456931132726138,
+          "marginal_output": 1.8569380925996724,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 963,
+          "capacity": 0.9837229672622121,
+          "output": 4.125221947129534,
+          "target": 2.456931132726138,
+          "marginal_output": 2.0365202701368377,
+          "outcome": "target_met"
+        }
+      ],
+      "capacity_by_cid": {
+        "978": 0.9434476351882968,
+        "989": 0.8316968581747334,
+        "963": 0.9837229672622121
+      },
+      "eligible_helpers": [],
+      "eligible_workers": [
+        978
+      ],
+      "eligible_normal_workers": [
+        978
+      ],
+      "alive_flagged_after": [
+        989
+      ],
+      "released": [],
+      "recruited": [
+        989
+      ],
+      "candidate_order": null
+    },
+    "evaluated_gates": {
+      "shortage": null,
+      "reserves": null,
+      "local_full": null,
+      "marginal_release": null
+    },
+    "validations": {
+      "demand_partition_gap": 0.0,
+      "deficit_gap": 0.0,
+      "stock_stage_closure_gap": 2.842170943040401e-14,
+      "adapt_deficit_matches": true
+    }
+  },
+  {
+    "day": 10950,
+    "interval_start": 10920,
+    "days": 30,
+    "stocks": [
+      {
+        "stage": "entry_before_spoil",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_natural_spoil",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_endowment",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_production",
+        "stock": 123.75665841388602
+      },
+      {
+        "stage": "after_household_draw",
+        "stock": 123.75665841388602
+      },
+      {
+        "stage": "after_local_reservations",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_transport",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_target_meals_before_unsold_return",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_target_unsold_return_before_provisions",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_target_provisions",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_feeding_all_places",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_larder_stocking",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_away_accounts",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_farmer_pay",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_leave_before_broke",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_hunger_responses",
+        "stock": 0.0
+      },
+      {
+        "stage": "after_cap_before_adapt",
+        "stock": 0.0
+      },
+      {
+        "stage": "tick_exit_after_adapt",
+        "stock": 0.0
+      }
+    ],
+    "before_production": {
+      "eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        1081,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3720,
+        3767
+      ],
+      "daily_need": 19.0,
+      "interval_need": 570.0,
+      "normal_workers": [
+        978
+      ],
+      "volunteer_workers": [
+        989
+      ],
+      "child_helper_capacity": 0.0
+    },
+    "production": {
+      "season_multiplier": 0.5,
+      "adult_capacity": 1.77514449336303,
+      "total_capacity": 1.77514449336303,
+      "made": 123.75665841388602
+    },
+    "household_fed": 0.0,
+    "allocation": {
+      "remaining_demand_after_household": 570.0,
+      "local_take": 123.75665841388602
+    },
+    "physical_deficit": 435.5428890906914,
+    "transport": {
+      "imports_sent": 11.856457058639922,
+      "imports_arrived": 10.70045249542253,
+      "import_loss": 1.156004563217392,
+      "exports_sent": 0,
+      "exports_arrived": 0,
+      "export_loss": 0
+    },
+    "transport_edges": [
+      {
+        "source": [
+          8,
+          72
+        ],
+        "dest": [
+          8,
+          85
+        ],
+        "sent": 11.856457058639922,
+        "arrived": 10.70045249542253,
+        "loss": 1.156004563217392,
+        "hops": 2
+      }
+    ],
+    "before_adapt": {
+      "eater_snapshot_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        1081,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3720,
+        3767
+      ],
+      "eater_snapshot_daily_need": 19.0,
+      "current_local_eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        1081,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3720,
+        3767
+      ],
+      "current_local_daily_need": 19.0,
+      "decision_workers": [
+        978,
+        989
+      ],
+      "decision_normal_workers": [
+        978
+      ],
+      "decision_volunteers": [
+        989
+      ],
+      "all_current_eligible_normal": [
+        978
+      ],
+      "all_current_eligible_volunteers": [
+        989
+      ]
+    },
+    "adapt": {
+      "day": 10950,
+      "interval_start": 10920,
+      "days": 30,
+      "season_mean": 0.5,
+      "endpoint_season": "ฤดูใบไม้ผลิ",
+      "alive_flagged_before": [
+        989
+      ],
+      "physical_deficit": 435.5428890906914,
+      "local_stock": 0.0,
+      "gates": [
+        "shortage_block"
+      ],
+      "candidate_checks": [],
+      "recruit_checks": [
+        {
+          "cid": 1028,
+          "capacity": 0.9048993964527648,
+          "output": 4.125221947129534,
+          "target": 18.643318250152582,
+          "marginal_output": 1.8794201519638731,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 997,
+          "capacity": 0.9065090332316575,
+          "output": 6.004642099093407,
+          "target": 18.643318250152582,
+          "marginal_output": 1.7458927222688354,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 974,
+          "capacity": 0.8524357407205869,
+          "output": 7.750534821362242,
+          "target": 18.643318250152582,
+          "marginal_output": 1.5256887742849123,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 963,
+          "capacity": 0.9837229672622121,
+          "output": 9.276223595647155,
+          "target": 18.643318250152582,
+          "marginal_output": 1.6311015551519326,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 2210,
+          "capacity": 1.0,
+          "output": 10.907325150799087,
+          "target": 18.643318250152582,
+          "marginal_output": 1.5265659938598546,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 3094,
+          "capacity": 0.934110558618585,
+          "output": 12.433891144658942,
+          "target": 18.643318250152582,
+          "marginal_output": 1.3155245422480117,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 1081,
+          "capacity": 0.8310611974772264,
+          "output": 13.749415686906953,
+          "target": 18.643318250152582,
+          "marginal_output": 1.087349038376372,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 3007,
+          "capacity": 0.9153892866403762,
+          "output": 14.836764725283325,
+          "target": 18.643318250152582,
+          "marginal_output": 1.11367180515556,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 3537,
+          "capacity": 0.9515291741404861,
+          "output": 15.950436530438886,
+          "target": 18.643318250152582,
+          "marginal_output": 1.0710234246553654,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 3678,
+          "capacity": 1.0,
+          "output": 17.02145995509425,
+          "target": 18.643318250152582,
+          "marginal_output": 1.0377067665472097,
+          "outcome": "policy_recruitment"
+        },
+        {
+          "cid": 3767,
+          "capacity": 1.0,
+          "output": 18.05916672164146,
+          "target": 18.643318250152582,
+          "marginal_output": 0.9547363145848138,
+          "outcome": "marginal_gain_below_ration"
+        }
+      ],
+      "capacity_by_cid": {
+        "978": 0.9434476351882968,
+        "989": 0.8316968581747334,
+        "1028": 0.9048993964527648,
+        "997": 0.9065090332316575,
+        "974": 0.8524357407205869,
+        "963": 0.9837229672622121,
+        "2210": 1.0,
+        "3094": 0.934110558618585,
+        "1081": 0.8310611974772264,
+        "3007": 0.9153892866403762,
+        "3537": 0.9515291741404861,
+        "3678": 1.0,
+        "3767": 1.0
+      },
+      "eligible_helpers": [
+        989
+      ],
+      "eligible_workers": [
+        978,
+        989
+      ],
+      "eligible_normal_workers": [
+        978
+      ],
+      "alive_flagged_after": [
+        963,
+        974,
+        989,
+        997,
+        1028,
+        1081,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "released": [],
+      "recruited": [
+        963,
+        974,
+        997,
+        1028,
+        1081,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "candidate_order": null
+    },
+    "evaluated_gates": {
+      "shortage": {
+        "deficit": 435.5428890906914,
+        "blocked": true
+      },
+      "reserves": null,
+      "local_full": null,
+      "marginal_release": null
+    },
+    "validations": {
+      "demand_partition_gap": 0.0,
+      "deficit_gap": 0.0,
+      "stock_stage_closure_gap": 0.0,
+      "adapt_deficit_matches": true
+    }
+  },
+  {
+    "day": 10980,
+    "interval_start": 10950,
+    "days": 30,
+    "stocks": [
+      {
+        "stage": "entry_before_spoil",
+        "stock": 13.669928159387965
+      },
+      {
+        "stage": "after_natural_spoil",
+        "stock": 13.588458752423614
+      },
+      {
+        "stage": "after_endowment",
+        "stock": 13.588458752423614
+      },
+      {
+        "stage": "after_production",
+        "stock": 1355.4059997154443
+      },
+      {
+        "stage": "after_household_draw",
+        "stock": 1355.4059997154443
+      },
+      {
+        "stage": "after_local_reservations",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_transport",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_feeding_all_places",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_larder_stocking",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_away_accounts",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_farmer_pay",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_leave_before_broke",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_hunger_responses",
+        "stock": 845.4059997154443
+      },
+      {
+        "stage": "after_cap_before_adapt",
+        "stock": 469.1770833333333
+      },
+      {
+        "stage": "tick_exit_after_adapt",
+        "stock": 469.1770833333333
+      }
+    ],
+    "before_production": {
+      "eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3767
+      ],
+      "daily_need": 17.0,
+      "interval_need": 510.0,
+      "normal_workers": [
+        978
+      ],
+      "volunteer_workers": [
+        963,
+        974,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "child_helper_capacity": 0.0
+    },
+    "production": {
+      "season_multiplier": 1.3,
+      "adult_capacity": 10.223641488771928,
+      "total_capacity": 10.223641488771928,
+      "made": 1341.8175409630207
+    },
+    "household_fed": 0.0,
+    "allocation": {
+      "remaining_demand_after_household": 510.0,
+      "local_take": 510.0
+    },
+    "physical_deficit": 0.0,
+    "transport": {
+      "imports_sent": 0,
+      "imports_arrived": 0,
+      "import_loss": 0,
+      "exports_sent": 0,
+      "exports_arrived": 0,
+      "export_loss": 0
+    },
+    "transport_edges": [],
+    "before_adapt": {
+      "eater_snapshot_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3767
+      ],
+      "eater_snapshot_daily_need": 17.0,
+      "current_local_eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3767
+      ],
+      "current_local_daily_need": 17.0,
+      "decision_workers": [
+        963,
+        974,
+        978,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "decision_normal_workers": [
+        978
+      ],
+      "decision_volunteers": [
+        963,
+        974,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "all_current_eligible_normal": [
+        978
+      ],
+      "all_current_eligible_volunteers": [
+        963,
+        974,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ]
+    },
+    "adapt": {
+      "day": 10980,
+      "interval_start": 10950,
+      "days": 30,
+      "season_mean": 1.3,
+      "endpoint_season": "ฤดูใบไม้ผลิ",
+      "alive_flagged_before": [
+        963,
+        974,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "physical_deficit": 0.0,
+      "local_stock": 469.1770833333333,
+      "gates": [
+        "reserve_insufficient",
+        "local_full_pass",
+        "release_output_sufficiency_block"
+      ],
+      "candidate_checks": [
+        {
+          "cid": 989,
+          "capacity": 0.8316968581747339,
+          "capacity_before": 10.223641488771928,
+          "capacity_after": 9.391944630597195,
+          "output_before_per_day": 44.72725136543402,
+          "output_after_per_day": 42.33938800835433,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 974,
+          "capacity": 0.8524357407205869,
+          "capacity_before": 9.391944630597195,
+          "capacity_after": 8.539508889876608,
+          "output_before_per_day": 42.33938800835433,
+          "output_after_per_day": 39.714046258944414,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 1028,
+          "capacity": 0.9048002347949948,
+          "capacity_before": 8.539508889876608,
+          "capacity_after": 7.634708655081613,
+          "output_before_per_day": 39.714046258944414,
+          "output_after_per_day": 36.715666022272785,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 997,
+          "capacity": 0.9065090332316572,
+          "capacity_before": 7.634708655081613,
+          "capacity_after": 6.728199621849956,
+          "output_before_per_day": 36.715666022272785,
+          "output_after_per_day": 33.4761266600128,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 3007,
+          "capacity": 0.9153892866403766,
+          "capacity_before": 6.728199621849956,
+          "capacity_after": 5.812810335209579,
+          "output_before_per_day": 33.4761266600128,
+          "output_after_per_day": 29.94683676410332,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 3094,
+          "capacity": 0.9341105586185847,
+          "capacity_before": 5.812810335209579,
+          "capacity_after": 4.878699776590994,
+          "output_before_per_day": 29.94683676410332,
+          "output_after_per_day": 26.056815682305064,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 3537,
+          "capacity": 0.9515291741404859,
+          "capacity_before": 4.878699776590994,
+          "capacity_after": 3.9271706024505084,
+          "output_before_per_day": 26.056815682305064,
+          "output_after_per_day": 21.770326835103866,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 963,
+          "capacity": 0.9837229672622119,
+          "capacity_before": 3.9271706024505084,
+          "capacity_after": 2.9434476351882966,
+          "output_before_per_day": 21.770326835103866,
+          "output_after_per_day": 16.966583615814418,
+          "policy_daily_need": 17.0,
+          "outcome": "output_after_below_need_block"
+        }
+      ],
+      "recruit_checks": [],
+      "capacity_by_cid": {
+        "963": 0.9837229672622121,
+        "974": 0.8524357407205869,
+        "978": 0.9434476351882968,
+        "989": 0.8316968581747334,
+        "997": 0.9065090332316575,
+        "1028": 0.9048002347949947,
+        "2210": 1.0,
+        "3007": 0.9153892866403762,
+        "3094": 0.934110558618585,
+        "3537": 0.9515291741404861,
+        "3678": 1.0
+      },
+      "eligible_helpers": [
+        963,
+        974,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "eligible_workers": [
+        963,
+        974,
+        978,
+        989,
+        997,
+        1028,
+        2210,
+        3007,
+        3094,
+        3537,
+        3678
+      ],
+      "eligible_normal_workers": [
+        978
+      ],
+      "policy_daily_need": 17.0,
+      "local_limit": 469.1770833333333,
+      "limited": true,
+      "attributed_reserve": 561.2507002738595,
+      "reserve_target": 1530.0,
+      "release_execution_order": [
+        989,
+        974,
+        1028,
+        997,
+        3007,
+        3094,
+        3537
+      ],
+      "alive_flagged_after": [
+        963,
+        2210,
+        3678
+      ],
+      "released": [
+        974,
+        989,
+        997,
+        1028,
+        3007,
+        3094,
+        3537
+      ],
+      "recruited": [],
+      "candidate_order": [
+        989,
+        974,
+        1028,
+        997,
+        3007,
+        3094,
+        3537,
+        963,
+        2210,
+        3678
+      ]
+    },
+    "evaluated_gates": {
+      "shortage": {
+        "deficit": 0.0,
+        "blocked": false
+      },
+      "reserves": {
+        "reserve": 561.2507002738595,
+        "target": 1530.0,
+        "passed": false
+      },
+      "local_full": {
+        "stock": 469.1770833333333,
+        "limit": 469.1770833333333,
+        "passed": true
+      },
+      "marginal_release": [
+        {
+          "cid": 989,
+          "capacity": 0.8316968581747339,
+          "capacity_before": 10.223641488771928,
+          "capacity_after": 9.391944630597195,
+          "output_before_per_day": 44.72725136543402,
+          "output_after_per_day": 42.33938800835433,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 974,
+          "capacity": 0.8524357407205869,
+          "capacity_before": 9.391944630597195,
+          "capacity_after": 8.539508889876608,
+          "output_before_per_day": 42.33938800835433,
+          "output_after_per_day": 39.714046258944414,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 1028,
+          "capacity": 0.9048002347949948,
+          "capacity_before": 8.539508889876608,
+          "capacity_after": 7.634708655081613,
+          "output_before_per_day": 39.714046258944414,
+          "output_after_per_day": 36.715666022272785,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 997,
+          "capacity": 0.9065090332316572,
+          "capacity_before": 7.634708655081613,
+          "capacity_after": 6.728199621849956,
+          "output_before_per_day": 36.715666022272785,
+          "output_after_per_day": 33.4761266600128,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 3007,
+          "capacity": 0.9153892866403766,
+          "capacity_before": 6.728199621849956,
+          "capacity_after": 5.812810335209579,
+          "output_before_per_day": 33.4761266600128,
+          "output_after_per_day": 29.94683676410332,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 3094,
+          "capacity": 0.9341105586185847,
+          "capacity_before": 5.812810335209579,
+          "capacity_after": 4.878699776590994,
+          "output_before_per_day": 29.94683676410332,
+          "output_after_per_day": 26.056815682305064,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 3537,
+          "capacity": 0.9515291741404859,
+          "capacity_before": 4.878699776590994,
+          "capacity_after": 3.9271706024505084,
+          "output_before_per_day": 26.056815682305064,
+          "output_after_per_day": 21.770326835103866,
+          "policy_daily_need": 17.0,
+          "outcome": "policy_release"
+        },
+        {
+          "cid": 963,
+          "capacity": 0.9837229672622119,
+          "capacity_before": 3.9271706024505084,
+          "capacity_after": 2.9434476351882966,
+          "output_before_per_day": 21.770326835103866,
+          "output_after_per_day": 16.966583615814418,
+          "policy_daily_need": 17.0,
+          "outcome": "output_after_below_need_block"
+        }
+      ]
+    },
+    "validations": {
+      "demand_partition_gap": 0.0,
+      "deficit_gap": 0.0,
+      "stock_stage_closure_gap": 5.684341886080802e-14,
+      "adapt_deficit_matches": true
+    }
+  },
+  {
+    "day": 11010,
+    "interval_start": 10980,
+    "days": 30,
+    "stocks": [
+      {
+        "stage": "entry_before_spoil",
+        "stock": 469.1770833333333
+      },
+      {
+        "stage": "after_natural_spoil",
+        "stock": 466.38090340504453
+      },
+      {
+        "stage": "after_endowment",
+        "stock": 466.38090340504453
+      },
+      {
+        "stage": "after_production",
+        "stock": 1119.4907084581605
+      },
+      {
+        "stage": "after_household_draw",
+        "stock": 1119.4907084581605
+      },
+      {
+        "stage": "after_local_reservations",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_transport",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_target_meals_before_unsold_return",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_target_unsold_return_before_provisions",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_target_provisions",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_feeding_all_places",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_larder_stocking",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_away_accounts",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_farmer_pay",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_leave_before_broke",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_hunger_responses",
+        "stock": 609.4907084581605
+      },
+      {
+        "stage": "after_cap_before_adapt",
+        "stock": 463.4739583333333
+      },
+      {
+        "stage": "tick_exit_after_adapt",
+        "stock": 463.4739583333333
+      }
+    ],
+    "before_production": {
+      "eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3767
+      ],
+      "daily_need": 17.0,
+      "interval_need": 510.0,
+      "normal_workers": [
+        978
+      ],
+      "volunteer_workers": [
+        963,
+        2210,
+        3678
+      ],
+      "child_helper_capacity": 0.0
+    },
+    "production": {
+      "season_multiplier": 1.3,
+      "adult_capacity": 3.927170602450509,
+      "total_capacity": 3.927170602450509,
+      "made": 653.1098050531159
+    },
+    "household_fed": 0.0,
+    "allocation": {
+      "remaining_demand_after_household": 510.0,
+      "local_take": 510.0
+    },
+    "physical_deficit": 0.0,
+    "transport": {
+      "imports_sent": 0,
+      "imports_arrived": 0,
+      "import_loss": 0,
+      "exports_sent": 0,
+      "exports_arrived": 0,
+      "export_loss": 0
+    },
+    "transport_edges": [],
+    "before_adapt": {
+      "eater_snapshot_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3767
+      ],
+      "eater_snapshot_daily_need": 17.0,
+      "current_local_eater_cids": [
+        963,
+        974,
+        983,
+        989,
+        997,
+        1028,
+        2210,
+        2553,
+        2629,
+        2673,
+        2775,
+        3007,
+        3094,
+        3537,
+        3580,
+        3678,
+        3767
+      ],
+      "current_local_daily_need": 17.0,
+      "decision_workers": [
+        963,
+        978,
+        2210,
+        3678
+      ],
+      "decision_normal_workers": [
+        978
+      ],
+      "decision_volunteers": [
+        963,
+        2210,
+        3678
+      ],
+      "all_current_eligible_normal": [
+        978
+      ],
+      "all_current_eligible_volunteers": [
+        963,
+        2210,
+        3678
+      ]
+    },
+    "adapt": {
+      "day": 11010,
+      "interval_start": 10980,
+      "days": 30,
+      "season_mean": 1.3,
+      "endpoint_season": "ฤดูใบไม้ผลิ",
+      "alive_flagged_before": [
+        963,
+        2210,
+        3678
+      ],
+      "physical_deficit": 0.0,
+      "local_stock": 463.4739583333333,
+      "gates": [
+        "reserve_insufficient",
+        "local_full_pass",
+        "release_output_sufficiency_block"
+      ],
+      "candidate_checks": [
+        {
+          "cid": 963,
+          "capacity": 0.9837229672622123,
+          "capacity_before": 3.927170602450509,
+          "capacity_after": 2.9434476351882966,
+          "output_before_per_day": 21.770326835103866,
+          "output_after_per_day": 16.966583615814418,
+          "policy_daily_need": 17.0,
+          "outcome": "output_after_below_need_block"
+        }
+      ],
+      "recruit_checks": [],
+      "capacity_by_cid": {
+        "963": 0.9837229672622121,
+        "978": 0.9434476351882968,
+        "2210": 1.0,
+        "3678": 1.0
+      },
+      "eligible_helpers": [
+        963,
+        2210,
+        3678
+      ],
+      "eligible_workers": [
+        963,
+        978,
+        2210,
+        3678
+      ],
+      "eligible_normal_workers": [
+        978
+      ],
+      "policy_daily_need": 17.0,
+      "local_limit": 463.4739583333333,
+      "limited": true,
+      "attributed_reserve": 745.851282394109,
+      "reserve_target": 1530.0,
+      "alive_flagged_after": [
+        963,
+        2210,
+        3678
+      ],
+      "released": [],
+      "recruited": [],
+      "candidate_order": [
+        963,
+        2210,
+        3678
+      ]
+    },
+    "evaluated_gates": {
+      "shortage": {
+        "deficit": 0.0,
+        "blocked": false
+      },
+      "reserves": {
+        "reserve": 745.851282394109,
+        "target": 1530.0,
+        "passed": false
+      },
+      "local_full": {
+        "stock": 463.4739583333333,
+        "limit": 463.4739583333333,
+        "passed": true
+      },
+      "marginal_release": [
+        {
+          "cid": 963,
+          "capacity": 0.9837229672622123,
+          "capacity_before": 3.927170602450509,
+          "capacity_after": 2.9434476351882966,
+          "output_before_per_day": 21.770326835103866,
+          "output_after_per_day": 16.966583615814418,
+          "policy_daily_need": 17.0,
+          "outcome": "output_after_below_need_block"
+        }
+      ]
+    },
+    "validations": {
+      "demand_partition_gap": 0.0,
+      "deficit_gap": 0.0,
+      "stock_stage_closure_gap": 5.684341886080802e-14,
+      "adapt_deficit_matches": true
+    }
+  }
+]

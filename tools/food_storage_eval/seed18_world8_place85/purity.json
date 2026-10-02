@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "compared_keys": [
+    "end_day",
+    "boundary_hashes",
+    "anchor_10950",
+    "world_state_sha256",
+    "state_key_sha256",
+    "rng_sha256",
+    "granary_sha256",
+    "food_stats_raw",
+    "alive_flagged",
+    "alive_productive"
+  ],
+  "differences": [],
+  "unequal_state_keys": []
+}
