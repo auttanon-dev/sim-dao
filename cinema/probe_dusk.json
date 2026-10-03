@@ -1,0 +1,2321 @@
+{
+  "version": 1,
+  "style": {
+    "name": "wuxia-3d-stylized",
+    "render": "eevee",
+    "resolution": [
+      1920,
+      1080
+    ],
+    "fps": 24,
+    "lens_by_size": {
+      "establish": 24,
+      "wide": 35,
+      "medium": 50,
+      "close": 85
+    },
+    "sizes": [
+      "establish",
+      "wide",
+      "medium",
+      "close"
+    ]
+  },
+  "shots": [
+    {
+      "shot_id": "S0000",
+      "index": 0,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95054,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "medium",
+        "lens_mm": 50,
+        "distance_m": 8.0,
+        "orbit_deg": 30.43,
+        "height_m": 2.411,
+        "handheld": 0.012,
+        "dof_fstop": 2.8,
+        "focus_on": "auto"
+      },
+      "subject_cid": 36525,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            -0.08,
+            0.0
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0001",
+      "index": 1,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95055,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "wide",
+        "lens_mm": 35,
+        "distance_m": 20.0,
+        "orbit_deg": 50.42,
+        "height_m": 6.135,
+        "handheld": 0.004,
+        "dof_fstop": 5.6,
+        "focus_on": "auto"
+      },
+      "subject_cid": 36525,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            -0.22,
+            0.0
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0002",
+      "index": 2,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95056,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "close",
+        "lens_mm": 85,
+        "distance_m": 2.6,
+        "orbit_deg": 12.38,
+        "height_m": 1.509,
+        "handheld": 0.012,
+        "dof_fstop": 1.8,
+        "focus_on": "subject"
+      },
+      "subject_cid": 36525,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            -0.08,
+            0.0
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0003",
+      "index": 3,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95057,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "medium",
+        "lens_mm": 50,
+        "distance_m": 8.0,
+        "orbit_deg": 30.64,
+        "height_m": 2.416,
+        "handheld": 0.012,
+        "dof_fstop": 2.8,
+        "focus_on": "auto"
+      },
+      "subject_cid": 46208,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0004",
+      "index": 4,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95058,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "wide",
+        "lens_mm": 35,
+        "distance_m": 20.0,
+        "orbit_deg": 36.69,
+        "height_m": 5.792,
+        "handheld": 0.004,
+        "dof_fstop": 5.6,
+        "focus_on": "auto"
+      },
+      "subject_cid": 46208,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0005",
+      "index": 5,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95059,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "close",
+        "lens_mm": 85,
+        "distance_m": 2.6,
+        "orbit_deg": 21.98,
+        "height_m": 1.75,
+        "handheld": 0.012,
+        "dof_fstop": 1.8,
+        "focus_on": "subject"
+      },
+      "subject_cid": 46208,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0006",
+      "index": 6,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95060,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "medium",
+        "lens_mm": 50,
+        "distance_m": 8.0,
+        "orbit_deg": 35.08,
+        "height_m": 2.527,
+        "handheld": 0.012,
+        "dof_fstop": 2.8,
+        "focus_on": "auto"
+      },
+      "subject_cid": 26880,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0007",
+      "index": 7,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95061,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "wide",
+        "lens_mm": 35,
+        "distance_m": 20.0,
+        "orbit_deg": 53.77,
+        "height_m": 6.219,
+        "handheld": 0.004,
+        "dof_fstop": 5.6,
+        "focus_on": "auto"
+      },
+      "subject_cid": 26880,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0008",
+      "index": 8,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95062,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "close",
+        "lens_mm": 85,
+        "distance_m": 2.6,
+        "orbit_deg": 12.63,
+        "height_m": 1.516,
+        "handheld": 0.012,
+        "dof_fstop": 1.8,
+        "focus_on": "subject"
+      },
+      "subject_cid": 26880,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0009",
+      "index": 9,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95063,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "medium",
+        "lens_mm": 50,
+        "distance_m": 8.0,
+        "orbit_deg": 23.86,
+        "height_m": 2.247,
+        "handheld": 0.012,
+        "dof_fstop": 2.8,
+        "focus_on": "auto"
+      },
+      "subject_cid": 35013,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0010",
+      "index": 10,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95064,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "wide",
+        "lens_mm": 35,
+        "distance_m": 20.0,
+        "orbit_deg": 53.99,
+        "height_m": 6.225,
+        "handheld": 0.004,
+        "dof_fstop": 5.6,
+        "focus_on": "auto"
+      },
+      "subject_cid": 35013,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0011",
+      "index": 11,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95065,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "close",
+        "lens_mm": 85,
+        "distance_m": 2.6,
+        "orbit_deg": 19.31,
+        "height_m": 1.683,
+        "handheld": 0.012,
+        "dof_fstop": 1.8,
+        "focus_on": "subject"
+      },
+      "subject_cid": 35013,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0012",
+      "index": 12,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95066,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "medium",
+        "lens_mm": 50,
+        "distance_m": 8.0,
+        "orbit_deg": 33.49,
+        "height_m": 2.487,
+        "handheld": 0.012,
+        "dof_fstop": 2.8,
+        "focus_on": "auto"
+      },
+      "subject_cid": 35093,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0013",
+      "index": 13,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95067,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "wide",
+        "lens_mm": 35,
+        "distance_m": 20.0,
+        "orbit_deg": 39.16,
+        "height_m": 5.854,
+        "handheld": 0.004,
+        "dof_fstop": 5.6,
+        "focus_on": "auto"
+      },
+      "subject_cid": 35093,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.07999999999999999,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    },
+    {
+      "shot_id": "S0014",
+      "index": 14,
+      "day": 414641,
+      "hour": 18,
+      "style": "wuxia-3d-stylized",
+      "location": {
+        "place_index": 302,
+        "place_name": "เหมืองศิลาประจิมวารีลึกลับ",
+        "world_key": "br017",
+        "grade": 1,
+        "kind": "แหล่งวัตถุดิบ",
+        "archetype": "wilderness",
+        "layout_seed": 95068,
+        "density": 0.55,
+        "qi_density": 0.4
+      },
+      "lighting": {
+        "phase": "dusk",
+        "sun_elevation_deg": 8.0,
+        "sun_azimuth_deg": 262,
+        "sun_color": [
+          1.0,
+          0.58,
+          0.34
+        ],
+        "sky_top": [
+          0.22,
+          0.2,
+          0.38
+        ],
+        "sky_horizon": [
+          0.96,
+          0.58,
+          0.4
+        ],
+        "fog_density": 0.006
+      },
+      "camera": {
+        "size": "close",
+        "lens_mm": 85,
+        "distance_m": 2.6,
+        "orbit_deg": 16.64,
+        "height_m": 1.616,
+        "handheld": 0.012,
+        "dof_fstop": 1.8,
+        "focus_on": "subject"
+      },
+      "subject_cid": 35093,
+      "actors": [
+        {
+          "cid": 36525,
+          "name": "ซีเฉินจื่อ",
+          "model_id": "characters-elders-6",
+          "gender": "หญิง",
+          "age": 721,
+          "age_group": "elder",
+          "realm": 0,
+          "dao": "วิถีพเนจร",
+          "art_ref": "characters-elders-6",
+          "state": "Cultivating",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 108754,
+          "name": "ชู่เหยียนซิว",
+          "model_id": "characters-martial-0",
+          "gender": "ชาย",
+          "age": 23,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีตันตระวัชระ",
+          "art_ref": "characters-martial-0",
+          "state": "Working",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110731,
+          "name": "เหอซวี่ฮวา",
+          "model_id": "original-4",
+          "gender": "ชาย",
+          "age": 5,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีเหล็ก",
+          "art_ref": "original-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        },
+        {
+          "cid": 110992,
+          "name": "ชู่ลั่งยวี่",
+          "model_id": "characters-martial-4",
+          "gender": "หญิง",
+          "age": 2,
+          "age_group": "adult",
+          "realm": 0,
+          "dao": "วิถีมวยไทย",
+          "art_ref": "characters-martial-4",
+          "state": "Sleeping",
+          "screen_pos": [
+            0.21999999999999997,
+            -0.15
+          ],
+          "aura": {
+            "name": "none",
+            "power": 0.0
+          },
+          "is_beast": false,
+          "is_demon": false,
+          "is_emperor": false
+        }
+      ],
+      "render": {
+        "engine": "eevee",
+        "resolution": [
+          1920,
+          1080
+        ],
+        "fps": 24,
+        "duration_s": 3.0
+      }
+    }
+  ]
+}
