@@ -68,12 +68,13 @@
           มนุษย์ในยุคเสื่อม/ทรัพยากรน้อย · เลิกใช้ "ขั้นเฉลี่ยสูงสุด" เป็นเกณฑ์ (ผู้ใช้ตัดสิน: อสูรนำเพราะพลังดิบทำให้ขึ้นขั้นเร็ว
           แต่ "ทนทาน" คืออยู่รอดยาวขึ้น ไม่ใช่ขึ้นขั้นสูง) และไม่ใช้อายุเฉลี่ยตอนตาย (ปนการตายจากสงคราม อดอาหาร โรค ที่กลไกยืด
           อายุขัยไม่ได้แตะ — อายุเฉลี่ยตอนตาย 34–40 ปี คนส่วนใหญ่ตายก่อนวัยชรา) — ทั้งสองยังรายงานเป็นข้อมูลประกอบ
-      (ก-3) อยู่รอดแบบบังคับสถานการณ์ (ชุดเร็ว — ตัวตัดสิน): โลก seed 16 เดิน 20 ปี แล้วคงสถานการณ์แต่ละแบบไว้ทุกรอบโลก
-          กลุ่มคนอายุ 45–61 ในแดนมนุษย์ทุกใบ **เฉพาะคนที่ต้องกินข้าว (food.eats)** เดินจนทุกคนถึง 62 หรือตาย ตัดสินด้วยสัดส่วนที่รอด
-          ถึงวัยชรา ต่อสายที่มีคน ≥ 30 คน · ทำไมกรองเฉพาะคนกิน (ผู้ใช้ตัดสิน): กลไกประหยัด (HUMAN_SCARCE_FRUGAL ลดสำรับ) มีผลกับคน
-          กินเท่านั้น คนที่ไม่กินข้าว (วิญญาณบริสุทธิ์ เลือดวิญญาณ ≥ 0.85 และผู้ถึงขั้นงดอาหาร FOOD_BIGU_REALM = 3 ขึ้นไป ซึ่งดำรงกายด้วย
-          ปราณแทน) ความหิวไม่ถึงตัวเลย — รอบก่อนวิญญาณ 38 จาก 48 คนในกลุ่มไม่กินข้าว จึงชนะทุกสถานการณ์ที่มีความหิวเกี่ยวข้อง
-          ไม่ใช่เพราะกลไก · จำนวนคนไม่กินข้าวต่อสายรายงานในข้อความ ไม่ใช่เกณฑ์
+      (ก-3) สาเหตุการตายแบบบังคับสถานการณ์ (ชุดเร็ว — ตัวตัดสิน): โลก seed 16 เดิน 20 ปี แล้วคงสถานการณ์แต่ละแบบไว้ 17 ปี
+          นับทุกความตายในแดนมนุษย์ ทุกอายุ ทั้งคนกินและไม่กินข้าว หมวดจาก death_cause เดิม (อดอยาก/ร่างกาย · ถูกฆ่า · อายุ · อื่นๆ)
+          เกณฑ์: สาเหตุหลักของแต่ละสาย (ผู้ตาย ≥ 30) ต้องเปลี่ยนตามสถานการณ์ และทรัพยากรน้อย สัดส่วนตายเพราะอดอยากต้องเพิ่ม
+          ตายเพราะถูกฆ่าต้องลด (เทียบยุคปกติ) · ทำไมเปลี่ยนวิธีวัด (ผู้ใช้ตัดสิน): "สัดส่วนรอดถึงวัยชรา" ต้องกรองเฉพาะคนกินข้าว
+          (กลไกประหยัดมีผลกับคนกินเท่านั้น — วิญญาณบริสุทธิ์และขั้นงดอาหาร FOOD_BIGU_REALM = 3 ขึ้นไปไม่กินข้าว) แล้วสายอื่นเหลือ
+          ไม่ถึง 30 คน (วิญญาณ 11 อสูร 12 มาร 9) เทียบไม่ได้ · สาเหตุการตายวัดได้จากทุกคน จำนวนคนไม่กินข้าวรายงานแยกต่อสาย
+          สัดส่วนรอดถึงวัยชรายังรายงานเป็นข้อมูลประกอบ
       (ข) สถานการณ์ 5 แบบ (ปกติ/เสื่อม/ทรัพยากรน้อย/สงคราม/รุ่งเรือง) คู่พ่อแม่ 20 คู่ชุดเดียวกันคลอดผ่าน conceive/deliver จริง
           ผู้ได้เปรียบ = สายที่ลูกได้เพิ่มเทียบยุคปกติ (ยุคปกติยังมีการเปลี่ยนจากกลไกเกิดเดิม: ตัดสาย < 0.05 แล้วปรับสัดส่วน และ
           กลายพันธุ์ที่ตกไปสายสุดท้าย chaos — จึงหักฐานยุคปกติออก) ต้องไม่ใช่สายเดียวกันทุกสถานการณ์ · เสื่อม/ทรัพยากรน้อย = มนุษย์
@@ -707,6 +708,21 @@ def _survival_trial(state, sim):
         line = {c.cid: max(c.blood, key=c.blood.get) for c in cohort}
         reached = set()
         real_tick = sim._world_tick
+        # 4.4 สาเหตุการตาย (ผู้ใช้ตัดสิน): ทุกความตายในแดนมนุษย์ระหว่างช่วงบังคับ ทุกอายุ ทั้งคนกินและไม่กินข้าว
+        from tiandao import death as DEATH
+        causes = collections.defaultdict(collections.Counter)
+        no_food_dead = collections.Counter()
+        real_resolve = DEATH.resolve
+
+        def resolve(sim_, ch, cause, killer=None, natural=False):
+            if ch.alive and ch.world_id in mortal and ch.sentient and not ch.is_lord \
+                    and not getattr(ch, "is_beast", False) and not ch.is_chaos() and ch.blood:
+                blood = max(ch.blood, key=ch.blood.get)
+                causes[blood][_death_kind(cause, killer)] += 1
+                no_food_dead[blood] += not F.eats(ch)
+            real_resolve(sim_, ch, cause, killer, natural)
+
+        DEATH.resolve = resolve
 
         def world_tick(rng):
             _hold_state(sim, state)
@@ -728,7 +744,26 @@ def _survival_trial(state, sim):
         out[line[c.cid]][1] += c.cid in reached
     return dict(state=state, state_seen=state_seen, rows={k: tuple(v) for k, v in out.items()},
                 no_food=dict(no_food), no_food_why=dict(why),
+                causes={k: dict(v) for k, v in causes.items()}, no_food_dead=dict(no_food_dead),
                 years=round((sim.day / 365) - ADAPT_WARMUP_YEARS, 1))
+
+
+DEATH_KINDS = ("อดอยาก/ร่างกาย", "ถูกฆ่า", "อายุ", "อื่นๆ")
+_HUNGER_WORDS = ("อดอาหาร", "อดตาย", "ร่างเย็นจน", "ร่างร้อนจน")       # ไม่มีสาเหตุ "โรค" ในโค้ดเลย — ร่างกายล้มเพราะหิว/ร้อน/หนาว
+_KILLED_WORDS = ("สังหาร", "ประหาร", "สงคราม", "บาดแผล", "เลือดไหล", "ล่าอสูร", "อสูรบุก", "สิ้นชีพในการต่อ",
+                 "สละชีพในศึก", "กินเป็นอาหาร", "ล่าเอาแก่น", "ทรยศ")
+
+
+def _death_kind(cause, killer):
+    """หมวดของความตายจาก death_cause (และ killer) ที่ DEATH.resolve ได้รับ"""
+    cause = cause or ""
+    if any(w in cause for w in _HUNGER_WORDS):
+        return "อดอยาก/ร่างกาย"
+    if cause.startswith("สิ้นอายุขัย"):
+        return "อายุ"
+    if killer is not None or cause.startswith("ถูก") or any(w in cause for w in _KILLED_WORDS):
+        return "ถูกฆ่า"
+    return "อื่นๆ"
 
 
 def _eco_cap(key):
@@ -742,8 +777,9 @@ def _eco_cap(key):
 #   200 ปี (3.1 ต้อง 200 ปีหลังสุด) และโลก seed 16 400 ปี (4.1 ข, 4.2, 4.4 ก, 4.5 โลกไม่หยุดเดิน, รายงานระยะยาวของ 4.3 ก และ 4.4)
 @pytest.fixture(scope="module")
 def _fast_runs():
-    # งานสั้นทั้งหมดในพูลเดียว 6 โปรเซส ที่เหลือรอคิว — ไม่เปิดซิมพร้อมกันเกินจำเป็นจนไฟล์อื่นในชุดช้าลง
-    with multiprocessing.Pool(6) as pool:
+    # งานสั้นทั้งหมดในพูลเดียว 3 โปรเซส ที่เหลือรอคิว — ไฟล์นี้ช้าลงเองแต่แย่ง CPU กับอีก 3 worker ของ -n 4 น้อยลง
+    # (6 โปรเซส: ไฟล์นี้ 5.4 นาทีเมื่อรันเดี่ยว แต่ทั้งชุดรวม 56 นาที ทั้งที่รันแยกกันรวมได้ ~31 นาที)
+    with multiprocessing.Pool(3) as pool:
         nature = [pool.apply_async(_nature_trial, (d,)) for d in (False, True)]
         war = [pool.apply_async(_war_trial, (f,)) for f in (False, True)]
         survival = pool.apply_async(_survival_trials)
@@ -1109,29 +1145,34 @@ def test_axis4_4_longrun_survival_report(cycle):
                   UserWarning)
 
 
-def test_axis4_4_survival_forced_follows_world_state(mechanism):
-    """(ก-2) บังคับสถานการณ์ (_survival_trial): คนอายุ 45–61 ในแดนมนุษย์ทุกใบที่ต้องกินข้าว (food.eats) เดินต่อในสถานการณ์
-    ที่ถูกคงไว้จนทุกคนถึง 62 หรือตาย — ตัวตัดสิน = สัดส่วนที่รอดถึงวัยชรา (ผู้ใช้ตัดสิน) ต่อสายเลือดหลักที่มีคน ≥ SURVIVAL_MIN_DEATHS คน
-    สายที่รอดดีที่สุดต้องเปลี่ยนตามสถานการณ์ และเป็นมนุษย์ในยุคเสื่อม/ทรัพยากรน้อย"""
+def test_axis4_4_cause_of_death_follows_world_state(mechanism):
+    """(ก-3) บังคับสถานการณ์ — สาเหตุการตายแยกตามสายเลือดและสถานการณ์ (ผู้ใช้ตัดสิน: แทนการวัด "รอดถึงวัยชรา" ที่สายอื่นมีคน
+    กินข้าวไม่ถึง 30 คน) · ทุกความตายในแดนมนุษย์ระหว่างช่วงบังคับ ทุกอายุ ทั้งคนกินและไม่กินข้าว หมวดจาก death_cause เดิม
+    (อดอยาก/ร่างกาย · ถูกฆ่า · อายุ · อื่นๆ) เกณฑ์: สาเหตุหลักของแต่ละสาย (ที่มีผู้ตาย ≥ SURVIVAL_MIN_DEATHS) ต้องเปลี่ยนตาม
+    สถานการณ์ และเมื่อทรัพยากรน้อย สัดส่วนการตายเพราะอดอยากต้องเพิ่ม การตายเพราะถูกฆ่าต้องลด (เทียบยุคปกติ ทุกสายรวมกัน)"""
     runs = {r["state"]: r for r in mechanism["survival"]}
-    table, best, margin = {}, {}, {}
+    share, main = {}, collections.defaultdict(dict)
     for st, r in runs.items():
-        ok = {k: (n, got, got / n) for k, (n, got) in r["rows"].items() if n >= SURVIVAL_MIN_DEATHS}
-        table[st] = {k: (n, got, round(got / n, 3)) for k, (n, got) in r["rows"].items()}
-        if len(ok) >= 2:
-            ranked = sorted(ok, key=lambda k: -ok[k][2])
-            best[st] = ranked[0]
-            margin[st] = round(ok[ranked[0]][2] - ok[ranked[1]][2], 3)
-    msg = (f"  สายที่รอดถึงวัยชรามากที่สุด: {best} · ห่างจากอันดับสอง: {margin}\n"
-           f"  (คน, รอดถึง {OLD_AGE}, สัดส่วน) ต่อสถานการณ์ ต่อสาย: {table}\n"
-           f"  ไม่นำมาเทียบ — คนที่ไม่ต้องกินข้าว (ความหิวไม่ถึงตัว) ต่อสาย: {runs['ยุคปกติ']['no_food']} "
-           f"เหตุ {runs['ยุคปกติ']['no_food_why']}\n"
-           f"  สถานการณ์ที่ซิมเห็นจริง: {[(st, r['state_seen']) for st, r in runs.items()]} · เดิน {[r['years'] for r in runs.values()]} ปี")
+        total = collections.Counter()
+        for blood, c in r["causes"].items():
+            total.update(c)
+            n = sum(c.values())
+            if n >= SURVIVAL_MIN_DEATHS:
+                main[blood][st] = max(DEATH_KINDS, key=lambda k: c.get(k, 0))
+        n = sum(total.values())
+        share[st] = {k: round(total.get(k, 0) / n, 3) if n else 0.0 for k in DEATH_KINDS}
+    changes = {b: m for b, m in main.items() if len(m) == len(runs) and len(set(m.values())) > 1}
+    calm, lean = share["ยุคปกติ"], share["ทรัพยากรน้อย"]
+    msg = (f"  สัดส่วนสาเหตุการตาย (ทุกสายรวม) ต่อสถานการณ์: {share}\n"
+           f"  สาเหตุหลักต่อสาย (สายที่มีผู้ตาย ≥ {SURVIVAL_MIN_DEATHS}): {dict(main)}\n"
+           f"  ผู้ตายต่อสาย ต่อสาเหตุ: {[(st, r['causes']) for st, r in runs.items()]}\n"
+           f"  ผู้ตายที่ไม่ต้องกินข้าว ต่อสาย: {[(st, r['no_food_dead']) for st, r in runs.items()]}\n"
+           f"  ข้อมูลประกอบ — สัดส่วนรอดถึง {OLD_AGE} ของคนกินข้าวอายุ 45–61: "
+           f"{[(st, {k: (n, round(g / n, 3)) for k, (n, g) in r['rows'].items()}) for st, r in runs.items()]}")
     assert all(r["state_seen"] == st for st, r in runs.items()), "บังคับสถานการณ์ไม่ติด:\n" + msg
-    assert len(best) == len(runs), f"บางสถานการณ์มีสายที่มีคน ≥ {SURVIVAL_MIN_DEATHS} ไม่ถึงสองสาย:\n" + msg
-    assert len(set(best.values())) > 1, "สายที่รอดถึงวัยชรามากที่สุดเหมือนกันทุกสถานการณ์:\n" + msg
-    wrong = {st: best[st] for st in ("ยุคเสื่อม", "ทรัพยากรน้อย") if best.get(st) != "human"}
-    assert not wrong, "ยุคเสื่อม/ทรัพยากรน้อย สายที่รอดถึงวัยชรามากที่สุดไม่ใช่มนุษย์ (ไม่ตรงกลไก):\n" + msg
+    assert changes, "สาเหตุการตายหลักของทุกสายเหมือนเดิมทุกสถานการณ์:\n" + msg
+    assert lean["อดอยาก/ร่างกาย"] > calm["อดอยาก/ร่างกาย"] and lean["ถูกฆ่า"] < calm["ถูกฆ่า"], \
+        "ทรัพยากรน้อยแล้วสัดส่วนตายเพราะอดอยากไม่เพิ่ม หรือตายเพราะถูกฆ่าไม่ลด (เทียบยุคปกติ):\n" + msg
 
 
 def test_axis4_4_leader_changes_with_world_state(mechanism):

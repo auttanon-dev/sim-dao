@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ตรวจว่า "รวมกำลังกันปราบเจ้าโกลาหล" ทำงานจริง และยังยากอยู่
 
+ทั้งไฟล์อยู่ในชุดเต็ม (marker longrun): python -m pytest -q -n 4 -m "longrun or not longrun"
+
 ที่มา: วัดจากโลกที่เดิน 445 ปี พบว่าเจ้าโกลาหลปะทะ 176 ครั้งแล้วชนะทุกครั้ง — ไม่ใช่เพราะดวง แต่
 เพราะพลังมัน 145.1 ขณะที่คนแรงที่สุดทั้งจักรวาลได้ 94.1 และไม่มีทางเดินทางไปถึงถิ่นมันด้วยซ้ำ
 นิยายจากโลกนี้จึงไม่มีวันมีไคลแมกซ์ เทสต์นี้คุมสามอย่างที่ต้องจริงพร้อมกัน:
@@ -12,9 +14,15 @@
 import contextlib
 import io
 
+import pytest
+
 from tiandao import config as C
 from tiandao import rules as R
 from tiandao import sim as S
+
+# ชุดเต็มเท่านั้น: python -m pytest -q -n 4 -m "longrun or not longrun" (ซิมหลายโลกหลายร้อยปี setup ราว 8 นาที)
+# ทั้งไฟล์ ไม่ใช่แค่ test_no_solo_win — fixture lp ของเทสต์อื่นได้มาจากการรัน test_no_solo_win ใน main() อยู่ดี
+pytestmark = pytest.mark.longrun
 
 STEPS = 220000
 SEED = 2027

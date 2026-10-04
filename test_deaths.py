@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ความตายและการหักหลังต้องมีเหตุ — ทรยศ · ประลอง · สงครามเบิกฟ้า
 
+TestHeavenWar.test_over_a_long_run_the_sky_is_fought_for_not_walked_through อยู่ในชุดเต็ม (marker longrun): python -m pytest -q -n 4 -m "longrun or not longrun"
+
     python -m unittest test_deaths -v
 
 สามบั๊กที่ไฟล์นี้ล็อกไว้ (พบจากการไล่สาเหตุการตายทั้งจักรวาล 102 ปี):
@@ -16,6 +18,8 @@
 import contextlib
 import io
 import unittest
+
+import pytest
 
 from tiandao import config as C
 from tiandao import events as E
@@ -258,6 +262,8 @@ class TestHeavenWar(unittest.TestCase):
         self.assertGreater(up.defense_array, up.defense_max * 0.4,
                            "ถ้าไม่ตั้งค่ายกลใหม่ ประตูที่ปิดอีกครั้งจะถูกทุบเปิดได้ในหมัดเดียว")
 
+    # ชุดเต็มเท่านั้น: python -m pytest -q -n 4 -m "longrun or not longrun" (ราว 5.2 นาที)
+    @pytest.mark.longrun
     def test_over_a_long_run_the_sky_is_fought_for_not_walked_through(self):
         # รวมสามโลก (seed 11–13) — การทุบกำแพงฟ้าเป็นเหตุหายาก ต่อโลกแกว่ง 0–12 ครั้งใน 60,000 เหตุการณ์
         # โลกเดียวจึงได้ศูนย์ครั้งได้ทุกเมื่อที่เส้นทางเปลี่ยน โดยที่อัตราจริงไม่ได้เปลี่ยน

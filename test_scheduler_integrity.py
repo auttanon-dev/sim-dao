@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Verification test for a critical scheduler bug found while running a real --llm bootstrap job:
 
+test_long_run_never_exhausts_queue_prematurely อยู่ในชุดเต็ม (marker longrun): python -m pytest -q -n 4 -m "longrun or not longrun"
+
 tiandao/sim.py's step() pops a character into the loop variable `ch` (top of the main while-loop),
 then much later runs a "Demon Temptation" block every ~30 sim-days that used to write
 `for ch in living_now: ...` -- silently SHADOWING the outer `ch`. Every ~30 days, whichever
@@ -26,6 +28,8 @@ if sys.platform == "win32":
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import pytest
+
 from tiandao.sim import Sim
 
 
@@ -48,6 +52,8 @@ def test_alive_characters_always_have_a_pending_turn():
     print(f"  ✓ ตัวละครที่ยังมีชีวิตทั้ง {len(sim.alive_cids)} คน มี turn ค้างอยู่ใน queue ครบทุกคน")
 
 
+# ชุดเต็มเท่านั้น: python -m pytest -q -n 4 -m "longrun or not longrun" (ราว 5.4 นาที)
+@pytest.mark.longrun
 def test_long_run_never_exhausts_queue_prematurely():
     """รันยาวพอที่จะเคยชนบั๊กเดิมจริง (เดิมคิวว่างที่ราว 142,000 step() สำหรับ seed=42) -- ต้องไม่ว่างก่อนถึง
     จุดนั้นอีก มิฉะนั้น Sim.run() จะ 'if step() is None: break' หยุดซิมไปเงียบๆ ทั้งที่ควรรันต่อได้"""
