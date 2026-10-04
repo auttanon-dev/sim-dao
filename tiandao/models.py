@@ -511,7 +511,7 @@ class Character:
             return "เจ้าโกลาหล"
         if self.is_chaos():
             return C.CHAOS_RANKS[min(self.chaos_rank, len(C.CHAOS_RANKS) - 1)]
-        if self.blood.get("mara", 0.0) >= 0.85:
+        if self.blood.get("mara", 0.0) >= C.BLOOD_RACE_AT:
             return self.mara_rank()
         if self.race() == "อสูร":
             name = C.BEAST_RANKS[min(self.realm, len(C.BEAST_RANKS) - 1)]
@@ -532,7 +532,7 @@ class Character:
         b = self.blood
         top = max(C.BLOODS, key=lambda k: b.get(k, 0.0))
         v = b.get(top, 0.0)
-        if v >= 0.85:
+        if v >= C.BLOOD_RACE_AT:
             return {"human": "มนุษย์", "spirit": "สัตว์วิญญาณ", "demon": "อสูร",
                     "mara": "มารแท้", "chaos": "เลือดโกลาหล"}[top]
         if b.get("mara", 0) >= 0.3 and b.get("human", 0) >= 0.3:

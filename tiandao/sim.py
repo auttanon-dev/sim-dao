@@ -587,7 +587,7 @@ class Sim:
         blood = self.roll_blood(world)
         
         # Gender and Personality
-        gender = rng.choice(["ชาย", "หญิง"]) if blood.get("demon", 0) < 0.8 else rng.choice(["ชาย", "หญิง", "ไม่มีเพศ"])
+        gender = rng.choice(["ชาย", "หญิง"]) if blood.get("demon", 0) < C.BLOOD_RACE_AT else rng.choice(["ชาย", "หญิง", "ไม่มีเพศ"])
         fear = round(rng.uniform(0.1, 0.9), 2)
         greed = round(rng.uniform(0.1, 0.9), 2)
         compassion = round(rng.uniform(0.1, 0.9), 2)
@@ -618,7 +618,7 @@ class Sim:
             # เผ่าวิญญาณศักดิ์สิทธิ์: เดิม `is_spirit` ไม่เคยถูกตั้งเป็น True ที่ไหนเลยทั้งโปรเจกต์
             # สายเลือดวิญญาณมีอยู่จริง (วัดจริง 51 คนเลือดบริสุทธิ์ จาก 1,253 คน) แต่ "เผ่า" ในเชิง
             # พฤติกรรมไม่เคยมีอยู่ — บล็อกบัญชาสวรรค์ที่เขียนไว้จึงไม่เคยทำงานสักครั้ง
-            is_spirit=blood.get("spirit", 0.0) >= C.SPIRIT_PURE_AT,
+            is_spirit=blood.get("spirit", 0.0) >= C.BLOOD_RACE_AT,
             tribe=tribe, city_id=city_id
         )
         ch.traits = IN.pick_traits(rng)
@@ -649,7 +649,7 @@ class Sim:
         ch.inner_none = rng.random() < C.INNER_NONE_P
         ch.inner_art = (not ch.inner_none) and rng.random() < C.INNER_ART_P
         # อสูรระดับต่ำยังไม่มีจิตนึกคิด พอแก่กล้าจึงมี
-        if blood.get("demon", 0) > 0.8 and age_years < 60:
+        if blood.get("demon", 0) >= C.BLOOD_RACE_AT and age_years < 60:
             ch.sentient = False
         if ch.race() == "อสูร" and rng.random() < C.UNIQUE_BEAST_CHANCE:
             ch.is_unique_beast = True
@@ -1399,6 +1399,8 @@ class Sim:
         if lost > 0:
             blood[dst] = blood.get(dst, 0.0) + lost
         child.blood = R.normalize(blood)
+        # เผ่าวิญญาณตามเลือดจริงของลูก — เดิม is_spirit ค้างจากเลือดสุ่มตอน spawn ก่อนผสมจากพ่อแม่ (ปีที่ 30: ธง 97 คน ป้ายเผ่า 73 คน)
+        child.is_spirit = child.blood.get("spirit", 0.0) >= C.BLOOD_RACE_AT
         # ดวงรับพรสืบจากพ่อแม่ (ค่าเฉลี่ยของคนที่มีสายนั้น · ไม่มีใครมี = จุดกึ่งกลาง) — เดิมสุ่มใหม่ทุกคนเกิด
         # ไม่มีอะไรคงอยู่ข้ามรุ่น (test_world_coherence 4.4) · ไม่ทอยเลขเลย (ลดการสุ่ม ผู้ใช้อนุมัติ)
         mid = (C.BLOODLINE_AFFINITY_MIN + C.BLOODLINE_AFFINITY_MAX) / 2

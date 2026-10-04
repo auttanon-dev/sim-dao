@@ -772,9 +772,10 @@ def _eco_cap(key):
 
 
 # ------------------------------------------------------------------ สองชุด (pytest.ini: marker longrun)
-# ชุดเร็ว (ค่าตั้ง `pytest -q -n 4`): ทุกเกณฑ์ที่ไม่ต้องเดินโลกยาว — แกน 1–3 บน 5 seed × 60 ปี และเกณฑ์แกน 4 แบบบังคับสถานการณ์
-# ชุดเต็ม (`pytest -q -n 4 -m "longrun or not longrun"`): + เกณฑ์ที่ต้องเดินโลกยาว (ชื่อเทสต์มี longrun) — แกน 1–3 บน seed 11
-#   200 ปี (3.1 ต้อง 200 ปีหลังสุด) และโลก seed 16 400 ปี (4.1 ข, 4.2, 4.4 ก, 4.5 โลกไม่หยุดเดิน, รายงานระยะยาวของ 4.3 ก และ 4.4)
+# ชุดเร็ว (ค่าตั้ง `pytest -q -n 4`): เฉพาะเกณฑ์แกน 4 ที่บังคับสถานการณ์ได้ (4.1 ก, 4.3 ก/ข, 4.4, 4.5 ซ่อมผนึก)
+# ชุดเต็ม (`pytest -q -n 4 -m "longrun or not longrun"`): + เกณฑ์ที่ต้องเดินโลก (ชื่อเทสต์/พารามิเตอร์มี longrun) — แกน 1–3 บน
+#   5 seed × 60 ปี และ seed 11 200 ปี (3.1 ต้อง 200 ปีหลังสุด) และโลก seed 16 400 ปี (4.1 ข, 4.2, 4.4 ก, 4.5 โลกไม่หยุดเดิน,
+#   รายงานระยะยาวของ 4.3 ก และ 4.4)
 @pytest.fixture(scope="module")
 def _fast_runs():
     # งานสั้นทั้งหมดในพูลเดียว 3 โปรเซส ที่เหลือรอคิว — ไฟล์นี้ช้าลงเองแต่แย่ง CPU กับอีก 3 worker ของ -n 4 น้อยลง
@@ -785,27 +786,28 @@ def _fast_runs():
         survival = pool.apply_async(_survival_trials)
         mech = pool.apply_async(_cycle_mechanism)
         adapt = pool.apply_async(_adaptation_trial)
-        worlds = pool.map(_walk, SEEDS)
-        return worlds, dict(mech.get(), nature=[n.get() for n in nature], adapt=adapt.get(),
-                            war=[w.get() for w in war], survival=survival.get())
+        return dict(mech.get(), nature=[n.get() for n in nature], adapt=adapt.get(),
+                    war=[w.get() for w in war], survival=survival.get())
 
 
 @pytest.fixture(scope="module")
 def _long_runs():
-    with multiprocessing.Pool(2) as pool:
+    # ชุดเต็ม: โลกยาวทั้งหมด (seed 16 400 ปี, seed 11 200 ปี, 5 seed × 60 ปีของแกน 1–3) — หนึ่งโปรเซสต่อโลก ไม่รอคิว
+    with multiprocessing.Pool(len(SEEDS) + 2) as pool:
         cycle = pool.apply_async(_cycle_walk, (CYCLE_SEED,))
         long = pool.apply_async(_walk, (LONG_SEED, LONG_YEARS))
-        return [long.get()], cycle.get()
+        worlds = pool.map(_walk, SEEDS)
+        return [long.get()], cycle.get(), worlds
 
 
 @pytest.fixture(scope="module")
-def worlds(_fast_runs):
-    return _fast_runs[0]
+def worlds(_long_runs):
+    return _long_runs[2]
 
 
 @pytest.fixture(scope="module")
 def mechanism(_fast_runs):
-    return _fast_runs[1]
+    return _fast_runs
 
 
 @pytest.fixture(scope="module")
@@ -818,10 +820,12 @@ def cycle(_long_runs):
     return _long_runs[1]
 
 
-@pytest.fixture(scope="module", params=["fast_5seeds_60y", pytest.param("longrun_seed11_200y", marks=pytest.mark.longrun)])
+@pytest.fixture(scope="module", params=[pytest.param("longrun_5seeds_60y", marks=pytest.mark.longrun),
+                                        pytest.param("longrun_seed11_200y", marks=pytest.mark.longrun)])
 def axis_worlds(request):
-    """แกน 1–3 ตรวจทั้งสองชุด: ชุดเร็วบน 5 seed × 60 ปี และชุดเต็มบน seed 11 × 200 ปี (เกณฑ์เดียวกันทุกข้อ)"""
-    return request.param, request.getfixturevalue("worlds" if request.param.startswith("fast") else "long_worlds")
+    """แกน 1–3 อยู่ในชุดเต็มทั้งหมด (ผู้ใช้ตัดสิน: ชุดเร็วเก็บเฉพาะสถานการณ์ที่บังคับได้) — ตรวจบน 5 seed × 60 ปี และ seed 11 × 200 ปี
+    (เกณฑ์เดียวกันทุกข้อ)"""
+    return request.param, request.getfixturevalue("worlds" if "5seeds" in request.param else "long_worlds")
 
 
 def _report(worlds, prefixes):
@@ -855,7 +859,7 @@ def test_axis1_gold_conserved_except_declared_sources(axis_worlds):
 
 def test_axis1_enough_worlds_and_years(axis_worlds):
     suite, worlds = axis_worlds
-    if suite.startswith("fast"):
+    if "5seeds" in suite:
         assert len(worlds) >= 5, f"ตรวจแค่ {len(worlds)} seed"           # 1.4 อย่างน้อย 5 seed
     assert all(w["stats"]["day"] >= w["years"] * 365 for w in worlds),         [(w["seed"], w["stats"]["day"]) for w in worlds]
 
@@ -888,7 +892,7 @@ def test_axis2_no_unnoticed_corpse(axis_worlds):
 def test_axis3_last_200_years_connect(axis_worlds):
     """3.1 — ชุดเร็วตรวจเกณฑ์เดียวกันบน 5 seed × 60 ปี · ชุดเต็มตรวจ 200 ปีหลังสุดของ seed 11 ตามที่เกณฑ์กำหนด"""
     suite, worlds = axis_worlds
-    if not suite.startswith("fast"):
+    if "5seeds" not in suite:
         long = [w for w in worlds if w["seed"] == LONG_SEED]
         assert long and long[0]["stats"]["day"] >= LONG_YEARS * 365, "ไม่มีโลกที่เดินครบ 200 ปีให้ตรวจ"
     msg = _report(worlds, ("3.1",))
