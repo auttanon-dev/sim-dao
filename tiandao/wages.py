@@ -135,7 +135,7 @@ def earns_wages(ch, day) -> bool:
     """ทำงานรับค่าแรงจากตลาดท้องถิ่นรอบนี้ไหม"""
     if not (_present(ch, day) and ch.age(day) >= 14 and ch.realm < C.FOOD_BIGU_REALM
             and getattr(ch, "sentient", True) and not getattr(ch, "is_beast", False)
-            and not getattr(ch, "is_spirit", False) and not getattr(ch, "is_lord", False)):
+            and not getattr(ch, "is_lord", False)):   # เผ่าวิญญาณทำงานได้ — ร่างมนุษย์ (ผู้ใช้ตัดสิน กฎข้อ 5)
         return False
     # คนผลิตอาหารได้รายได้จากการขายข้าวแล้ว — ถ้าระบบอาหารปิด เขาก็เป็นแรงงานทั่วไปเหมือนคนอื่น
     return not (C.FOOD_ENABLED and ch.produces_food())

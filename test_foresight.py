@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ระบบจำลองอนาคต — นิมิตที่จริงเพราะโลกคำนวณได้ และมีราคาที่ต้องจ่าย
 
+test_looking_ahead_still_costs_only_seconds (เทสต์จับเวลา) อยู่ในชุดเต็ม: python -m pytest -q -n 4 -m "longrun or not longrun"
+
     python -m unittest test_foresight -v
 
 หลักคิด: โลกเดินด้วย RNG เมล็ดเดียวและคิวเดียว อนาคตจึงคำนวณได้จริง — สำเนาโลกแล้วเดินต่อ
@@ -11,6 +13,8 @@
 import contextlib
 import io
 import unittest
+
+import pytest
 
 from tiandao import config as C
 from tiandao import events as E
@@ -224,7 +228,11 @@ class TestTheVisionIsAboutHim(unittest.TestCase):
                         if c.alive and c.cid not in ties and c.place != ch.place)
         self.assertNotIn(stranger.cid, ties)
 
+    @pytest.mark.longrun
     def test_looking_ahead_still_costs_only_seconds(self):
+        """เทสต์จับเวลา — อยู่ในชุดเต็ม (marker longrun: python -m pytest -q -n 4 -m "longrun or not longrun")
+        เวลาที่วัดได้ไม่มีความหมายเมื่อรันขนานกับงานหนักอื่น (ชุดเร็วรันรวม 48 นาที ไฟล์นี้พังเพราะแย่ง CPU ไม่ใช่เพราะโค้ดช้า)
+        ย้ายไปรันในสภาวะที่วัดได้จริง ไม่ใช่ผ่อนเกณฑ์ — เพดาน 30 วินาทีเท่าเดิม"""
         import time
         sim, _w, ch = a_world()
         t0 = time.time()

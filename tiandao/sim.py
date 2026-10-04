@@ -587,7 +587,8 @@ class Sim:
         blood = self.roll_blood(world)
         
         # Gender and Personality
-        gender = rng.choice(["ชาย", "หญิง"]) if blood.get("demon", 0) < C.BLOOD_RACE_AT else rng.choice(["ชาย", "หญิง", "ไม่มีเพศ"])
+        # ทุกคนมีเพศ — ร่างกายมนุษย์อยู่เสมอทุกเผ่า (ผู้ใช้ตัดสิน กฎข้อ 5) เดิมอสูร ≥ 0.9 สุ่ม "ไม่มีเพศ" ได้ · ทอยครั้งเดียวเท่าเดิม
+        gender = rng.choice(["ชาย", "หญิง"])
         fear = round(rng.uniform(0.1, 0.9), 2)
         greed = round(rng.uniform(0.1, 0.9), 2)
         compassion = round(rng.uniform(0.1, 0.9), 2)
@@ -1385,8 +1386,12 @@ class Sim:
             child.insight += p_realm * 2.0
             child.refine += p_realm * 2.0
             d["ทายาทผู้ฝึกตน"] = f"{child.name} ได้รับพรสวรรค์มหาศาลตั้งแต่เกิด!"
-            v += rng.uniform(-CL.MUTATE, CL.MUTATE)
-            blood[kk] = max(0.0, v)
+            # กลายพันธุ์: เลขสุ่มตัวเดียวเท่าเดิม ใช้กับทุกสายที่ลูกมีจริงเท่ากัน (เลือดเป็นสัดส่วนที่ส่งต่อทางพันธุกรรม — ผู้ใช้ตัดสิน)
+            # เดิมบรรทัดนี้อยู่นอกลูป ค่า v/kk ค้างจากรอบสุดท้าย (chaos) — ลูกผู้ฝึกตนทุกคนได้เลือดโกลาหลจากที่ไม่มีที่มา
+            # (seed 16 ปีที่ 30/60/90: 195/215/237 คนที่พ่อแม่ไม่มีเลือดโกลาหลเลย)
+            m = rng.uniform(-CL.MUTATE, CL.MUTATE)
+            for kk in list(blood):
+                blood[kk] = max(0.0, blood[kk] + m)
         # สายเลือดไหลตามสภาวะโลกตอนเกิด (เดิม: วิญญาณ → อสูร SPIRIT_DILUTE ทุกรุ่นไม่ว่าโลกเป็นอย่างไร)
         # ขนาด = SPIRIT_DILUTE (ค่าเดิม) × ตัวคูณของสภาวะ · ทิศ = จากสายที่เสียเปรียบไปสายที่ได้เปรียบ (C.BLOOD_DRIFT)
         state = self.blood_state(w)
@@ -1399,6 +1404,9 @@ class Sim:
         if lost > 0:
             blood[dst] = blood.get(dst, 0.0) + lost
         child.blood = R.normalize(blood)
+        # โกลาหลเป็นการติดเชื้อ ไม่ใช่สัดส่วน (ผู้ใช้ตัดสิน กฎข้อ 7): ลูกที่ได้เลือดโกลาหลจากพ่อแม่ (ลูกของทาสโกลาหล) เป็นโกลาหลเต็มตัวตั้งแต่เกิด
+        if child.blood.get("chaos", 0.0) > 0.0:
+            child.blood = {"chaos": 1.0}
         # เผ่าวิญญาณตามเลือดจริงของลูก — เดิม is_spirit ค้างจากเลือดสุ่มตอน spawn ก่อนผสมจากพ่อแม่ (ปีที่ 30: ธง 97 คน ป้ายเผ่า 73 คน)
         child.is_spirit = child.blood.get("spirit", 0.0) >= C.BLOOD_RACE_AT
         # ดวงรับพรสืบจากพ่อแม่ (ค่าเฉลี่ยของคนที่มีสายนั้น · ไม่มีใครมี = จุดกึ่งกลาง) — เดิมสุ่มใหม่ทุกคนเกิด
@@ -3874,8 +3882,10 @@ class Sim:
             d["แก้ทาง"] = "รู้วิชาที่แก้ทางเผ่าโกลาหลได้"
         if v.alive and not v.thrall and rng.random() < C.CHAOS_THRALL_P:
             v.thrall = True
-            v.blood["chaos"] = v.blood.get("chaos", 0.0) + 0.2
-            R.normalize(v.blood)
+            # ติดเชื้อโกลาหล = เป็นโกลาหลเต็มตัวทันที ไม่เหลือส่วนของเผ่าเดิม (ผู้ใช้ตัดสิน กฎข้อ 7) — เดิมเพิ่มเลือดโกลาหลทีละ 0.2
+            # ร่างกายยังเป็นมนุษย์ (กฎข้อ 5): กินข้าว อายุขัย เพศ ทอง/ข้าวที่ถือ ไม่ได้อยู่ในเลือด บัญชีจึงไม่ขยับ
+            v.blood = {"chaos": 1.0}
+            v.is_spirit = False
             v.org = None
             d["ตกเป็นพวกมัน"] = f"{v.name}ยอมสวามิภักดิ์ — ได้รับการดูแล แต่เป็นทาสของมัน"
         self.emit(world, "โกลาหลบุก", c, v, ["ทำลาย", "ความตาย"], res,
