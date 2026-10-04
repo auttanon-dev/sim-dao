@@ -32,6 +32,10 @@ def resolve(sim, ch, cause, killer=None, natural=False):
     # P0 ด่าน: ตายแล้วไม่ตายซ้ำ เจ้าโกลาหลสลายไม่ใช่ตาย
     if not ch.alive:
         return
+    if killer is ch:
+        # คนที่อยู่ทั้งสองฝ่ายของสงครามสำนัก (สมาชิกสองสำนัก) ถูกนับเป็นผู้ฆ่าตัวเอง — `_killer_takes` วนย้ายของจาก
+        # ch.items เข้า killer.items ซึ่งคือลิสต์เดียวกัน = วนไม่จบจนหน่วยความจำหมด (MemoryError, seed 16 ปีที่ ~360)
+        killer = None
     before = _gold(sim) if C.DEATH_CHECK else None
     ch.alive = False
     ch.death_day = sim.day

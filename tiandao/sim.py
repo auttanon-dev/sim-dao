@@ -86,6 +86,10 @@ def city_office(type_desc):
     return dict(strictness=50, title="นายอำเภอ", faction="ราชสำนัก", name="หวังป๋อ", realm=3)
 
 
+_PLACE_SETS = {}   # ผัง -> frozenset ของสถานที่ (Sim._places_of)
+_CENTERS = {}      # ผัง -> สถานที่ศูนย์กลาง (Sim._world_center)
+
+
 class Sim:
     def __init__(self, seed=0, tiers=3):
         self.rng = random.Random(seed)
@@ -153,6 +157,7 @@ class Sim:
         self.mara_seal = getattr(C, "MARA_SEAL_INITIAL", 100.0)
         self.mara_seal_broken = False
         self.mara_seal_notified_weak = False
+        self.mara_seal_day = 0                   # วันที่มหาผนึกเดินปีล่าสุด (_mara_seal_tick)
 
         # เจ้าโกลาหล: พลังที่มันสะสมจากความตายทั่วจักรวาลระหว่างที่สลายอยู่ กับผนึกที่หยุดการสะสมนั้น
         self.lord_pool = 0.0
@@ -859,6 +864,18 @@ class Sim:
             old.n_mortal = max(0, old.n_mortal - 1)
             new.n_mortal += 1
         ch.world_id = new.wid
+        # ที่อยู่ต้องอยู่ในผังของแดนที่เจ้าของอยู่จริงเสมอ — เดิมข้ามฟ้า (resolve "ข้ามฟ้า") ย้ายแดนแต่ไม่ย้ายที่
+        # ตัวละครจึงอยู่ในสวรรค์ชั้นนอกที่สถานที่แดนลับของโลกล่าง (test_world_coherence 3.2: 498 เหตุการณ์ใน seed 11–15)
+        # แก้ที่จุดเดียวที่ทุกการย้ายแดนผ่าน: ที่ที่ไม่อยู่ในผังใหม่ → สถานที่แรกของแดนใหม่ (ทางเข้า) ไม่ใช้เลขสุ่ม
+        # ผู้เรียกที่เลือกที่ลงเอง (ถูกเกณฑ์ ลงโลกล่าง รับเด็กไปเลี้ยง) ตั้งทับหลังจากนี้ตามเดิม
+        layout = self._places_of(new.place_key)
+        if ch.place is None or ch.place not in layout:
+            entry = PL.places_in(new.place_key)
+            ch.place = entry[0] if entry else -1
+            ch.building = -1
+        if ch.travel_dest is not None and ch.travel_dest >= 0 and ch.travel_dest not in layout:
+            ch.travel_dest = -1
+            ch.building_dest = -1
         self._world_counts_dirty = True
         self._world_move_ver = getattr(self, "_world_move_ver", 0) + 1
 
@@ -871,6 +888,10 @@ class Sim:
     def marry(self, a, b):
         """แต่งงาน — ทางเดียวของการผูกคู่ครอง: ทั้งคู่ต้องยังโสด (หม้ายแต่งใหม่ได้) แล้วรวมครัวเรือน คืน True ถ้าแต่งจริง"""
         if a is b or a.spouse is not None or b.spouse is not None:
+            return False
+        if not a.alive or not b.alive:
+            # คนตายแต่งงานไม่ได้ — เดิม HH.marry ตั้งครัวเรือนใหม่ให้ศพเป็นหัวหน้า (seed 12 วัน 3347: ผู้ถูกสังหารวันนั้น
+            # ถูกเลือกเป็นคู่ของ "กำเนิดทายาท") ศพจึงค้างในครัวเรือนตลอดไป
             return False
         a.spouse, b.spouse = b.cid, a.cid
         HH.marry(self, a, b)
@@ -935,12 +956,49 @@ class Sim:
                 town[tier] = town.get(tier, 0.0) + gold
                 stats["to_settlement"] += gold
             ch.money[tier] = 0.0
-        if items_to_heirs and heirs:
-            regular = [i for i in ch.items if i in self.items and not self.items[i].legend]
+        if items_to_heirs:
+            self._settle_goods(ch, heirs, stats)
+
+    def _settle_goods(self, ch, heirs, stats):
+        """ของธรรมดา วัตถุดิบ และของในถุงของผู้ตายที่ไม่มีผู้ฆ่าริบ — ไปที่ทายาท ไม่มีทายาทลงบัญชี "ฝังไปกับศพ"
+
+        เดิมส่งต่อแค่ของธรรมดาเมื่อมีทายาท วัตถุดิบ (mat_stock) ของในถุง (inventory) และของเมื่อไม่มีทายาทค้างบนศพตลอดไป
+        (test_world_coherence 2.2: seed 11–15 วัตถุดิบ 3,990 ครั้ง ของ 106 ครั้ง) ของที่มีชื่อ (legend) ยังตามกฎเดิม
+        (ผนึกในแดนลับที่ death.resolve P8) ไม่มีทายาท: ของอยู่ใน sim.items ต่อแต่ไม่มีเจ้าของ บันทึกไว้ที่ buried_items
+        วัตถุดิบและของในถุงนับไว้ที่ buried_mats / buried_inventory — แบบเดียวกับ buried_gold ไม่มีของหายเงียบ"""
+        regular = [i for i in ch.items if i in self.items and not self.items[i].legend]
+        bag = {name: n for name, n in getattr(ch, "inventory", {}).items()
+               if isinstance(n, (int, float)) and not isinstance(n, bool) and n > 0}
+        mats = {name: n for name, n in getattr(ch, "mat_stock", {}).items() if n > 0}
+        if heirs:
             for n, iid in enumerate(regular):
                 heirs[n % len(heirs)].items.append(iid)
-                ch.items.remove(iid)
+            for store, goods in (("mat_stock", mats), ("inventory", bag)):
+                for name, qty in sorted(goods.items()):
+                    if isinstance(qty, int):                         # นับเป็นชิ้น: แบ่งเท่ากัน เศษไปทายาทคนแรก
+                        share, rest = divmod(qty, len(heirs))
+                        parts = [share + (1 if k < rest else 0) for k in range(len(heirs))]
+                    else:
+                        parts = [qty / len(heirs)] * len(heirs)
+                    for h, part in zip(heirs, parts):
+                        if part:
+                            held = getattr(h, store)
+                            held[name] = (held.get(name) or 0) + part
             stats["items_to_heirs"] += len(regular)
+            stats["mats_to_heirs"] = stats.get("mats_to_heirs", 0) + sum(mats.values())
+        else:
+            self.__dict__.setdefault("buried_items", []).extend(regular)
+            for store, goods in (("buried_mats", mats), ("buried_inventory", bag)):
+                buried = self.__dict__.setdefault(store, {})
+                for name, qty in goods.items():
+                    buried[name] = buried.get(name, 0) + qty
+            stats["items_buried"] = stats.get("items_buried", 0) + len(regular)
+            stats["mats_buried"] = stats.get("mats_buried", 0) + sum(mats.values())
+        for iid in regular:
+            ch.items.remove(iid)
+        ch.mat_stock = {}
+        for name in bag:
+            ch.inventory[name] = 0
 
     def org_head(self, org):
         """ผู้นำสำนักตอนนี้ — ผู้ก่อตั้งจนกว่าจะมีผู้สืบทอด"""
@@ -1329,16 +1387,27 @@ class Sim:
             d["ทายาทผู้ฝึกตน"] = f"{child.name} ได้รับพรสวรรค์มหาศาลตั้งแต่เกิด!"
             v += rng.uniform(-CL.MUTATE, CL.MUTATE)
             blood[kk] = max(0.0, v)
-        # สายเลือดวิญญาณเจือจางทุกรุ่น ส่วนที่หายไปกลายเป็นเลือดอสูร
-        lost = blood.get("spirit", 0.0) * CL.SPIRIT_DILUTE
-        blood["spirit"] = blood.get("spirit", 0.0) - lost
-        blood["demon"] = blood.get("demon", 0.0) + lost
+        # สายเลือดไหลตามสภาวะโลกตอนเกิด (เดิม: วิญญาณ → อสูร SPIRIT_DILUTE ทุกรุ่นไม่ว่าโลกเป็นอย่างไร)
+        # ขนาด = SPIRIT_DILUTE (ค่าเดิม) × ตัวคูณของสภาวะ · ทิศ = จากสายที่เสียเปรียบไปสายที่ได้เปรียบ (C.BLOOD_DRIFT)
+        state = self.blood_state(w)
+        srcs, dst, mult = C.BLOOD_DRIFT[state]
+        lost = 0.0
+        for src in srcs:
+            moved = blood.get(src, 0.0) * CL.SPIRIT_DILUTE * mult
+            blood[src] = blood.get(src, 0.0) - moved
+            lost += moved
+        if lost > 0:
+            blood[dst] = blood.get(dst, 0.0) + lost
         child.blood = R.normalize(blood)
-        # หลังผสมสายเลือดจริงแล้วจึงสุ่มดวงรับพรและตรึงปริมาณพรตามความเข้มข้นแรกเกิด
-        child.bloodline_affinity = {
-            line: round(rng.uniform(C.BLOODLINE_AFFINITY_MIN, C.BLOODLINE_AFFINITY_MAX), 4)
-            for line, share in child.blood.items() if share > 0.0
-        }
+        # ดวงรับพรสืบจากพ่อแม่ (ค่าเฉลี่ยของคนที่มีสายนั้น · ไม่มีใครมี = จุดกึ่งกลาง) — เดิมสุ่มใหม่ทุกคนเกิด
+        # ไม่มีอะไรคงอยู่ข้ามรุ่น (test_world_coherence 4.4) · ไม่ทอยเลขเลย (ลดการสุ่ม ผู้ใช้อนุมัติ)
+        mid = (C.BLOODLINE_AFFINITY_MIN + C.BLOODLINE_AFFINITY_MAX) / 2
+        child.bloodline_affinity = {}
+        for line, share in child.blood.items():
+            if share <= 0.0:
+                continue
+            got = [p.bloodline_affinity[line] for p in (a, t) if line in (p.bloodline_affinity or {})]
+            child.bloodline_affinity[line] = round(sum(got) / len(got) if got else mid, 4)
         child.bloodline_grants = {}
         self.apply_bloodline_buff(child)
         child.parents = [a.cid, t.cid]
@@ -1358,7 +1427,8 @@ class Sim:
         a.bonds[t.cid] = a.bonds.get(t.cid, 0) + 2
         d["ทายาท"] = f"{child.name} — {child.race()} รุ่นที่ {child.generation}"
         if lost > 0.01:
-            d["สายเลือดเจือจาง"] = f"เลือดวิญญาณลดลง {lost*100:.0f}% กลายเป็นเลือดอสูร"
+            d["สายเลือดเจือจาง"] = (f"{state}: เลือด{'/'.join(C.BLOOD_TH[s] for s in srcs)}ลดลง "
+                                    f"{lost*100:.0f}% กลายเป็นเลือด{C.BLOOD_TH[dst]}")
         clan = CL.CLANS[child.clan][0] if child.clan >= 0 else "ไร้ตระกูล"
         d["child_id"] = child.cid
         if C.GUARDIANS_ENABLED:
@@ -2044,6 +2114,7 @@ class Sim:
         if key not in self.place_stock:
             cap = C.ECO_KINDS[key[2]][0]
             self.place_stock[key] = cap
+            self._eco_dirty()
             self._material_flow("genesis", cap)
         return key
 
@@ -2083,6 +2154,7 @@ class Sim:
             self._material_flow("regrown", stock - old)
             self.place_stock[key] = stock
             self._update_eco_state(key, stock)
+        self._eco_dirty()
 
     def eco_harvest(self, wid, place_idx, amount, kind=None, cause="harvested"):
         """เอาออกจากคลังชนิด `kind` ไม่เกินที่มี — คืนหน่วยที่ได้จริง ผู้เรียกให้ของตามนี้เท่านั้น"""
@@ -2091,6 +2163,7 @@ class Sim:
         key = self._eco_key(wid, place_idx, kind)
         taken = min(amount, self.place_stock[key])
         self.place_stock[key] -= taken
+        self._eco_dirty()
         self._material_flow(cause, taken)
         self._update_eco_state(key, self.place_stock[key])
         return taken
@@ -2102,6 +2175,63 @@ class Sim:
         key = self._eco_key(wid, place_idx, kind)
         n = min(int(units), int(self.place_stock[key] + 1e-9))
         return int(round(self.eco_harvest(wid, place_idx, float(n), kind))) if n > 0 else 0
+
+    def blood_state(self, world):
+        """สภาวะโลกที่สายเลือดของทารกปรับตามตอนเกิด: สงคราม > ทรัพยากรน้อย > ยุคของแดน (เสื่อม/ปกติ/รุ่งเรือง)
+        สงคราม = มหาศึกโกลาหลกำลังถล่มโลกมนุษย์ (crises.chaos_campaign) และทารกเกิดในแดนมนุษย์"""
+        if world.kind == "mortal" and getattr(self, "chaos_campaign", None):
+            return "สงคราม"
+        if self.is_scarce(world):
+            return "ทรัพยากรน้อย"
+        return world.state()
+
+    def eco_mean(self, world):
+        """ค่าเฉลี่ย eco_ratio ของคลังวัตถุดิบที่มีอยู่ในแดน (0..1) — แดนที่ยังไม่มีใครแตะคลังเลย = 1.0
+        คำนวณทุกแดนในรอบเดียวแล้วจำไว้ (ถูกถามทุกการเกิด ทุกรอบอาหาร และทุกการทอยภัย — สแกนแยกแดนละรอบทำให้ซิมช้าลงเท่าตัว)
+        แคชถูกล้างทุกครั้งที่ place_stock เปลี่ยน (_eco_dirty) จึงเท่ากับคำนวณใหม่เสมอ — เข้าเซฟไปก็ได้ค่าเดียวกับคำนวณใหม่"""
+        sums = self.__dict__.get("_eco_means")
+        if sums is None:
+            acc = {}
+            for k, v in self.place_stock.items():
+                s = acc.setdefault(k[0], [0.0, 0])
+                s[0] += min(1.0, v / C.ECO_KINDS[k[2]][0])
+                s[1] += 1
+            sums = self._eco_means = {wid: s / n for wid, (s, n) in acc.items()}
+        return sums.get(world.wid, 1.0)
+
+    def _eco_dirty(self):
+        self.__dict__.pop("_eco_means", None)
+
+    def is_scarce(self, world):
+        """แดนอยู่ในสถานะ "ทรัพยากรน้อย" — คลังเฉลี่ยต่ำกว่าเกณฑ์ขาดแคลนเดิมของระบบนิเวศ (ECO_SCARCE_RATIO)"""
+        return self.eco_mean(world) < C.ECO_SCARCE_RATIO
+
+    def nature_damage(self, world):
+        """ดัชนีความเสียหายของธรรมชาติในแดน 0..1 — คำนวณจากสภาวะที่สะสมจริงทั้งหมด ไม่มีตัวนับใหม่ ไม่สุ่ม
+
+        ทรัพยากรหมด (น้ำหนักหลัก NATURE_W_RESOURCE): 1 − ค่าเฉลี่ย eco_ratio ของคลังที่มีอยู่ในแดน (ลดเมื่อเก็บเกินกำลังผลิต
+          และภัยแล้ง ฟื้นแบบลอจิสติกช้าเมื่อเหลือน้อย — จึงสะสม) ผสมกับต้นไม้โลกที่ถูกใช้/ตาย (tree_vitality / capacity)
+        พลังฟ้าฟุ่มเฟือย (NATURE_W_HEAVEN): 1 − heaven/cap — ถูกถอนไปข้ามขั้น ขุด ดึงปราณ
+        สงคราม (NATURE_W_WAR): สัดส่วนสถานที่ในแดนที่ยังมีรอยเลือดในช่วงจำของวงจรแค้น (blood_marks จากการฆ่าจริง)"""
+        eco_loss = 1.0 - self.eco_mean(world)
+        if getattr(self, "tree_vitality", None) is not None:
+            tree_loss = 1.0 - (min(1.0, self.tree_vitality / max(1e-9, WT.capacity(self)))
+                               if self.tree_alive else 0.0)
+            resource = (1 - C.NATURE_TREE_SHARE) * eco_loss + C.NATURE_TREE_SHARE * tree_loss
+        else:
+            resource = eco_loss
+        heaven = 1.0 - min(1.0, world.heaven / max(1e-9, world.cap()))
+        places = PL.places_in(world.place_key)
+        book = getattr(self, "blood_marks", None) or {}
+        cut = self.day - C.FEUD_HALF_LIFE_DAYS * C.FEUD_KEEP_HALFLIVES
+        war = (sum(1 for p in places if any(t >= cut for t in book.get(p, ()))) / len(places)) if places else 0.0
+        dmg = C.NATURE_W_RESOURCE * resource + C.NATURE_W_HEAVEN * heaven + C.NATURE_W_WAR * war
+        return max(0.0, min(1.0, dmg))
+
+    def nature_speedup(self, world):
+        """ตัวคูณจังหวะธรรมชาติ = 1 + NATURE_SPEEDUP_MAX × damage (เร็วขึ้นไม่เกิน 50%) — ใช้กับภัยตามฤดู
+        การเสื่อมของมหาผนึก และแรงกดดันมหาศึกโกลาหล (test_world_coherence 4.3)"""
+        return 1.0 + C.NATURE_SPEEDUP_MAX * self.nature_damage(world)
 
     def _update_eco_state(self, key, stock):
         """สถานะขาดแคลนของชนิดหลักของที่นั้น (คีย์ (แดน, สถานที่)) ค้างอยู่จนกว่าจะฟื้นข้ามเกณฑ์ recover จริง"""
@@ -2128,6 +2258,57 @@ class Sim:
         self.eco_day = self.day
         self.eco_regen(elapsed)
 
+    def _mara_seal_tick(self, rng):
+        """มหาผนึกหมื่นมารเดินปีละครั้ง: เสื่อมตามเวลา + แรงสั่นสะเทือน (สุ่มปีละครั้ง) + ฝ่ายธรรมะซ่อมเมื่ออ่อนแอ
+
+        เดิมคำนวณใน _next_turn ซึ่งคือ **ต่อเทิร์นของตัวละคร** — MARA_SEAL_SHOCK_P = 0.04 จึงถูกสุ่มหลายพันครั้งต่อปี
+        (แรงสั่นราว 1.75% × หลายร้อยครั้ง) ผนึกพังในปีที่ 5 ทั้งที่การเสื่อมตามเวลา 0.5%/ปี ต้องใช้ 200 ปี และ
+        MARA_SEAL_REPAIR_P ถูกตั้งไว้แต่ไม่มีใครเรียก ผนึกที่พังจึงไม่มีวันกลับ (test_world_coherence 4.5)"""
+        if getattr(self, "mara_seal_day", None) is None:
+            self.mara_seal_day = self.day       # เซฟเก่า: ผนึกเสื่อมถึงวันนี้แล้วด้วยวิธีเดิม เริ่มนับปีจากตอนนี้
+        years = (self.day - self.mara_seal_day) // 365
+        if years <= 0:
+            return
+        self.mara_seal_day += years * 365
+        mortal = self.worlds[0]
+        decay = years * C.MARA_SEAL_DECAY_PER_YEAR * self.nature_speedup(mortal)   # โลกที่ถูกรีดหนัก ผนึกเสื่อมเร็วขึ้น
+        if rng.random() < C.MARA_SEAL_SHOCK_P:            # ปีละครั้ง ไม่ใช่ต่อเทิร์น
+            decay += rng.uniform(0.5, 3.0)
+        self.mara_seal = max(0.0, self.mara_seal - decay)
+        if self.mara_seal <= C.MARA_SEAL_WEAK_THRESHOLD and not self.mara_seal_notified_weak and not self.mara_seal_broken:
+            self.mara_seal_notified_weak = True
+            self.emit(mortal, "มหาผนึกสั่นคลอน", None, None, ["ทำลาย"], "ผนึกอ่อนแอ",
+                      f"⚠️⚡ [มหาผนึกสั่นคลอน] แดนลับรอยแยกผนึกหมื่นมารสะกดโลกเริ่มอ่อนกำลังลง (เหลือ {self.mara_seal:.1f}%) ไอปีศาจเริ่มรั่วไหลสู่โลกมนุษย์!",
+                      0, {"พลังผนึก": f"{self.mara_seal:.1f}%"})
+        if self.mara_seal <= C.MARA_SEAL_BROKEN_THRESHOLD and not self.mara_seal_broken:
+            self.mara_seal_broken = True
+            self.emit(mortal, "มหาผนึกแตกพัง", None, None, ["ทำลาย", "ความตาย"], "ผนึกพังทลาย",
+                      f"🚨💀 [มหาผนึกแตกพัง] มหาผนึกสะกดหมื่นมารในแดนลับรอยแยกพังทลายลงแล้ว! แดนมารและโลกมนุษย์เชื่อมต่อถึงกันโดยสมบูรณ์!",
+                      0, {"พลังผนึก": "พังทลาย (0.0%)", "สัญจร": "เปิดทางเชื่อมต่อโลกมนุษย์-แดนมาร"})
+        if self.mara_seal >= C.MARA_SEAL_WEAK_THRESHOLD:
+            return
+        # ซ่อม: ผู้บำเพ็ญฝ่ายธรรมะในโลกมนุษย์ (แดนที่ผนึกตั้งอยู่) — ไม่มีใครพอ ผนึกก็พังต่อไป
+        crew = sorted((c for c in self.living_in(mortal.wid)
+                       if c.moral >= C.MARA_SEAL_REPAIR_MORAL and c.realm >= C.MARA_SEAL_REPAIR_REALM
+                       and not c.is_chaos() and not c.hidden),
+                      key=lambda c: (-c.realm, c.cid))[:C.MARA_SEAL_REPAIR_CREW]
+        if not crew or rng.random() >= C.MARA_SEAL_REPAIR_P:
+            return
+        before = self.mara_seal
+        self.mara_seal = min(C.MARA_SEAL_INITIAL,
+                             self.mara_seal + sum(c.realm for c in crew) * C.MARA_SEAL_REPAIR_PER_REALM)
+        was_broken = self.mara_seal_broken
+        if self.mara_seal > C.MARA_SEAL_BROKEN_THRESHOLD:
+            self.mara_seal_broken = False
+        if self.mara_seal > C.MARA_SEAL_WEAK_THRESHOLD:
+            self.mara_seal_notified_weak = False
+        lead = crew[0]
+        self.emit(mortal, "ซ่อมมหาผนึก", lead, None, ["ปกป้อง"],
+                  "ผนึกกลับคืน" if was_broken and not self.mara_seal_broken else "ซ่อมสำเร็จ",
+                  f"{lead.name}นำผู้บำเพ็ญฝ่ายธรรมะ {len(crew)} คนซ่อมมหาผนึกหมื่นมาร "
+                  f"({before:.1f}% → {self.mara_seal:.1f}%)", 0,
+                  {"พลังผนึก": f"{self.mara_seal:.1f}%", "ผู้ร่วมซ่อม": ", ".join(c.name for c in crew)})
+
     def _world_tick(self, rng):
         """งานประจำของโลกหนึ่งรอบ ณ วันที่นาฬิกาโลกนัดไว้ แล้วนัดรอบถัดไป"""
         self.day = max(self.day, self.world_tick_day)
@@ -2148,6 +2329,7 @@ class Sim:
             self.prune_day = self.day
             self.prune_departed()
         WT.tick(self, rng)      # ต้นไม้โลกในแดนลับต้นกำเนิด (ดู tiandao/worldtree.py)
+        self._mara_seal_tick(rng)
         # เดิมเรียกทุกเหตุการณ์ ซึ่งวน 126 แดนทุกครั้งเพื่อบวกทรัพยากรของไม่กี่วัน —
         # โปรไฟล์จริง: 5.0 วินาทีจาก 100 (5%) โดยได้ผลเท่ากันทุกประการถ้าสะสมเป็นก้อน
         if self.day - getattr(self, "_portal_regen_day", -10**9) >= C.WORLD_TICK_DAYS:
@@ -2215,11 +2397,15 @@ class Sim:
                     # และโรงงานนิยายมองไม่เห็นเลยสักครั้ง วัดจริง 121 ปี: 0 บรรทัดใน log
                     self.emit(self.worlds[0], "บัญชาสวรรค์", hunter, target,
                               ["ต่อสู้", "ความตาย"],
-                              "สังหารมารสำเร็จ" if not target.alive else "มารหนีรอด",
+                              # ผู้ล่าตายในศึกนี้ได้ (lethal=True) — ผลต้องบอกความตายของผู้ล่า ไม่ใช่ "มารหนีรอด"
+                              # เฉยๆ ราวกับผู้ล่ายังอยู่ (test_world_coherence 3.1: ศพเป็นผู้กระทำในเทิร์นเดียวกัน)
+                              "ตาย" if not hunter.alive else ("สังหารมารสำเร็จ" if not target.alive else "มารหนีรอด"),
                               f"{hunter.name}แห่งเผ่าวิญญาณศักดิ์สิทธิ์รับบัญชาสวรรค์ "
-                              f"บุกสังหาร{target.name}ผู้ตกเป็นมาร เพื่อรักษาสมดุลของโลก",
+                              f"บุกสังหาร{target.name}ผู้ตกเป็นมาร เพื่อรักษาสมดุลของโลก"
+                              + ("" if hunter.alive else f" แต่{hunter.name}ดับสิ้นในศึกนั้นเอง"),
                               0, {"เหตุแห่งบัญชา": "เผ่าวิญญาณศักดิ์สิทธิ์ล้างมารตามหน้าที่",
-                                  "ชะตาของมาร": "ดับสูญ" if not target.alive else "รอดไปได้"})
+                                  "ชะตาของมาร": "ดับสูญ" if not target.alive else "รอดไปได้",
+                                  "ชะตาของผู้ล่า": "ดับสิ้น" if not hunter.alive else "รอดกลับมา"})
             
             # Demon Temptation (Possession) — ตัวแปรลูปตั้งชื่อ pc ตั้งใจ ห้ามใช้ ch ซ้ำ: บั๊กจริงที่เจอ
             # ตอนรัน --llm scale ยาว — "for ch in living_now" เดิมทับตัวแปร ch ของตัวละครที่เพิ่ง pop
@@ -2351,7 +2537,8 @@ class Sim:
             if notes is not None:
                 self.emit(w, "ยุคล่ม", None, None, ["ความตาย"], "วัฏจักร",
                           f"{w.name} สิ้นพลังฟ้า ยุคหนึ่งจบลง ผู้ล่วงลับ {len(notes)} คน",
-                          0, {"โลกตกระดับ": f"เหลือชั้น {w.tier}"})
+                          0, {"โลกตกระดับ": f"เหลือชั้น {w.tier}",
+                              "ผู้ล่วงลับ": ", ".join(notes)})
 
         CRISES.tick(self)
 
@@ -2745,25 +2932,6 @@ class Sim:
             return self.emit(world, "สิ้นอายุขัย", actor, None, ["ความตาย"], "ตาย",
                              f"{actor.name}สิ้นอายุขัย", elapsed, {})
 
-        # การเสื่อมสลายของมหาผนึกหมื่นมารตามกาลเวลาและแรงสั่นสะเทือน
-        if elapsed > 0:
-            seal_decay = (elapsed / 365.0) * getattr(C, "MARA_SEAL_DECAY_PER_YEAR", 0.5)
-            if rng.random() < getattr(C, "MARA_SEAL_SHOCK_P", 0.04):
-                shock = rng.uniform(0.5, 3.0)
-                seal_decay += shock
-            if seal_decay > 0:
-                self.mara_seal = max(0.0, self.mara_seal - seal_decay)
-                if self.mara_seal <= getattr(C, "MARA_SEAL_WEAK_THRESHOLD", 30.0) and not self.mara_seal_notified_weak and not self.mara_seal_broken:
-                    self.mara_seal_notified_weak = True
-                    self.emit(self.worlds[0], "มหาผนึกสั่นคลอน", None, None, ["ทำลาย"], "ผนึกอ่อนแอ",
-                              f"⚠️⚡ [มหาผนึกสั่นคลอน] แดนลับรอยแยกผนึกหมื่นมารสะกดโลกเริ่มอ่อนกำลังลง (เหลือ {self.mara_seal:.1f}%) ไอปีศาจเริ่มรั่วไหลสู่โลกมนุษย์!",
-                              0, {"พลังผนึก": f"{self.mara_seal:.1f}%"})
-                if self.mara_seal <= getattr(C, "MARA_SEAL_BROKEN_THRESHOLD", 0.0) and not self.mara_seal_broken:
-                    self.mara_seal_broken = True
-                    self.emit(self.worlds[0], "มหาผนึกแตกพัง", None, None, ["ทำลาย", "ความตาย"], "ผนึกพังทลาย",
-                              f"🚨💀 [มหาผนึกแตกพัง] มหาผนึกสะกดหมื่นมารในแดนลับรอยแยกพังทลายลงแล้ว! แดนมารและโลกมนุษย์เชื่อมต่อถึงกันโดยสมบูรณ์!",
-                              0, {"พลังผนึก": "พังทลาย (0.0%)", "สัญจร": "เปิดทางเชื่อมต่อโลกมนุษย์-แดนมาร"})
-
         # งานประมูลใหญ่ของตลาด — เหตุการณ์ของ "สถานที่" ไม่ใช่ของอาชีพ
         # วัดจากรันจริง 79 ปี: ผู้มีจิตใจได้เข้างานประมูลแค่ครั้งเดียว เพราะท่า "เปิดประมูล" เปิดให้เฉพาะ
         # พ่อค้า (หลงจู๊/เถ้าแก่/นักประมูล) ซึ่งแทบไม่มีใครในกลุ่มตัวเอก ฉากหมู่จึงไม่เคยเกิด
@@ -2830,6 +2998,11 @@ class Sim:
         # Prepare peers, eligibility, targets and action funds in the actor's
         # current world, after those events, rather than the world of this turn's start.
         world = self.world(actor.world_id)
+        # เหตุการณ์ระดับโลกข้างบน (มารบุก ศึกพันธมิตร ผนึกเจ้าโกลาหล โกลาหลบุก โกลาหลดิ่งลง) รันกลางเทิร์นของ actor
+        # หลังจากตรวจว่ายังมีชีวิตแล้ว และฆ่า actor เองได้ — เดิมเทิร์นเดินต่อจนศพเป็นผู้กระทำ (seed 12: event 24729
+        # โกลาหลบุกสังหาร cid 409 แล้ว 24730 ให้ 409 "กำเนิดทายาท") จบเทิร์นที่นี่ด้วยเหตุการณ์ล่าสุด ไม่จัดคิวให้ศพ
+        if not actor.alive:
+            return self.log[-1] if self.log else None
 
         # เด็กมีชีวิตและประวัติของตัวเอง แต่ยังไม่ใช้เมนูการกระทำของผู้ใหญ่ การปล่อยลงไป
         # ใน intent ปกติเคยทำให้ทารกอายุ 0 ปีประลอง ปล้น ปิดด่าน และตายจากการล่าอสูร
@@ -3092,6 +3265,12 @@ class Sim:
         gap = rng.randint(*ev["gap"])
         before = IN.snapshot(actor)
         outcome, text, d = self.resolve(ev, actor, target, world, gap, rng)
+        # ผู้ลงมือตายระหว่างการกระทำของตัวเอง (ข้ามขั้นพลาด, สู้ในเมืองแพ้ ฯลฯ) — ผลต้องบอกว่าตาย
+        # ไม่ใช่ผลปกติของการกระทำ ไม่งั้นบันทึกจะเป็นคนตายแล้วยังลงมือในเทิร์นเดียวกัน
+        if not actor.alive and outcome not in C.BLOODY_OUTCOMES:
+            d = dict(d or {})
+            d["ผลก่อนสิ้นชีพ"] = outcome
+            outcome = "ตาย"
         IN.learn_from_outcome(actor, ev["kind"], before, IN.snapshot(actor))
         if ev["kind"] == "ค้นแดนลับ" and actor.rumor_leads:
             actor.rumor_leads = [l for l in actor.rumor_leads if l["kind"] != "แดนลับ"]
@@ -3173,9 +3352,12 @@ class Sim:
                 d["แก้ทาง"] = "ผู้ต้านทานรู้วิชาที่แก้ทางเผ่าโกลาหล"
             if win is not c:
                 world.rift = max(0.0, world.rift - C.RIFT_GROWTH)
-                self.emit(world, "โกลาหลบุกโลกมนุษย์", c, v, ["ทำลาย", "ต่อสู้"], "ถูกขับไล่",
+                # แพ้ศึกอาจถึงตาย (R.fight ฆ่าผู้แพ้ได้) — ผลต้องบอกว่าตาย ไม่ใช่แค่ถูกขับไล่กลับไป
+                self.emit(world, "โกลาหลบุกโลกมนุษย์", c, v, ["ทำลาย", "ต่อสู้"],
+                          "ถูกขับไล่" if c.alive else "ตาย",
                           f"{c.name}({c.realm_name()}) ทะลุรูหนอนลงมาถล่ม{spot_name} "
-                          f"แต่ถูก{v.name}ขับไล่กลับไป", elapsed, d)
+                          + (f"แต่ถูก{v.name}ขับไล่กลับไป" if c.alive else f"แต่สิ้นชีพด้วยมือ{v.name}"),
+                          elapsed, d)
                 return
         # ทำลายสถานที่ + กลืนกินแร่และของที่นั่น
         self.ruined[spot] = self.day + C.RUIN_YEARS * 365
@@ -3227,7 +3409,10 @@ class Sim:
         (ไม่ได้นับว่าเขาเป็นคนเปลี่ยนเอง — โลกอาจเบนไปเพราะอย่างอื่นก็ได้ ซึ่งก็ยังเป็นเรื่องเล่า:
          "สิ่งที่ข้าเห็นไม่เกิดขึ้น" กับ "สิ่งที่ข้าเห็นเกิดขึ้นทั้งที่ข้าพยายามแล้ว")
         """
-        for ch in self.living():
+        # ตัดสินนิมิตที่หมดอายุของ "ทุกคน" ไม่ใช่แค่คนที่ยังมีชีวิต — เดิมวน self.living() นิมิตของผู้เห็นที่ตายไปแล้วจึงค้างไม่ถูก
+        # ตัดสินตลอดกาล · ผู้เห็นที่ตายแล้วได้แค่นับผล (คนตายลงมือเป็นผู้กระทำเหตุการณ์ไม่ได้ — test_world_coherence 3.1)
+        # แต่ละนิมิตถูกลบทันทีที่ตัดสิน จึงนับครั้งเดียวเสมอ
+        for ch in self.cast:
             seen = getattr(ch, "foreseen", None)
             if not seen:
                 continue
@@ -3241,6 +3426,12 @@ class Sim:
                     continue
                 other = self.cast[cid]
                 w = self.world(ch.world_id)
+                if not ch.alive:
+                    if other.alive or abs(other.death_day - day) > C.FORESIGHT_GRACE_DAYS:
+                        ch.fate_changed += 1
+                    else:
+                        ch.fate_kept += 1
+                    continue
                 if other.alive:
                     ch.fate_changed += 1
                     self.emit(w, "เปลี่ยนชะตา", ch, other, ["ตัดสินใจ", "รู้แจ้ง"], "ชะตาเปลี่ยนไป",
@@ -3259,6 +3450,17 @@ class Sim:
                                # เดิมเขียนว่า "ฝืนชะตาไม่สำเร็จ" ซึ่งไม่จริงในกรณีส่วนใหญ่ — เขา
                                # ไม่ได้พยายามฝืนอะไรเลย ตัวนับนี้นับแค่ว่านิมิตที่เห็นไว้เป็นจริง
                                "นิมิตที่เป็นจริงแล้ว": f"{ch.fate_kept} ครั้ง"})
+                else:
+                    # ตายแต่ไม่ตรงวันที่เห็น (ก่อนหรือหลังเกินช่วงผ่อนผัน) — เดิมนิมิตถูกลบเงียบๆ ไม่นับไม่บันทึก
+                    # สิ่งที่เห็นไว้ไม่เกิดขึ้นตามนั้น = ชะตาเบนไป นับเป็นเปลี่ยนชะตา แต่บอกตรงๆ ว่านิมิตไม่เป็นจริง
+                    ch.fate_changed += 1
+                    when = "ก่อน" if other.death_day < day else "หลัง"
+                    self.emit(w, "เปลี่ยนชะตา", ch, other, ["ความตาย", "รู้แจ้ง"], "นิมิตไม่เป็นจริง",
+                              f"{other.name}ตาย{when}วันที่{ch.name}เห็นในนิมิต — สิ่งที่เห็นไว้ไม่เกิดขึ้นตามนั้น", 0,
+                              {"สิ่งที่เห็นไว้": f"{other.name}จะตายวันที่ {day} ({E.date_words(day)})",
+                               "สิ่งที่เกิดขึ้นจริง": f"ตายวันที่ {other.death_day} ({E.date_words(other.death_day)}) "
+                                                     f"— {getattr(other, 'death_cause', '')}",
+                               "เปลี่ยนชะตาได้แล้ว": f"{ch.fate_changed} ครั้ง"})
 
     def seclusion_diff(self, ch, world, yrs):
         """โลกเปลี่ยนไปอะไรระหว่างที่เขาอยู่ในด่าน — หัวใจของการกระโดดข้ามเวลาแบบรู้ตัว
@@ -4719,6 +4921,7 @@ class Sim:
             if sum(got.values()) < n:                        # ชิ้นที่สุ่มไม่ได้อะไรคืนคลัง (ไม่ได้เก็บจริง)
                 back = n - sum(got.values())
                 self.place_stock[self._eco_key(a.world_id, a.place, None)] += back
+                self._eco_dirty()
                 self._material_flow("harvested", -back)
             if not got:
                 return "มือเปล่า", f"{a.name}ออกเก็บวัตถุดิบแต่กลับมามือเปล่า", d
@@ -4961,6 +5164,12 @@ class Sim:
                 self.caches.remove(cache)
                 return "ค้นพบ", f"{a.name}พบแดนลับของ{cache.owner_name} กลืนกินแก่นพลัง{tail}", d
             d.update(self.open_cache(a, cache, rng))
+            # กับดัก (เจ้าของแกล้งตายรออยู่) ฆ่าผู้ค้นได้ และถ้าเจ้าของชนะ แดนลับก็ยังไม่ถูกเปิด — เดิมรายงาน "ค้นพบ/เปิดได้"
+            # ทุกกรณี ศพจึงเป็นผู้เปิดแดนลับ (test_world_coherence 3.1)
+            if not a.alive:
+                return "ตาย", f"{a.name}ตายด้วยกับดักในแดนลับของ{cache.owner_name}", d
+            if not cache.opened:
+                return "ติดกับดัก", f"{a.name}เจอกับดักในแดนลับของ{cache.owner_name} ต้องถอยออกมา", d
             return "ค้นพบ", f"{a.name}เปิดแดนลับของ{cache.owner_name}ได้{tail}", d
 
         if k == "จำลองอนาคต":
@@ -5920,17 +6129,56 @@ class Sim:
         return PHYS.hawkes_intensity(0.0, book.get(place, ()), self.day,
                                      C.FEUD_ALPHA, C.FEUD_HALF_LIFE_DAYS)
 
+    def _event_site(self, world, a, t):
+        """(แดน, สถานที่, อาคาร) ที่เหตุการณ์เกิดจริง — สถานที่ต้องอยู่ในผังของแดนของเหตุการณ์เสมอ
+
+        เดิมใช้แดนที่ผู้เรียกส่งมาแต่สถานที่ของผู้กระทำเสมอ เหตุการณ์ข้ามแดน (มารบุก โกลาหลบุกโลกมนุษย์ เกณฑ์ขึ้นฟ้า
+        บัญชาสวรรค์ ลงโลกล่าง) จึงอ้างสถานที่ในแดนอื่น (test_world_coherence 3.2: 6,414 รายการใน seed 11–15)
+        ลำดับ: ผู้กระทำอยู่ในแดนนั้น → ที่ของผู้กระทำ · ไม่งั้นผู้ถูกกระทำอยู่ในแดนนั้น → ที่ของผู้ถูกกระทำ (ที่ที่ถูกบุก)
+        · ไม่งั้นเหตุเกิดตรงที่ผู้กระทำยืนอยู่ → แดนของผู้กระทำ (เช่นลงโลกล่างหลังย้ายแดนแล้ว)"""
+        if a is None:
+            # เหตุการณ์ระดับโลก (มหาผนึก ลางมหาศึก ยุคล่ม ...) เกิดกับทั้งแดน — แดนคือแดนที่ผู้เรียกส่งมา ที่เกิดคือศูนย์กลาง
+            # ของแดนนั้น (สถานที่ที่เชื่อมสถานที่อื่นมากที่สุด) ทุกเหตุการณ์จึงบอกได้ว่าเกิดที่ไหน (test_world_coherence 3.3)
+            return world, self._world_center(world), -1
+        layout = self._places_of(world.place_key)
+        if a.place is not None and a.place in layout:
+            return world, a.place, a.building
+        if t is not None and t.place is not None and t.place in layout:
+            return world, t.place, t.building
+        own = self.world(a.world_id)
+        if a.place is not None and a.place in self._places_of(own.place_key):
+            return own, a.place, a.building
+        # ผู้กระทำไม่มีที่ยืนในผังของแดนไหนเลย (เช่น place ว่างระหว่างย้าย) — ใช้ศูนย์กลางของแดนเหมือนเหตุการณ์ระดับโลก
+        # (test_world_coherence 3.3: สงครามสำนัก seed 11 วัน 59270 เคยได้ place -1)
+        return world, self._world_center(world), -1
+
+    def _world_center(self, world):
+        """ศูนย์กลางของแดน: สถานที่ในผังที่มีเพื่อนบ้านห่างหนึ่งก้าวมากที่สุด (เท่ากันเอาเลขน้อย) — ผังคงที่ แคชระดับโมดูล"""
+        key = world.place_key
+        if key not in _CENTERS:
+            layout = PL.places_in(key)
+            _CENTERS[key] = max(layout, key=lambda p: (len(TR.places_within(self, p, 1)), -p)) if layout else -1
+        return _CENTERS[key]
+
+    @staticmethod
+    def _places_of(key):
+        """สถานที่ในผังหนึ่ง — ผังคงที่หลัง import (places.PLACES) แคชระดับโมดูล ไม่เก็บใน Sim (ไม่เข้าเซฟ)"""
+        if key not in _PLACE_SETS:
+            _PLACE_SETS[key] = frozenset(PL.places_in(key))
+        return _PLACE_SETS[key]
+
     def emit(self, world, kind, a, t, tags, outcome, text, gap, d):
         self.seq += 1   # เดิม increment ที่ step() ครั้งเดียวต่อทิก แต่ step()เดียวเรียก emit() ได้
                          # มากกว่า 1 ครั้ง (เช่น เหตุการณ์ผลพวง) ทำให้ seq ซ้ำกันได้ — ย้ายมาที่นี่
                          # ให้ seq เป็น ID ไม่ซ้ำจริงต่อหนึ่ง Event เสมอ (พบจาก narrative_factory
                          # Phase E ที่ scene_id ชนกันเพราะ seq ซ้ำ)
+        world, place, building = self._event_site(world, a, t)
         e = Event(seq=self.seq, day=self.day, gap_days=gap, world_id=world.wid,
                   era=world.era, kind=kind, actor=a.cid if a else -1,
                   target=t.cid if t else None, tags=list(tags),
-                  outcome=outcome, text=text, deltas=d, place=a.place if a else -1,
+                  outcome=outcome, text=text, deltas=d, place=place,
                   realm=a.realm if a else 0,
-                  building=a.building if a else -1,
+                  building=building,
                   present=self.bystanders(a, world),
                   surprise=self.surprise_of(kind, outcome, d),
                   snap=self.state_snap(a) if a else ())
@@ -5958,11 +6206,56 @@ class Sim:
         and heaven inflow decisions independent of which event happened last.
         Crisis waves run on the world clock (see _world_tick), not per event.
         """
+        seq0, deaths0 = self.seq, getattr(self, "death_seq", 0)
         event = self._step()
+        if getattr(self, "death_seq", 0) > deaths0:
+            self._announce_unrecorded_deaths(seq0, deaths0)
         if getattr(self, "_world_counts_dirty", False):
             self.recount_worlds()
             self._world_counts_dirty = False
         return event
+
+    def _announce_unrecorded_deaths(self, seq0, deaths0):
+        """ทุกความตายในก้าวนี้ต้องมีเหตุการณ์ในประวัติ — ถ้าไม่มีเหตุการณ์ของก้าวเดียวกันที่ผู้ตายเป็นผู้กระทำหรือผู้ถูกกระทำ
+        หรือถูกเอ่ยชื่อในรายละเอียด (เช่น "ผู้ไม่ได้กลับออกมา" ของแดนลับต้นกำเนิด) ให้บันทึกเหตุการณ์ "สิ้นชีพ" หนึ่งรายการ
+
+        เดิมหลายทางฆ่าโดยไม่ emit (ล่าสัตว์อสูรในป่าหมื่นอสูร, R.fight จากผู้เรียกที่ไม่บันทึกผล) คนจึงหายจากประวัติ
+        โดยมีแค่ DeathRecord (test_world_coherence 2.1: สัตว์อสูร 7,166 คน 2,616 ใน seed 11–15) — แก้ที่จุดเดียวที่ทุกก้าวผ่าน
+        ไม่ใช่ไล่แก้ทีละทาง ทางฆ่าที่เพิ่มในอนาคตจึงไม่หลุด ไม่ใช้เลขสุ่ม"""
+        recent = []
+        for e in reversed(self.log):
+            if e.seq <= seq0:
+                break
+            recent.append(e)
+        named = {cid for e in recent for cid in (e.actor, e.target) if cid is not None}
+        details = " ".join(str(v) for e in recent for v in (e.deltas or {}).values())
+        fresh = []
+        for rec in reversed(getattr(self, "deaths", [])):
+            if rec.death_id <= deaths0:
+                break
+            fresh.append(rec)
+        for rec in reversed(fresh):
+            dead = self.cast[rec.cid]
+            if rec.cid in named or (dead.name and dead.name in details):
+                continue
+            killer = self.cast[rec.killer] if 0 <= rec.killer < len(self.cast) else None
+            text = f"{dead.name}สิ้นชีพ — {rec.cause}"
+            # ผู้ลงมือบันทึกในรายละเอียด ไม่ใช่ผู้ถูกกระทำ: เหตุการณ์นี้เป็นเรื่องของผู้ตายคนเดียว ผู้ลงมืออาจอยู่ที่อื่นแล้ว
+            # (เป็น target จะกลายเป็น "คู่กรณีข้ามระยะที่ไม่มีเหตุผล" ใน test_locality)
+            # บันทึกด้วยวันที่ตายจริง — ก้าวเดียวกันอาจเลื่อนวันของโลกไปแล้ว (รอบโลกทำงานหลังความตาย) ตั้งก่อน emit
+            # เพื่อให้ความจำของผู้ที่ได้รับเหตุการณ์ (brain.remember ใน event_bus) ได้วันเดียวกับใน log
+            today, self.day = self.day, rec.day
+            try:
+                ev = self.emit(self.world(rec.world_id), "สิ้นชีพ", dead, None, [], "ตาย", text, 0,
+                               {"สาเหตุ": rec.cause, "ผู้ลงมือ": killer.name if killer else "-",
+                                "ผู้ลงมือ_cid": str(rec.killer)})
+            finally:
+                self.day = today
+            if ev.place < 0:                 # ตายกลางทาง: ที่เดียวกับที่มรดกไร้ผู้รับตกไป (estate_spot)
+                wid, spot = self.estate_spot(dead)
+                if wid == ev.world_id:
+                    ev.place = spot
+            named.add(rec.cid)
 
     def run(self, n):
         self.last_run_steps = 0

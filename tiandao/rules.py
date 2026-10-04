@@ -1009,7 +1009,7 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
     if ch.is_lord:
         ch.decay = 0.0
         return
-    if ch.age(sim.day) >= ch.lifespan():
+    if ch.age(sim.day) >= lifespan_in(ch, world):
         # ผู้ใกล้สิ้นอายุขัยกินยาอายุวัฒนะที่มีอยู่เอง เลือกเม็ดที่ต่ออายุได้มากที่สุด
         pills = [iid for iid in ch.items
                  if iid in getattr(sim, "items", {})
@@ -1020,9 +1020,18 @@ def age_and_decay(sim, ch: Character, world: World, gap_days: int, rng):
             pill = sim.items[iid]
             ch.items.remove(iid)
             ch.longevity_bonus += pill.lifespan_bonus
-            if ch.age(sim.day) < ch.lifespan():
+            if ch.age(sim.day) < lifespan_in(ch, world):
                 return
         sim.kill(ch, "สิ้นอายุขัย", natural=True)
+
+
+def lifespan_in(ch: Character, world: World) -> float:
+    """อายุขัยที่ใช้ตัดสินความตายตามวัยในแดนนี้ตอนนี้ — ยุคเสื่อม สายมนุษย์ทนทาน อยู่ได้นานขึ้นตามสัดส่วนเลือดมนุษย์
+    (ไม่เกิน HUMAN_DECLINE_LIFESPAN ของอายุขัย) ยุคอื่น = อายุขัยปกติ · คำนวณจากสภาวะ ไม่สุ่ม (test_world_coherence 4.4)"""
+    base = ch.lifespan()
+    if world is not None and world.state() == "ยุคเสื่อม":
+        return base * (1.0 + C.HUMAN_DECLINE_LIFESPAN * ch.blood.get("human", 0.0))
+    return base
 
 
 def cultivate(ch: Character, gap_days: int, items=None):

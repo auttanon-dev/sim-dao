@@ -110,7 +110,8 @@ def tick(sim):
             and getattr(w, "resource", 0) >= C.REALM_RESOURCE_MAX * C.CRISIS_WEALTH_THRESHOLD]
     # Wealth increases the pace, but a long peace also attracts an invasion.
     pressure = getattr(sim, "crisis_pressure", 0.0)
-    pressure += years * (C.CRISIS_PRESSURE_BASE + min(2.0, len(rich) / 30.0))
+    # เวลาอย่างเดียวคูณความเสียหายของธรรมชาติในโลกมนุษย์ (Sim.nature_speedup ≤ 1.5) + ความมั่งคั่งดึงดูดเหมือนเดิม
+    pressure += years * (C.CRISIS_PRESSURE_BASE * sim.nature_speedup(human) + min(2.0, len(rich) / 30.0))
     for w in rich:
         if sim.day - getattr(w, "crisis_betrayal_day", -10**9) < C.CRISIS_BETRAYAL_COOLDOWN:
             continue

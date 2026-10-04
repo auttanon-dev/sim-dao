@@ -381,6 +381,7 @@ def _eco_by_kind(sim):
         kind = sim.eco_kind(idx)
         new[(wid, idx, kind)] = min(1.0, v / 18.0) * C.ECO_KINDS[kind][0]
     sim.place_stock = new
+    sim.__dict__.pop("_eco_means", None)
     sim.material_stats = {"genesis": sum(new.values())}
 
 

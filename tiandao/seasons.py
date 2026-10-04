@@ -62,6 +62,7 @@ def maybe_trigger_disaster(sim, world, rng):
     if world.kind != "mortal":
         return None
     name, _mult, disaster_p, kind = season_of(sim.day)
+    disaster_p *= sim.nature_speedup(world)       # ธรรมชาติที่ถูกทำลายมาก ภัยมาถี่ขึ้น (สูงสุด 1.5 เท่า)
     if kind is None or rng.random() >= disaster_p:
         return None
 

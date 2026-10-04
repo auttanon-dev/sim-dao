@@ -82,12 +82,22 @@ def eats(ch) -> bool:
 
 
 def ration(ch, day) -> float:
-    """สำรับต่อวันที่คนนี้ต้องกิน — ผู้ตั้งครรภ์กินเพิ่ม PREGNANCY_FOOD_EXTRA"""
+    """สำรับต่อวันที่คนนี้ต้องกิน — ผู้ตั้งครรภ์กินเพิ่ม PREGNANCY_FOOD_EXTRA
+    คูณ `ch.frugal` (ตั้งทุกรอบใน tick: แดนทรัพยากรน้อย สายมนุษย์ประหยัด กินน้อยลง) — ลดที่ "ความต้องการ" ทั้งระบบ
+    ข้าวที่กินจริงจึงน้อยลงและบัญชีบันทึกตามที่กินจริง ไม่มีข้าวเกิดหรือหายเงียบ"""
+    frugal = getattr(ch, "frugal", 1.0)
     if ch.age(day) < 14:
-        return C.FOOD_RATION_CHILD
+        return C.FOOD_RATION_CHILD * frugal
     if getattr(ch, "pregnancy", None) is not None:
-        return C.FOOD_RATION_ADULT * (1.0 + C.PREGNANCY_FOOD_EXTRA)
-    return C.FOOD_RATION_ADULT
+        return C.FOOD_RATION_ADULT * (1.0 + C.PREGNANCY_FOOD_EXTRA) * frugal
+    return C.FOOD_RATION_ADULT * frugal
+
+
+def frugality(ch, scarce: bool) -> float:
+    """ตัวคูณสำรับของคนนี้: แดนทรัพยากรน้อย (Sim.is_scarce) → 1 − HUMAN_SCARCE_FRUGAL × เลือดมนุษย์ ไม่งั้น 1"""
+    if not scarce:
+        return 1.0
+    return 1.0 - C.HUMAN_SCARCE_FRUGAL * (ch.blood or {}).get("human", 0.0)
 
 
 def fed_share(ch) -> float:
@@ -237,6 +247,7 @@ def tick(sim, days) -> None:
         stats["spoiled"] += lost
     stats["spoiled"] += HH.spoil(sim, keep)          # ข้าวในครัวของครัวเรือนเน่าอัตราเดียวกัน
 
+    scarce = {w.wid: sim.is_scarce(w) for w in sim.worlds}   # สภาวะทรัพยากรของแต่ละแดน ครั้งเดียวต่อรอบ
     eaters_at = collections.defaultdict(list)
     away = []
     workers_at = collections.defaultdict(list)
@@ -251,6 +262,7 @@ def tick(sim, days) -> None:
                 helpers_at[_spot(ch)] += share
         if not eats(ch):
             continue
+        ch.frugal = frugality(ch, scarce.get(ch.world_id, False))   # ก่อนคำนวณสำรับใดๆ ในรอบนี้
         if ch.food is None:
             _endow(sim, ch)
         (away.append(ch) if _away(ch, day) else eaters_at[_spot(ch)].append(ch))
