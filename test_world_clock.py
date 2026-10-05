@@ -104,8 +104,11 @@ class WorldClockTests(unittest.TestCase):
         sim = world_after(200)
         due = sim.world_tick_day
         # คนที่ถึงเทิร์นแล้วลงมือจริง — คนในด่านหรือกลางทางได้เทิร์นแบบไม่มีเหตุการณ์ แล้วโลกเดินรอบถัดไปก่อน
+        # คนกลางทางรวมถึงคนที่กำลังเดินไปอาคาร (building_dest) และเดินทางข้ามที่ (travel_dest) — ได้เทิร์นแบบไม่มีเหตุการณ์แล้วนัดใหม่
+        # เดิมกรองแค่ hidden/process ซึ่งผิดจากคอมเมนต์ข้างบนตั้งแต่แรก โผล่เมื่อลำดับสุ่มเปลี่ยน (b4aa52d: cid 976 เดินไปอาคาร)
         cid = next(c for _, c in sorted(sim.queue) if not sim.cast[c].hidden and sim.cast[c].process is None
-                   and sim.cast[c].age(sim.day) >= 16)
+                   and sim.cast[c].age(sim.day) >= 16
+                   and sim.cast[c].building_dest < 0 and sim.cast[c].travel_dest < 0)
         sim.queue = [(due, cid)]
         for ch in sim.cast:
             ch.pregnancy = None             # ทารกที่คลอดในรอบโลกได้ใบคิวของตัวเอง — เทสต์นี้ต้องการคิวใบเดียว

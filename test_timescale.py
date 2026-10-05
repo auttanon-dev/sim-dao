@@ -168,6 +168,15 @@ class TestSeclusion(unittest.TestCase):
 
     def test_coming_out_reports_what_changed(self):
         sim, w, ch = self._ready()
+        # ค่าข้าวพอสำหรับด่าน 3 ปีที่วางแผนไว้ + เงินกันไว้ FOOD_SECLUDE_KEEP_DAYS ที่ทำให้ผู้ปิดด่านออกมาหาเลี้ยงชีพ (food._leave_before_broke)
+        # เทสต์นี้วัดการปิดด่านและสิ่งที่ได้กลับมา ไม่ใช่ความยากจน — เดิมตัวละครจนจนออกจากด่านวันที่ 30 แล้วข้ามขั้นใช้ความเข้าใจไป
+        # ทองที่ให้บันทึกในบัญชีทองด้วย WAGES.set_gold (สาเหตุ test_seclusion_purse) บัญชียังปิด
+        from tiandao import food as F
+        from tiandao import wages as WAGES
+        need = (3 * 365 + C.FOOD_SECLUDE_KEEP_DAYS) * F.ration(ch, sim.day) * F.price_at(sim, F._spot(ch))
+        tier = WAGES.tier_of(sim, ch)
+        if WAGES.gold(sim, ch) < need:
+            WAGES.set_gold(sim, ch, tier, need, "test_seclusion_purse")
         sim.resolve(SECLUDE, ch, None, w, 30, StubRng())
         before = ch.insight
         for _ in range(80):
