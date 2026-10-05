@@ -1347,3 +1347,58 @@ def test_recorded_cause_matches_the_death_event():
            f"  ผู้ตายทั้งหมด {len(causes)} · ตายจากบาดแผล/เลือดไหล {wound}")
     assert checked > 0 and wound > 0, "ข้อมูลไม่พอตรวจ (ไม่มีการตายตามวัยหรือจากบาดแผล):\n" + msg
     assert not wrong, "เหตุการณ์เขียนว่าสิ้นอายุขัย แต่สาเหตุที่บันทึกคืออย่างอื่น:\n" + msg
+
+
+# ------------------------------------------------------------------ งานประมูล: จังหวะตามเวลาโลก และเจ้าภาพหมุนเวียน (2026-10-05)
+AUCTION_TRIAL_YEARS = 8                # เดินโลกกี่ปีเพื่อนับงานประมูลต่อแดนต่อรอบโลก
+AUCTION_HOST_ROUNDS = 6                # เปิดงานในตลาดเดียวกันกี่ครั้งเพื่อดูว่าเจ้าภาพหมุนเวียน
+
+
+def test_auction_cadence_follows_the_world_clock():
+    """AUCTION_EVENT_P คือโอกาสต่อแดนต่อหนึ่งช่วงเวลาโลก (config) — งานประมูลของตลาดในแดนหนึ่งต้องไม่เกินหนึ่งงานต่อรอบโลก
+    บั๊กเดิม: ทอยทุกเทิร์นของตัวละครใน _step แดนที่คนมากจึงมีงานถี่ตามจำนวนเทิร์น (seed 42 ใน 100 ปี 3,232 งาน)"""
+    from tiandao import config as C
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        sim = S.Sim(seed=CYCLE_SEED)
+        while sim.day < AUCTION_TRIAL_YEARS * 365:
+            if sim.step() is None:
+                break
+    market = [e for e in sim.log if e.kind == "เปิดประมูล" and e.outcome == "ประมูล" and "เปิดงานประมูลใหญ่" in e.text]
+    per_tick = collections.Counter((e.world_id, e.day // C.WORLD_TICK_DAYS) for e in market)
+    over = [(k, v) for k, v in per_tick.items() if v > 1]
+    mortal = sum(1 for w in sim.worlds if w.kind == "mortal")
+    ticks = sim.day // C.WORLD_TICK_DAYS
+    msg = (f"  งานประมูลของตลาด {len(market)} งานใน {AUCTION_TRIAL_YEARS} ปี · แดนมนุษย์ {mortal} · รอบโลก {ticks} · "
+           f"ค่าคาด ≈ {mortal * ticks * C.AUCTION_EVENT_P:.0f} · แดน-รอบที่มีเกินหนึ่งงาน {len(over)} เช่น {over[:5]}")
+    assert market, "ไม่มีงานประมูลของตลาดเลย (ตลาดหายไป):\n" + msg
+    assert not over, "งานประมูลเกินหนึ่งงานต่อแดนต่อรอบโลก (ทอยตามเทิร์นตัวละคร ไม่ใช่ตามเวลาโลก):\n" + msg
+
+
+def test_auction_host_rotates():
+    """เจ้าภาพงานประมูลต้องหมุนเวียน — คนที่ไม่ได้เปิดงานมานานที่สุดก่อน (ไม่สุ่ม) บั๊กเดิม: พ่อค้าที่รวยที่สุดของที่นั้นเป็นเจ้าภาพทุกงาน
+    (seed 42: คนเดียว 37 งานใน 100 ปี) · ตลาดเดียวกัน คนกลุ่มเดียวกัน เปิด AUCTION_HOST_ROUNDS ครั้ง ต้องมีเจ้าภาพมากกว่าหนึ่งคน"""
+    from tiandao import config as C
+    from tiandao import places as PL
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        sim = S.Sim(seed=CYCLE_SEED)
+        w = sim.worlds[0]
+        market = next(i for i, p in enumerate(PL.PLACES) if p[1] == w.place_key and p[3] in C.AUCTION_PLACES)
+        folk = [c for c in sim.living_in(w.wid) if c.age(sim.day) >= 14 and not c.is_chaos()][:6]
+        for c in folk:
+            c.place, c.hidden, c.travel_dest = market, False, -1
+            c.money[w.tier] = 5000
+        others = {c.cid for c in folk}
+        for c in sim.living_in(w.wid):
+            if c.cid not in others and c.place == market:
+                c.place = (market + 1) % len(PL.PLACES)
+        hosts = []
+        for _ in range(AUCTION_HOST_ROUNDS):
+            n = len(sim.log)
+            sim.market_auction(w, sim.rng)
+            hosts += [e.actor for e in sim.log[n:] if e.kind == "เปิดประมูล" and e.outcome == "ประมูล"]
+            sim.day += 1
+    msg = f"  เจ้าภาพ {hosts} · คนในตลาด {sorted(others)}"
+    assert len(hosts) >= AUCTION_HOST_ROUNDS - 1, "ตลาดที่มีคนพอเปิดงานไม่ได้:\n" + msg
+    assert len(set(hosts)) > 1, "เจ้าภาพคนเดิมทุกงาน:\n" + msg

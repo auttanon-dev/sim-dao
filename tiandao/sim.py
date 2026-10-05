@@ -2352,6 +2352,10 @@ class Sim:
             PORT.regen(self, self.day - getattr(self, "_portal_regen_day", 0))
             self._portal_regen_day = self.day
         PORT.tick(self, rng)    # การสร้างประตูมิติ (ดู tiandao/portals.py)
+        # งานประมูลใหญ่ของตลาด — ทอยครั้งเดียวต่อแดนมนุษย์ต่อรอบโลก (AUCTION_EVENT_P = โอกาสต่อหนึ่งช่วงเวลาโลก)
+        for w in self.worlds:
+            if w.kind == "mortal" and rng.random() < C.AUCTION_EVENT_P:
+                self.market_auction(w, rng)
         if self.day - getattr(self, "last_disaster_day", 0) >= C.WORLD_TICK_DAYS:
             round_days = self.day - getattr(self, "last_disaster_day", 0)
             self.last_disaster_day = self.day
@@ -2959,8 +2963,8 @@ class Sim:
         # งานประมูลใหญ่ของตลาด — เหตุการณ์ของ "สถานที่" ไม่ใช่ของอาชีพ
         # วัดจากรันจริง 79 ปี: ผู้มีจิตใจได้เข้างานประมูลแค่ครั้งเดียว เพราะท่า "เปิดประมูล" เปิดให้เฉพาะ
         # พ่อค้า (หลงจู๊/เถ้าแก่/นักประมูล) ซึ่งแทบไม่มีใครในกลุ่มตัวเอก ฉากหมู่จึงไม่เคยเกิด
-        if world.kind == "mortal" and rng.random() < C.AUCTION_EVENT_P:
-            self.market_auction(world, rng)
+        # (ย้ายไป _world_tick: AUCTION_EVENT_P คือโอกาสต่อแดนต่อหนึ่งช่วงเวลาโลก ตามที่ config ระบุ — เดิมทอยที่นี่ทุกเทิร์นของตัวละคร
+        #  แดนที่คนมากจึงมีงานประมูลถี่ตามจำนวนเทิร์น ไม่ใช่ตามเวลา: seed 42 ใน 100 ปี 3,232 งาน เจ้าภาพคนเดียวถือ 37 งาน)
 
         # มารบุกโลกมนุษย์ (หากผนึกแตก โอกาสบุกจะเพิ่มขึ้นอย่างมาก)
         mara_raid_p = C.MARA_RAID_P * (2.5 if getattr(self, "mara_seal_broken", False) else 1.0)
@@ -4004,9 +4008,15 @@ class Sim:
         if not spots:
             return
         place, folk = spots[rng.randrange(len(spots))]
-        # เจ้าภาพ: พ่อค้าที่รวยที่สุดในที่นั้น ถ้าไม่มีก็คนที่รวยที่สุด (คนอื่นเป็นผู้ร่วมประมูล)
-        folk.sort(key=lambda c: (-self.bid_purse(c, world), c.cid))
-        host = next((c for c in folk if getattr(c, "profession", "") in C.AUCTION_HOSTS), folk[0])
+        # เจ้าภาพหมุนเวียน — ไม่สุ่ม
+        # เดิมเลือกพ่อค้าที่รวยที่สุดเสมอ คนเดิมจึงเป็นเจ้าภาพทุกงานของที่นั้น (seed 42: เจ้าภาพคนเดียว 37 งานใน 100 ปี)
+        # ลำดับ: ไม่ได้เปิดงานนานที่สุดก่อน → คนอาชีพค้าขายก่อนคนอื่นเมื่อเท่ากัน → รวยกว่า → cid (ถ้าหมุนเฉพาะในหมู่พ่อค้า
+        # ตลาดที่มีพ่อค้าคนเดียวก็ยังเป็นคนเดิมทุกงาน)
+        folk.sort(key=lambda c: (getattr(c, "auction_hosted_day", -10 ** 9),
+                                 getattr(c, "profession", "") not in C.AUCTION_HOSTS,
+                                 -self.bid_purse(c, world), c.cid))
+        host = folk[0]
+        host.auction_hosted_day = self.day
         outcome, text, d = self.auction(host, world, rng, {})
         if outcome == "ประมูล":
             self.emit(world, "เปิดประมูล", host, None, ["แลกเปลี่ยน", "ทรัพย์", "คน"], outcome,

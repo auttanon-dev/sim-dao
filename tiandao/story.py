@@ -3,7 +3,17 @@
 from . import config as C
 
 
-def interest(ch, sim):
+def event_counts(sim):
+    """จำนวนเหตุการณ์ที่แต่ละ cid เป็นผู้กระทำหรือผู้ถูกกระทำ — สแกน log ครั้งเดียว (ผู้กระทำ = ผู้ถูกกระทำ นับครั้งเดียวเหมือนเดิม)"""
+    counts = {}
+    for e in sim.log:
+        counts[e.actor] = counts.get(e.actor, 0) + 1
+        if e.target is not None and e.target != e.actor:
+            counts[e.target] = counts.get(e.target, 0) + 1
+    return counts
+
+
+def interest(ch, sim, counts=None):
     s = 0.0
     s += ch.peak_realm * 1.4 + ch.peak_tier * 8.0
     if ch.origin in ("ชาวบ้าน", "ทาส", "เด็กกำพร้า"):
@@ -24,13 +34,15 @@ def interest(ch, sim):
     s += ch.generation * 0.8
     if ch.clan >= 0:
         s += 2.0
-    n = len([e for e in sim.log if e.actor == ch.cid or e.target == ch.cid])
+    # สแกน log ต่อคนช้าเกิน (seed 42 260 ปี: 23,429 คน × 593,040 เหตุการณ์ — run.py ค้างหลายชั่วโมง) rank() ส่งดัชนีมาให้
+    n = counts.get(ch.cid, 0) if counts is not None else len([e for e in sim.log if e.actor == ch.cid or e.target == ch.cid])
     s += min(n, 50) * 0.25
     return s
 
 
 def rank(sim, top=5):
-    sc = [(interest(c, sim), c) for c in sim.cast if c.sentient]
+    counts = event_counts(sim)
+    sc = [(interest(c, sim, counts), c) for c in sim.cast if c.sentient]
     sc.sort(key=lambda x: -x[0])
     return sc[:top]
 

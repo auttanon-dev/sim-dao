@@ -268,18 +268,25 @@ def turn(sim, child, world, elapsed, rng):
         text = f"{child.name}วัย {age} ปี ใช้เวลาเงียบๆ เติบโตตามวัย"
     if carer(sim, child) is None and age > 2:
         outcome = "เติบโตโดยไร้ผู้ปกครอง"
-    event = sim.emit(world, "เติบโต", child, None, ["วัยเด็ก"], outcome, text, elapsed,
-                     {"อายุ": f"{age} ปี", "กิจวัตร": routine})
     history = getattr(child, "childhood", None)
     if not isinstance(history, list):
         history = child.childhood = []
+    # บันทึกเป็นเหตุการณ์เฉพาะครั้งแรกที่เด็กทำกิจวัตรนั้น (หรือครั้งแรกที่ต้องโตโดยไร้ผู้ปกครอง) — การคำนวณทั้งหมด (กิจวัตร
+    # บุคลิกภาพ ROOT_TRAITS การฝึก การได้วิชา แรงงาน) อยู่ใน start/accrue ไม่ขึ้นกับว่าบันทึกหรือไม่ · เดิมบันทึกทุกปีของทุกเด็ก:
+    # seed 42 ใน 100 ปี "เติบโต" 44,578 เหตุการณ์ = 18.6% ของประวัติ ("วัย 6 ปี เล่นซน" ซ้ำทุกปี) บังเรื่องของผู้ใหญ่
+    seen = {(h.get("routine"), h.get("outcome") == "เติบโตโดยไร้ผู้ปกครอง") for h in history if isinstance(h, dict)}
+    event = None
+    if (routine, outcome == "เติบโตโดยไร้ผู้ปกครอง") not in seen:
+        event = sim.emit(world, "เติบโต", child, None, ["วัยเด็ก"], outcome, text, elapsed,
+                         {"อายุ": f"{age} ปี", "กิจวัตร": routine})
     if not any(h.get("age") == age for h in history if isinstance(h, dict)):
         history.append({"day": sim.day, "age": age, "text": text, "place": child.place,
-                        "outcome": outcome, "routine": routine, "seq": event.seq})
+                        "outcome": outcome, "routine": routine, "seq": event.seq if event else None})
         del history[:-14]
     # กลับมาอีกครั้งใกล้วันเกิดถัดไป (ตัวคลาดเคลื่อนจาก rng ของโลกเหมือนเดิม) — ถูกขัดจังหวะก็ได้เทิร์นเร็วกว่านี้
     sim.schedule(child, max(30, next_birthday - sim.day + rng.randint(0, 30)))
-    return event
+    # ไม่ได้บันทึกปีนี้ — คืนเหตุการณ์ล่าสุดของโลก (แบบเดียวกับ Sim._step ตอนผู้ลงมือตาย) เพราะ step() คืน None = โลกหยุดเดิน
+    return event if event is not None else (sim.log[-1] if sim.log else None)
 
 
 def main_routine(ch):
