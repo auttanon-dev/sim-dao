@@ -17,6 +17,8 @@
   สถานที่นั้น ผลผลิตโตตามแรงงานแต่อิ่มตัวที่เพดานของที่ดิน (FOOD_LAND_CAP_DAY) คูณฤดูกาล แหล่งที่ประกาศคือการ
   เติบโตตามฤดูของที่นา ไม่ผูกกับคลังทรัพยากรป่า (place_stock/eco_ratio) เพราะคลังนั้นคือสัตว์อสูร แร่ และสมุนไพร
   ขนาด ECO_CAP ที่นักล่าและคนเก็บวัตถุดิบขุดอยู่ ลองผูกแล้ว ที่นาเสื่อมตามการล่าอสูรจนคนอดตายทั้งที่ไม่มีใครทำนาเกิน
+  ตอนนี้ (ผู้ใช้ตัดสิน 2026-10-05) ผูกกับพืชพรรณ **ชนิด "herb" เท่านั้น** ผ่าน `fertility` (FOOD_ECO_DEPENDENCE = 0.4): ดินเสียเมื่อพืช
+  รอบที่นาถูกเก็บจนหมด ผลผลิตเหลือไม่ต่ำกว่า 60% — อย่าผูกคลังทั้งหมดหรือสัตว์อสูรอีก ความผิดเดิมจะกลับมา
 - ยุ้งฉาง: ผลผลิตเข้ายุ้งฉางของสถานที่ คนที่อยู่ที่นั่นกินจากยุ้งฉางก่อน ที่ยังขาดรับข้าวจากยุ้งฉางอื่นในแดนเดียวกัน
   ที่ห่างไม่เกิน FOOD_REACH_HOPS ก้าว (ข้าวสูญระหว่างทาง FOOD_CARRY_LOSS_PER_HOP ต่อก้าว) ถ้ายังไม่พอ ทุกคนได้ส่วน
   เท่ากันตามความต้องการ (ไม่ให้ cid ต่ำหรือสถานที่ลำดับต้นได้ก่อน) ที่ขาดกินจากเสบียงติดตัว ของในยุ้งฉางเน่าตามเวลา
@@ -155,6 +157,23 @@ def land_output_per_day(workers: float) -> float:
     return cap * (1.0 - math.exp(-workers * C.FOOD_PER_WORKER_DAY / cap))
 
 
+def fertility(sim, spot) -> float:
+    """ความอุดมของที่ดินรอบที่นา (0.6..1) = 1 − FOOD_ECO_DEPENDENCE × (1 − ค่าเฉลี่ย eco_ratio ชนิด "herb" ของที่นั้นและที่ห่างไม่เกิน
+    FOOD_REACH_HOPS ก้าวในแดนเดียวกัน) — พืชพรรณที่ถูกเก็บจนหมดคือดินเสีย ต้นไม้ตาย (ผู้ใช้ตัดสิน) ผลผลิตลดแต่ไม่เป็นศูนย์
+    **ผูกกับ herb เท่านั้น ห้ามผูกคลังทั้งหมด (ECO_CAP/สัตว์อสูร/แร่)** — เคยลองผูกแล้ว ที่นาเสื่อมตามการล่าอสูรจนคนอดตายทั้งที่ไม่มีใคร
+    ทำนาเกิน (ดูหัวไฟล์) · อ่านเฉพาะคลังที่มีอยู่แล้ว ไม่สร้างคีย์ใหม่ (สร้างจะนับเป็น genesis ในบัญชีวัตถุดิบ) ไม่มีพืชในระยะ = 1.0
+    ความหน่วงมาจากของเดิม: พืชฟื้นแบบลอจิสติก (ยิ่งน้อยยิ่งช้า) · ยุ้งฉาง 3 เดือน · ผู้ใหญ่ลงไร่ชดเชย (_adapt_labour)"""
+    wid, place = spot
+    if place is None or place < 0:
+        return 1.0
+    near = [place] + [q for q, _hops in TR.places_within(sim, place, C.FOOD_REACH_HOPS)]
+    cap = C.ECO_KINDS["herb"][0]
+    got = [min(1.0, sim.place_stock[(wid, q, "herb")] / cap) for q in near if (wid, q, "herb") in sim.place_stock]
+    if not got:
+        return 1.0
+    return 1.0 - C.FOOD_ECO_DEPENDENCE * (1.0 - sum(got) / len(got))
+
+
 def _endow(sim, ch):
     """เสบียงตั้งต้นตอนระบบเห็นคนนี้ครั้งแรก — แหล่งที่ประกาศไว้ นับใน stats['endowed']
 
@@ -273,13 +292,14 @@ def tick(sim, days) -> None:
     for spot in sorted(set(workers_at) | set(helpers_at)):
         adults = sum(BODY.work_capacity(ch) for ch in workers_at.get(spot, ()))   # แรงตามร่างกาย ไม่ใช่นับหัว
         labour = adults + helpers_at.get(spot, 0.0)
-        made = land_output_per_day(labour) * days * season
+        fert = fertility(sim, spot)
+        made = land_output_per_day(labour) * days * season * fert
         sim.granary[spot] = sim.granary.get(spot, 0.0) + made
         stats["produced"] += made
         if spot in helpers_at:
             # ส่วนที่เกิดจากแรงเด็ก = ผลผลิตทั้งหมด − ผลผลิตถ้าไม่มีเด็ก (ที่ดินใกล้เต็ม แรงเด็กได้น้อยลงตามจริง)
             stats["child_produced"] = stats.get("child_produced", 0.0) + made - (
-                land_output_per_day(adults) * days * season)
+                land_output_per_day(adults) * days * season * fert)
 
     # เด็กที่อยู่ในระยะส่งถึงบ้านกินจากครัวของครัวเรือนก่อน (ขั้น H3) ส่วนที่เหลือซื้อจากยุ้งฉาง
     fed = HH.draw(sim, [ch for spot in sorted(eaters_at) for ch in eaters_at[spot] if ch.age(day) < 14],

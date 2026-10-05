@@ -57,7 +57,7 @@
   4.3 การรบกวนเร่งธรรมชาติ: (ก) วัดว่าการสะสมของมนุษย์ (แดนร่ำรวย) เป็นส่วนสำคัญของแรงกดดันมหาศึก (≥ 10%) และทำให้ลางมาเร็วกว่า
       เวลาอย่างเดียว (ลางถึงลาง = ศึก 3 ปี + พักฟื้น 12 ปี + สะสม 18.2 ปี = 33.2 ปี — ไม่ใช่แค่ช่วงสะสม)
       (ข) ธรรมชาติเร่งตามความเสียหาย (Sim.nature_damage 0..1: ทรัพยากรหมด 0.6 + พลังฟ้าถูกถอน 0.2 + รอยเลือด 0.2 ·
-      speedup = 1 + 0.5 × damage คูณ disaster_p การเสื่อมของผนึก และแรงกดดันมหาศึก) — วัดจริงด้วยโลกสองใบ seed 16 เดิน 40 ปี
+      speedup = 1 + 0.5 × damage คูณ disaster_p การเสื่อมของผนึก และแรงกดดันมหาศึก) — วัดจริงด้วยโลกสองใบ seed 16 เดิน 80 ปี
       ใบหนึ่งรีดคลังวัตถุดิบโลกมนุษย์เหลือ 5% ทุกรอบโลก (ผ่าน eco_harvest บัญชีวัตถุดิบยังปิด) อีกใบไม่แตะ:
       damage ต้องสูงกว่า ภัยตามฤดูถี่ขึ้นและผนึกเสื่อมเร็วขึ้นจริง speedup ไม่เกิน 1.5 และภัยถี่ขึ้นไม่เกิน 50% (+ คลาดสุ่ม 5%)
   4.4 ผู้รอดปรับตัว (ผู้ใช้ตัดสิน: ยุคเสื่อม → สายมนุษย์ทนทาน · ทรัพยากรน้อย → สายมนุษย์ประหยัด · สงคราม → สายสู้เก่งได้เปรียบ
@@ -104,7 +104,7 @@ CYCLE_DROP = 0.5                       # 4.1: ลงอย่างมีนั�
 CYCLE_MIN_SWING = 3                    # 4.1: และต่างกันอย่างน้อย 3 คน (กันการแกว่ง 1→0→1 คนนับเป็นวงจร)
 MIN_CYCLES = 2
 RECLIMB_YEARS = 10                     # 4.1 (ค-2): หลังคลังฟื้น เดินซิมต่อกี่ปีเพื่อดูว่าคนกลับมาข้ามขั้นได้
-NATURE_TRIAL_YEARS = 40               # 4.3 (ข): โลกสองใบ (รีดทรัพยากร / ไม่แตะ) เดินกี่ปีเพื่อเทียบจังหวะธรรมชาติ
+NATURE_TRIAL_YEARS = 80               # 4.3 (ข): โลกสองใบ (รีดทรัพยากร / ไม่แตะ) เดินกี่ปีเพื่อเทียบจังหวะธรรมชาติ
 NATURE_TRIAL_LEFT = 0.05              # 4.3 (ข): โลกที่ถูกรีด เหลือคลังวัตถุดิบเท่านี้ของเพดานหลังทุกรอบโลก
 OLD_AGE = 62                           # 4.4: วัยชรา = อายุขัยเฉลี่ยปุถุชน − 1 SD (MORTAL_LIFESPAN_MU 72 − SIGMA 10)
 SURVIVAL_FROM = 45                     # 4.4 บังคับสถานการณ์: กลุ่มที่วัดคือคนอายุ 45–61 ตอนเริ่ม (อายุขัยปุถุชนต่ำสุด MORTAL_LIFESPAN_MIN)
@@ -625,6 +625,7 @@ def _adaptation_trial(seed=CYCLE_SEED):
             humans = [c for c in sim.living_in(w.wid) if F.eats(c) and c.blood.get("human", 0) >= 0.5]
             food[state] = dict(humans=len(humans),
                                need=round(sum(F.ration(c, sim.day) for c in humans), 4),
+                               per_cid={c.cid: F.ration(c, sim.day) for c in humans},
                                gap=F.total_held(sim) - F.ledger_balance(sim.food_stats))
         out["food"] = food
     return out
@@ -1059,17 +1060,27 @@ def test_axis4_2_longrun_nature_is_rhythmic_and_escalates(cycle):
                       f"{RHYTHM_CV}) และรุนแรงขึ้นตามเวลา (rho > {TREND_RHO}) ใน {CYCLE_YEARS} ปี:" + chr(10) + chr(10).join(lines))
 
 
-def test_axis4_3a_low_heaven_brings_war_sooner(mechanism):
+def test_axis4_3a_low_heaven_raises_nature_pressure(mechanism):
     """(ก) บังคับสถานการณ์ (_war_trial): โลกสองใบ seed เดียวกัน ใบหนึ่งคลังฟ้าโลกมนุษย์ถูกกดไว้ที่ WAR_LOW_HEAVEN ทุกรอบโลก
-    ลางมหาศึกโกลาหลแรกต้องมาเร็วกว่าโลกที่ไม่ถูกบังคับ (แรงกดดัน = BASE × nature_speedup + ความมั่งคั่ง)"""
+    เทียบ "ความเร็วที่ธรรมชาติกดดัน" (Sim.nature_speedup) ที่วันเดียวกันทุกรอบโลกก่อนลางแรก (ผู้ใช้ตัดสิน) — ค่าเฉลี่ยต้องสูงกว่า
+    และสูงกว่าในอย่างน้อย 90% ของรอบที่เทียบได้ · วันที่ลางมาเป็นรายงานเท่านั้น: หยาบเกินไป เพราะลางรอรอบตรวจมหาศึก
+    (ทุก CRISIS_TICK_DAYS) และรอให้ผู้บุกและประชากรพร้อมตามกติกาของโลก แรงกดดันที่ต่างกันจริงจึงอาจลงวันเดียวกัน"""
     calm, low = mechanism["war"]
-    msg = (f"  ไม่แตะ: ลางแรกวันที่ {calm['omen_day']} (speedup เฉลี่ยก่อนลาง {calm['speedup']:.3f}) · "
-           f"คลังฟ้าถูกกด {WAR_LOW_HEAVEN:.0%}: ลางแรกวันที่ {low['omen_day']} (speedup {low['speedup']:.3f})\n"
-           f"  แรงกดดันช่วงท้ายก่อนลาง ไม่แตะ {calm['samples'][-4:]} · ถูกกด {low['samples'][-4:]}")
-    assert calm["omen_day"] is not None and low["omen_day"] is not None, \
-        f"ไม่มีลางมหาศึกภายใน {WAR_TRIAL_YEARS} ปี:\n" + msg
-    assert low["speedup"] > calm["speedup"], "กดคลังฟ้าแล้ว speedup ไม่เพิ่ม:\n" + msg
-    assert low["omen_day"] < calm["omen_day"], "กดคลังฟ้าแล้วมหาศึกไม่ได้มาเร็วขึ้น:\n" + msg
+    a = {d: (p, v) for d, p, v in calm["samples"]}
+    b = {d: (p, v) for d, p, v in low["samples"]}
+    days = sorted(set(a) & set(b))
+    sa = [a[d][1] for d in days]
+    sb = [b[d][1] for d in days]
+    higher = sum(1 for x, y in zip(sa, sb) if y > x)
+    pa = [a[d][0] for d in days]
+    pb = [b[d][0] for d in days]
+    msg = (f"  รอบที่เทียบได้ {len(days)} · speedup เฉลี่ย ไม่แตะ {sum(sa) / max(1, len(sa)):.3f} (สูงสุด {max(sa, default=0):.3f}) "
+           f"vs คลังฟ้าถูกกด {WAR_LOW_HEAVEN:.0%} {sum(sb) / max(1, len(sb)):.3f} (สูงสุด {max(sb, default=0):.3f}) · "
+           f"ถูกกดสูงกว่า {higher}/{len(days)} รอบ\n"
+           f"  แรงกดดันมหาศึกวันเดียวกัน (ท้ายสุดที่เทียบได้) ไม่แตะ {pa[-1] if pa else None} vs ถูกกด {pb[-1] if pb else None}\n"
+           f"  รายงาน (หยาบ): ลางแรก ไม่แตะวันที่ {calm['omen_day']} · ถูกกดวันที่ {low['omen_day']}")
+    assert len(days) >= 12, "รอบที่เทียบได้น้อยเกินไป:\n" + msg
+    assert sum(sb) / len(sb) > sum(sa) / len(sa) and higher >= 0.9 * len(days),         "กดคลังฟ้าแล้วความเร็วที่ธรรมชาติกดดันไม่สูงกว่าอย่างมีนัย:\n" + msg
 
 
 def test_axis4_3b_damage_accelerates_nature(mechanism):
@@ -1197,8 +1208,12 @@ def test_axis4_4_adaptation_effects_are_real(mechanism):
     from tiandao import config as C
     life, food = mechanism["adapt"]["life"], mechanism["adapt"]["food"]
     calm, lean = food["ยุคปกติ"], food["ทรัพยากรน้อย"]
-    cut = 1 - lean["need"] / calm["need"] if calm["need"] else 0.0
-    msg = f"  อายุขัย {life}" + "\n" + f"  อาหาร {food} (กินน้อยลง {cut:.1%})"
+    # เทียบคนชุดเดียวกัน (cid ที่อยู่ทั้งสองรอบ) — ผลรวมของทั้งแดนปนจำนวนคนที่ต่างกัน (ทรัพยากรน้อยผลผลิตลด คนย้ายออก/ตาย)
+    same = sorted(set(calm["per_cid"]) & set(lean["per_cid"]))
+    base = sum(calm["per_cid"][c] for c in same)
+    cut = 1 - sum(lean["per_cid"][c] for c in same) / base if base else 0.0
+    food = {k: {kk: vv for kk, vv in v.items() if kk != "per_cid"} for k, v in food.items()}
+    msg = f"  เทียบคนชุดเดียวกัน {len(same)} คน · อายุขัย {life}" + "\n" + f"  อาหาร {food} (กินน้อยลง {cut:.1%})"
     assert life["ยุคเสื่อม"]["alive"] and not life["ยุคปกติ"]["alive"], "ยุคเสื่อม สายมนุษย์ไม่ได้อยู่นานขึ้นจริง:" + "\n" + msg
     assert life["ยุคเสื่อม"]["effective"] <= life["ยุคเสื่อม"]["lifespan"] * (1 + C.HUMAN_DECLINE_LIFESPAN) + 1e-9,         "อายุขัยยืดเกิน 10%:" + "\n" + msg
     assert 0 < cut <= C.HUMAN_SCARCE_FRUGAL + 1e-9, "ทรัพยากรน้อยแล้วสายมนุษย์ไม่ได้กินน้อยลง หรือลดเกิน 10%:" + "\n" + msg

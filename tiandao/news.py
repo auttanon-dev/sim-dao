@@ -97,7 +97,8 @@ def _deliver(sim, item) -> None:
         return
     dead = sim.cast[dead_cid]
     stats["delivered"] = stats.get("delivered", 0) + 1
-    stats["delay_days"] = stats.get("delay_days", 0) + (sim.day - getattr(dead, "death_day", sim.day))
+    # วันตายที่บันทึกไว้ในข่าวตอนส่ง (item) — ไม่อ่าน dead.death_day เพราะเจ้าโกลาหล "สลาย" แล้วถูกรีเซ็ตเป็น None (death._lord_dissolves)
+    stats["delay_days"] = stats.get("delay_days", 0) + (sim.day - day)
     if grudge and 0 <= killer_cid < len(sim.cast) and killer_cid != cid and sim.cast[killer_cid].alive:
         m.rivals[killer_cid] = m.rivals.get(killer_cid, 0) + grudge
     if m.spouse == dead_cid:
