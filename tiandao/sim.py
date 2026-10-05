@@ -1088,10 +1088,12 @@ class Sim:
         stats[kind + "_count"] = stats.get(kind + "_count", 0) + 1
         if gold >= 365.0 * C.FOOD_RATION_ADULT * C.FOOD_PRICE:
             a.big_haul_day = self.day
-        if kind != "ปล้น":
+        if kind not in ("ปล้น", "โกง"):
             return                                  # ผู้ถูกฆ่า: ญาติแค้นเมื่อข่าวถึง (news) และผู้ฆ่าติดหนี้ผ่าน add_debt อยู่แล้ว
-        a.robberies = getattr(a, "robberies", 0) + 1
-        R.add_debt(a, "ปล้น", t.cid, t.name, self.day)
+        if kind == "ปล้น":
+            a.robberies = getattr(a, "robberies", 0) + 1
+        # "โกง" (เด็กโกงเงินทอนแล้วถูกจับ — childhood._cheat): หนี้กรรมและความแค้นของพ่อค้า/ครัวเรือนแบบเดียวกับการปล้น
+        R.add_debt(a, kind, t.cid, t.name, self.day)
         t.rivals[a.cid] = t.rivals.get(a.cid, 0) + C.GRUDGE_ROB
         hh = HH.of(self, t)
         kin = set(hh.members) if hh is not None else set()
@@ -4119,10 +4121,12 @@ class Sim:
         d["ราคาที่จ่าย"] = price
         d["คู่แข่งคนสุดท้าย"] = runner_up.name
         d["ราคาที่คู่แข่งสู้ถึง"] = rest[0][0]
-        self.emit(w, "เปิดประมูล", host, winner, ["แลกเปลี่ยน", "ทรัพย์", "คน"], "ชนะประมูล",
+        # ผู้ชนะ/ผู้แพ้เป็นผู้กระทำของบรรทัดตัวเอง (เจ้าภาพเป็นผู้ถูกกระทำ) — เดิมเจ้าภาพเป็นผู้กระทำทั้งสามเหตุการณ์ ประวัติของเจ้าภาพ
+        # จึงเต็มไปด้วยประมูล (seed 42: เจ้าภาพคนเดียว 112 จาก 168 เหตุการณ์ของตัวเอง) · ข้อความ รายละเอียด และจำนวนเหตุการณ์คงเดิม
+        self.emit(w, "เปิดประมูล", winner, host, ["แลกเปลี่ยน", "ทรัพย์", "คน"], "ชนะประมูล",
                   f"{winner.name}ประมูล{lot_name}ไปได้ในราคา {price:.1f} หน่วยปราณ "
                   f"เฉือน{runner_up.name}ไปอย่างหวุดหวิด", 0, dict(d))
-        self.emit(w, "เปิดประมูล", host, runner_up, ["แลกเปลี่ยน", "ทรัพย์", "คน"], "พลาดประมูล",
+        self.emit(w, "เปิดประมูล", runner_up, host, ["แลกเปลี่ยน", "ทรัพย์", "คน"], "พลาดประมูล",
                   f"{runner_up.name}สู้ราคา{lot_name}จนสุดตัว แต่แพ้{winner.name}ไปเพียงก้าวเดียว",
                   0, dict(d))
         return "ประมูล", (f"{host.name}เปิดงานประมูล{lot_name} มีผู้ร่วมสู้ราคา {len(bids)} คน "

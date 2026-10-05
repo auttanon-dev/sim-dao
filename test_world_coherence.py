@@ -1402,3 +1402,96 @@ def test_auction_host_rotates():
     msg = f"  เจ้าภาพ {hosts} · คนในตลาด {sorted(others)}"
     assert len(hosts) >= AUCTION_HOST_ROUNDS - 1, "ตลาดที่มีคนพอเปิดงานไม่ได้:\n" + msg
     assert len(set(hosts)) > 1, "เจ้าภาพคนเดิมทุกงาน:\n" + msg
+
+
+# ------------------------------------------------------------------ วัยเด็ก: โดนแกล้ง / โกงเงินทอน (ผู้ใช้อนุมัติ 2026-10-05)
+def _kids_world():
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        return S.Sim(seed=CYCLE_SEED)
+
+
+def test_bullied_child_becomes_wary():
+    """เด็กที่โดนแกล้งต่อเนื่อง BULLY_TRAIT_YEARS ปีต้องติดรากนิสัย "ระวังคน" จริง แค้นผู้แกล้ง และผู้แกล้งเสียความสนิทกับกลุ่ม
+    บันทึกเหตุการณ์ "แกล้ง" เฉพาะครั้งแรกของคู่นั้น"""
+    from tiandao import childhood as CHILD
+    from tiandao import config as C
+    sim = _kids_world()
+    w = sim.worlds[0]
+    kids = [c for c in sim.living_in(w.wid) if c.sentient and not c.is_chaos()][:3]
+    victim, bully, friend = kids
+    for c in kids:
+        c.place = victim.place
+    victim.born_day, bully.born_day, friend.born_day = sim.day - 6 * 365, sim.day - 10 * 365, sim.day - 7 * 365
+    victim.fear, bully.fear, friend.fear = 0.9, 0.1, 0.2
+    bully.ambition, bully.compassion = 0.9, 0.1
+    friend.ambition, friend.compassion = 0.3, 0.6
+    victim.traits = [x for x in victim.traits if x != "ระวังคน"]
+    n = len(sim.log)
+    with contextlib.redirect_stdout(io.StringIO()):
+        for _ in range(C.BULLY_TRAIT_YEARS):
+            CHILD._bully(sim, victim, [bully.cid, friend.cid], w)
+            sim.day += 365
+    new_ev = [e for e in sim.log[n:] if e.kind == "แกล้ง"]
+    msg = (f"  รากนิสัย {victim.traits} · แค้น {victim.rivals.get(bully.cid)} · โดนแกล้ง {getattr(victim, 'bullied_by', {})} · "
+           f"ความสนิท เพื่อน→ผู้แกล้ง {friend.bonds.get(bully.cid)} · เหตุการณ์แกล้ง {len(new_ev)}")
+    assert "ระวังคน" in victim.traits, "โดนแกล้งครบแล้วไม่ติดรากนิสัยระวังคน:\n" + msg
+    assert victim.rivals.get(bully.cid, 0) >= C.BULLY_TRAIT_YEARS, "ผู้โดนไม่แค้นผู้แกล้ง:\n" + msg
+    assert friend.bonds.get(bully.cid, 0) < 0, "ผู้แกล้งไม่เสียความสนิทกับกลุ่ม:\n" + msg
+    assert len(new_ev) == 1, "บันทึกเหตุการณ์แกล้งเกินครั้งแรก:\n" + msg
+
+
+def test_caught_cheater_returns_money_and_owes():
+    """เด็กโกงเงินทอนแล้วถูกจับ (พ่อค้าขั้นสูงกว่า) ต้องคืนเงินครบ ได้หนี้กรรม พ่อค้าแค้น และบัญชีทองยังปิด
+    · เด็กที่ไม่ถูกจับครบ CHILD_CHEAT_TRAIT_AFTER ปี ต้องติด "หัวหมอ" (พิสูจน์ว่าทางนี้ไปถึงได้)"""
+    from tiandao import childhood as CHILD
+    from tiandao import config as C
+    from tiandao import places as PL
+    from tiandao import wages as W
+    sim = _kids_world()
+    w = sim.worlds[0]
+    market = next(i for i, pl in enumerate(PL.PLACES) if pl[1] == w.place_key and pl[3] in C.AUCTION_PLACES)
+    people = [c for c in sim.living_in(w.wid) if c.sentient and not c.is_chaos()]
+    kid, shop = people[0], people[1]
+    tier = w.tier
+    for c in (kid, shop):
+        c.place, c.hidden, c.travel_dest, c.world_id = market, False, -1, w.wid
+    for c in sim.living_in(w.wid):
+        if c.cid not in (kid.cid, shop.cid) and c.place == market:
+            c.place = (market + 1) % len(PL.PLACES)
+    kid.born_day, kid.greed, kid.realm, kid.money = sim.day - 11 * 365, 0.9, 0, {}
+    shop.born_day, shop.profession, shop.realm = sim.day - 40 * 365, C.AUCTION_HOSTS[0], 2
+    W.set_gold(sim, shop, tier, 1000.0, "test_cheat_shop")
+    gaps0 = {t: round(W.gold_gap(sim, t), 6) for t in sorted({x.tier for x in sim.worlds})}
+    with contextlib.redirect_stdout(io.StringIO()):
+        CHILD._cheat(sim, kid, w)
+    debts = [d for d in kid.debts if d.get("kind") == "โกง"]
+    gaps1 = {t: round(W.gold_gap(sim, t), 6) for t in gaps0}
+    msg = (f"  เงินเด็ก {W.gold(sim, kid):.4f} · เงินพ่อค้า {W.gold(sim, shop):.4f} · หนี้กรรม {debts} · "
+           f"แค้นพ่อค้า {shop.rivals.get(kid.cid)} · ถูกจับ {getattr(kid, 'cheat_caught', 0)} · บัญชีทอง {gaps0} → {gaps1}")
+    assert getattr(kid, "cheat_caught", 0) == 1, "พ่อค้าขั้นสูงกว่าแต่เด็กไม่ถูกจับ:\n" + msg
+    assert abs(W.gold(sim, kid)) < 1e-9 and abs(W.gold(sim, shop) - 1000.0) < 1e-9, "ถูกจับแล้วเงินไม่คืนครบ:\n" + msg
+    assert debts and shop.rivals.get(kid.cid, 0) > 0, "ถูกจับแล้วไม่มีหนี้กรรมหรือพ่อค้าไม่แค้น:\n" + msg
+    assert gaps1 == gaps0, "บัญชีทองเปลี่ยนจากการโกง (ทองเกิดหรือหาย):\n" + msg
+
+    sim2 = _kids_world()
+    w2 = sim2.worlds[0]
+    people2 = [c for c in sim2.living_in(w2.wid) if c.sentient and not c.is_chaos()]
+    kid2, shops = people2[0], people2[1:1 + C.CHILD_CHEAT_TRAIT_AFTER]
+    for c in [kid2] + shops:
+        c.place, c.hidden, c.travel_dest = market, False, -1
+    for c in sim2.living_in(w2.wid):
+        if c.cid not in {kid2.cid, *(s.cid for s in shops)} and c.place == market:
+            c.place = (market + 1) % len(PL.PLACES)
+    kid2.born_day, kid2.greed, kid2.realm, kid2.money = sim2.day - 10 * 365, 0.9, 1, {}
+    kid2.traits = [x for x in kid2.traits if x != "หัวหมอ"]
+    for s in shops:
+        s.born_day, s.profession, s.realm = sim2.day - 40 * 365, C.AUCTION_HOSTS[0], 0
+        W.set_gold(sim2, s, w2.tier, 1000.0, "test_cheat_shop")
+    with contextlib.redirect_stdout(io.StringIO()):
+        for _ in range(C.CHILD_CHEAT_TRAIT_AFTER):
+            kid2.money = {}
+            CHILD._cheat(sim2, kid2, w2)
+            sim2.day += 365
+    assert "หัวหมอ" in kid2.traits and getattr(kid2, "cheat_caught", 0) == 0, \
+        f"โกงสำเร็จครบแล้วไม่ติดหัวหมอ: สำเร็จ {getattr(kid2, 'cheat_ok', 0)} ถูกจับ {getattr(kid2, 'cheat_caught', 0)} {kid2.traits}"

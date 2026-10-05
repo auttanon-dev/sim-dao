@@ -242,6 +242,111 @@ def broken(sim, child, p):
     return None
 
 
+def _bully(sim, child, with_, world):
+    """เด็กโดนแกล้งในปีที่ได้กิจวัตรเล่น (ผู้ใช้อนุมัติ 2026-10-05) — ไม่สุ่ม ตัดสินจากสภาวะ
+    ผู้แกล้ง: เพื่อนเล่นที่โตกว่า ≥ BULLY_AGE_GAP ปี ที่ ambition − compassion สูงสุด (≥ BULLY_MIN)
+    ผู้โดน: เด็กคนนี้ ถ้าขลาดที่สุดในกลุ่ม หรือผู้ปกครองไม่ได้อยู่ที่เดียวกัน
+    ผล: แค้นผู้แกล้ง · กลัว/ชิงชัง (EM.react) · โดนรวม BULLY_TRAIT_YEARS ปี → รากนิสัย "ระวังคน" · ผู้แกล้งเสียความสนิทกับกลุ่ม
+    บันทึกเฉพาะครั้งแรกของคู่นั้น และตอนติดรากนิสัย"""
+    from . import emotions as EM
+    age = child.age(sim.day)
+    group = [sim.cast[c] for c in with_ if 0 <= c < len(sim.cast) and sim.cast[c].alive]
+    if not group:
+        return
+    home = carer(sim, child)
+    alone = home is None or home.place != child.place
+    timid = child.fear >= max(c.fear for c in group)
+    if not (alone or timid):
+        return
+    older = [c for c in group if c.age(sim.day) - age >= C.BULLY_AGE_GAP
+             and c.ambition - c.compassion >= C.BULLY_MIN]
+    if not older:
+        return
+    bully = max(older, key=lambda c: (c.ambition - c.compassion, -c.cid))
+    log = child.__dict__.setdefault("bullied_by", {})
+    first = bully.cid not in log
+    log[bully.cid] = log.get(bully.cid, 0) + 1
+    child.rivals[bully.cid] = child.rivals.get(bully.cid, 0) + 1
+    EM.react(child, "โดนแกล้ง", "โดนแกล้ง", day=sim.day)
+    for c in group:
+        if c.cid != bully.cid:
+            c.bonds[bully.cid] = c.bonds.get(bully.cid, 0) - 1
+            bully.bonds[c.cid] = bully.bonds.get(c.cid, 0) - 1
+    if first:
+        sim.emit(world, "แกล้ง", bully, child, ["วัยเด็ก"], "แกล้งเพื่อน",
+                 f"{bully.name}วัย {bully.age(sim.day)} ปี แกล้ง{child.name}วัย {age} ปี"
+                 + (" ที่ไม่มีผู้ใหญ่อยู่ใกล้" if alone else ""), 0, {"ผู้ปกครองอยู่ใกล้": not alone})
+    if sum(log.values()) >= C.BULLY_TRAIT_YEARS and "ระวังคน" not in child.traits:
+        child.traits.append("ระวังคน")
+        sim.emit(world, "เติบโต", child, bully, ["วัยเด็ก"], "ติดนิสัยระวังคน",
+                 f"{child.name}ถูกแกล้งมา {sum(log.values())} ปี จนกลายเป็นเด็กที่ระวังคน", 0,
+                 {"รากนิสัย": "ระวังคน", "ผู้แกล้ง": bully.name})
+
+
+def _cheat(sim, child, world):
+    """เด็กยากจนโกงเงินทอนพ่อค้าที่ตลาด ในปีที่ช่วยงาน (ผู้ใช้อนุมัติ 2026-10-05) — ไม่สุ่ม ทองย้ายผ่าน WAGES.move_gold เท่านั้น
+    ผู้กระทำ: อายุ CHILD_CHEAT_AGE ความโลภ ≥ CHILD_CHEAT_GREED เงินตัวเอง+ครัวเรือนไม่พอค่าข้าว FOOD_SECLUDE_KEEP_DAYS วัน
+    ถูกจับ (ไม่สุ่ม): พ่อค้าขั้นสูงกว่า หรือเคยโกงพ่อค้าคนนี้แล้ว → คืนทองทั้งหมด + Sim.wrong_done("โกง") (หนี้กรรม ความแค้นของครัวเรือน)
+    ถูกจับครบ CHILD_CHEAT_BAN_AFTER ครั้ง → ตลาดลงโทษ (ห้ามเข้าแผงจนเติบใหญ่ — เด็กเข้าคุกในระบบนี้ไม่ได้ เพราะเทิร์นเด็กล้างสถานะซ่อน)
+    สำเร็จครบ CHILD_CHEAT_TRAIT_AFTER ปี → รากนิสัย "หัวหมอ" ความโลภเพิ่ม"""
+    from . import places as PL
+    from . import wages as WAGES
+    from . import food as F
+    from . import household as HH
+    lo, hi = C.CHILD_CHEAT_AGE
+    age = child.age(sim.day)
+    if not (C.WAGES_ENABLED and lo <= age <= hi and child.greed >= C.CHILD_CHEAT_GREED):
+        return
+    if getattr(child, "cheat_banned", False) or not (0 <= child.place < len(PL.PLACES)):
+        return
+    if PL.PLACES[child.place][3] not in C.AUCTION_PLACES:
+        return
+    tier = WAGES.tier_of(sim, child)
+    home = HH.of(sim, child)
+    have = WAGES.gold(sim, child) + (home.purse.get(tier, 0.0) if home is not None else 0.0)
+    need = C.FOOD_SECLUDE_KEEP_DAYS * F.ration(child, sim.day) * F.price_at(sim, F._spot(child))
+    if have >= need:
+        return
+    shops = [c for c in sim.living_in(child.world_id) if c.place == child.place and c.cid != child.cid
+             and c.age(sim.day) >= 16 and getattr(c, "profession", "") in C.AUCTION_HOSTS
+             and WAGES.tier_of(sim, c) == tier and WAGES.gold(sim, c) > 0]
+    if not shops:
+        return
+    marks = child.__dict__.setdefault("cheated", {})
+    # เลือกพ่อค้าที่ยังไม่เคยโกงก่อน (คนเดิมจำหน้าได้) แล้วจึงรวยที่สุด — ถ้าเลือกแต่คนรวยที่สุด ปีที่สองก็โกงคนเดิมแล้วถูกจับเสมอ
+    mark = max(shops, key=lambda c: (c.cid not in marks, WAGES.gold(sim, c), -c.cid))
+    amount = min(WAGES.gold(sim, mark) * C.CHILD_CHEAT_SHARE, need - have)
+    if amount <= 0:
+        return
+    caught = mark.realm > child.realm or mark.cid in marks
+    WAGES.move_gold(sim, mark, -amount)
+    WAGES.move_gold(sim, child, amount)
+    marks[mark.cid] = marks.get(mark.cid, 0) + 1
+    if caught:
+        WAGES.move_gold(sim, child, -amount)          # คืนทองครบ
+        WAGES.move_gold(sim, mark, amount)
+        sim.wrong_done(child, mark, "โกง", amount)
+        child.cheat_caught = getattr(child, "cheat_caught", 0) + 1
+        banned = child.cheat_caught >= C.CHILD_CHEAT_BAN_AFTER
+        if banned:
+            child.cheat_banned = True
+        sim.emit(world, "ถูกจับได้ว่าโกง", child, mark, ["วัยเด็ก", "ทรัพย์"], "ถูกตลาดลงโทษ" if banned else "คืนเงิน",
+                 f"{mark.name}จับได้ว่า{child.name}วัย {age} ปี โกงเงินทอน {amount:.2f} เหรียญ — {child.name}ต้องคืนทั้งหมด"
+                 + (" และถูกห้ามเข้าแผงในตลาดอีก" if banned else ""), 0,
+                 {"เงินที่คืน": round(amount, 4), "ถูกจับครั้งที่": child.cheat_caught})
+        return
+    child.cheat_ok = getattr(child, "cheat_ok", 0) + 1
+    if child.cheat_ok == 1:
+        sim.emit(world, "โกงเงินทอน", child, mark, ["วัยเด็ก", "ทรัพย์"], "โกงสำเร็จ",
+                 f"{child.name}วัย {age} ปี ที่บ้านไม่มีเงินค่าข้าว แอบโกงเงินทอนของ{mark.name}ไป {amount:.2f} เหรียญ", 0,
+                 {"เงินที่ได้": round(amount, 4)})
+    if child.cheat_ok >= C.CHILD_CHEAT_TRAIT_AFTER and "หัวหมอ" not in child.traits:
+        child.traits.append("หัวหมอ")
+        child.greed = min(1.0, child.greed + C.CHILD_CHEAT_GREED_UP)
+        sim.emit(world, "เติบโต", child, None, ["วัยเด็ก"], "ติดนิสัยหัวหมอ",
+                 f"{child.name}โกงเงินทอนสำเร็จมา {child.cheat_ok} ปี จนติดนิสัยหัวหมอ", 0, {"รากนิสัย": "หัวหมอ"})
+
+
 def turn(sim, child, world, elapsed, rng):
     """เทิร์นของเด็ก: เลือกกิจวัตรถึงวันเกิดถัดไป บันทึกหนึ่งเรื่องต่อปีของอายุ แล้วนัดเทิร์นถัดไปใกล้วันเกิด"""
     age = max(0, child.age(sim.day))
@@ -249,6 +354,10 @@ def turn(sim, child, world, elapsed, rng):
     ask_for_help(sim, child, world)
     p = start(sim, child, next_birthday, _rng(sim, child))
     routine, with_ = p.payload["routine"], p.payload["with"]
+    if routine == PLAY:
+        _bully(sim, child, with_, world)
+    elif routine == CHORES:
+        _cheat(sim, child, world)
     names = "และ".join(sim.cast[c].name for c in with_[:2])
     outcome = next(o for top, o in BAND_OUTCOME if age <= top)
     if routine == CARE:

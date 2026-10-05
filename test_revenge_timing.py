@@ -36,7 +36,11 @@ def a_pair(seed=5):
     """โลกเล็กๆ กับคนสองคนที่มีแค้นต่อกัน — คืน (sim, ผู้แค้น, คู่แค้น)"""
     sim = quiet(S.Sim, seed=seed)
     quiet(sim.run, 3000)
-    living = [c for c in sim.cast if c.alive and c.place is not None]
+    # ผู้ใหญ่ที่ยืนได้และสู้ได้ — ร่างกายเป็นด่านบังคับ (intent.weigh: ยืนไม่ได้/สู้ไม่ได้ น้ำหนักต่อสู้ทุกชนิดเป็นศูนย์) เดิมเลือกสองคนแรก
+    # ที่มีชีวิตโดยไม่ดูร่างกาย ลำดับสุ่มที่เปลี่ยน (6507edf) ทำให้ cid 0 ขาเจ็บ (can_stand=False) เทสต์จึงวัดคนที่ลงมืออะไรไม่ได้เลย
+    from tiandao import body as BODY
+    living = [c for c in sim.cast if c.alive and c.place is not None and c.age(sim.day) >= 16
+              and BODY.can_stand(c) and BODY.can_fight(c)]
     a, t = living[0], living[1]
     a.rivals = {t.cid: 6}
     a.traits = [x for x in a.traits if x != "พยาบาท"]
