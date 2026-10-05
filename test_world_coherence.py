@@ -68,13 +68,10 @@
           มนุษย์ในยุคเสื่อม/ทรัพยากรน้อย · เลิกใช้ "ขั้นเฉลี่ยสูงสุด" เป็นเกณฑ์ (ผู้ใช้ตัดสิน: อสูรนำเพราะพลังดิบทำให้ขึ้นขั้นเร็ว
           แต่ "ทนทาน" คืออยู่รอดยาวขึ้น ไม่ใช่ขึ้นขั้นสูง) และไม่ใช้อายุเฉลี่ยตอนตาย (ปนการตายจากสงคราม อดอาหาร โรค ที่กลไกยืด
           อายุขัยไม่ได้แตะ — อายุเฉลี่ยตอนตาย 34–40 ปี คนส่วนใหญ่ตายก่อนวัยชรา) — ทั้งสองยังรายงานเป็นข้อมูลประกอบ
-      (ก-3) สาเหตุการตายแบบบังคับสถานการณ์ (ชุดเร็ว — ตัวตัดสิน): โลก seed 16 เดิน 20 ปี แล้วคงสถานการณ์แต่ละแบบไว้ 17 ปี
-          นับทุกความตายในแดนมนุษย์ ทุกอายุ ทั้งคนกินและไม่กินข้าว หมวดจาก death_cause เดิม (อดอยาก/ร่างกาย · ถูกฆ่า · อายุ · อื่นๆ)
-          เกณฑ์: สาเหตุหลักของแต่ละสาย (ผู้ตาย ≥ 30) ต้องเปลี่ยนตามสถานการณ์ และทรัพยากรน้อย สัดส่วนตายเพราะอดอยากต้องเพิ่ม
-          ตายเพราะถูกฆ่าต้องลด (เทียบยุคปกติ) · ทำไมเปลี่ยนวิธีวัด (ผู้ใช้ตัดสิน): "สัดส่วนรอดถึงวัยชรา" ต้องกรองเฉพาะคนกินข้าว
-          (กลไกประหยัดมีผลกับคนกินเท่านั้น — วิญญาณบริสุทธิ์และขั้นงดอาหาร FOOD_BIGU_REALM = 3 ขึ้นไปไม่กินข้าว) แล้วสายอื่นเหลือ
-          ไม่ถึง 30 คน (วิญญาณ 11 อสูร 12 มาร 9) เทียบไม่ได้ · สาเหตุการตายวัดได้จากทุกคน จำนวนคนไม่กินข้าวรายงานแยกต่อสาย
-          สัดส่วนรอดถึงวัยชรายังรายงานเป็นข้อมูลประกอบ
+      (ก-3) ทรัพยากรน้อยแบบบังคับสถานการณ์ (ชุดเร็ว — รายงาน + สองข้อบังคับ · ผู้ใช้ตัดสิน 2026-10-05): ถามว่า "เมื่อทรัพยากรหมด คนเข้าสู่
+          ภาวะข้าวขาดจริงไหม หรือกลไกของโลกดูดซับได้?" แทน "ตายเพราะหิวเพิ่มไหม" — วัดแล้วข้าวลดจริงแต่ไม่มีใครตายเพิ่ม เพราะยุ้งฉาง
+          3 เดือน คนลงไร่ และย้ายหาข้าว ซึ่งเป็นกลไกจริงของโลก · บังคับ: ผลผลิตข้าวลดเมื่อสมุนไพรหมด และบัญชีอาหารปิด · รายงาน:
+          ความหิวสะสม ย้ายหาข้าว ลงไร่ชดเชย อดตาย และสาเหตุการตาย (เดิมวัดสาเหตุการตาย — ก่อนหน้านั้นวัดรอดถึงวัยชรา)
       (ข) สถานการณ์ 5 แบบ (ปกติ/เสื่อม/ทรัพยากรน้อย/สงคราม/รุ่งเรือง) คู่พ่อแม่ 20 คู่ชุดเดียวกันคลอดผ่าน conceive/deliver จริง
           ผู้ได้เปรียบ = สายที่ลูกได้เพิ่มเทียบยุคปกติ (ยุคปกติยังมีการเปลี่ยนจากกลไกเกิดเดิม: ตัดสาย < 0.05 แล้วปรับสัดส่วน และ
           กลายพันธุ์ที่ตกไปสายสุดท้าย chaos — จึงหักฐานยุคปกติออก) ต้องไม่ใช่สายเดียวกันทุกสถานการณ์ · เสื่อม/ทรัพยากรน้อย = มนุษย์
@@ -734,11 +731,17 @@ def _survival_trial(state, sim):
 
         sim._world_tick = world_tick
         _hold_state(sim, state)
+        food0 = dict(sim.food_stats)
         end = sim.day + (OLD_AGE - SURVIVAL_FROM + 1) * 365
         while sim.day < end and any(c.alive and c.cid not in reached for c in cohort):
             if sim.step() is None:
                 break
         state_seen = sim.blood_state(sim.worlds[0])
+        # 4.4 ทรัพยากรน้อย — ความหิวถูกดูดซับอย่างไร: ส่วนต่างของบัญชีอาหารเดิม (food.STAT_KEYS) ระหว่างช่วงบังคับ
+        food_delta = {k: round(sim.food_stats.get(k, 0) - food0.get(k, 0), 3)
+                      for k in ("produced", "required", "unmet", "migrated", "took_up_farming", "left_farming",
+                                "starved", "seclusion_cut")}
+        food_gap = F.total_held(sim) - F.ledger_balance(sim.food_stats)
     out = collections.defaultdict(lambda: [0, 0])
     for c in cohort:
         out[line[c.cid]][0] += 1
@@ -746,6 +749,7 @@ def _survival_trial(state, sim):
     return dict(state=state, state_seen=state_seen, rows={k: tuple(v) for k, v in out.items()},
                 no_food=dict(no_food), no_food_why=dict(why),
                 causes={k: dict(v) for k, v in causes.items()}, no_food_dead=dict(no_food_dead),
+                food=food_delta, food_gap=food_gap,
                 years=round((sim.day / 365) - ADAPT_WARMUP_YEARS, 1))
 
 
@@ -1160,34 +1164,39 @@ def test_axis4_4_longrun_survival_report(cycle):
                   UserWarning)
 
 
-def test_axis4_4_cause_of_death_follows_world_state(mechanism):
-    """(ก-3) บังคับสถานการณ์ — สาเหตุการตายแยกตามสายเลือดและสถานการณ์ (ผู้ใช้ตัดสิน: แทนการวัด "รอดถึงวัยชรา" ที่สายอื่นมีคน
-    กินข้าวไม่ถึง 30 คน) · ทุกความตายในแดนมนุษย์ระหว่างช่วงบังคับ ทุกอายุ ทั้งคนกินและไม่กินข้าว หมวดจาก death_cause เดิม
-    (อดอยาก/ร่างกาย · ถูกฆ่า · อายุ · อื่นๆ) เกณฑ์: สาเหตุหลักของแต่ละสาย (ที่มีผู้ตาย ≥ SURVIVAL_MIN_DEATHS) ต้องเปลี่ยนตาม
-    สถานการณ์ และเมื่อทรัพยากรน้อย สัดส่วนการตายเพราะอดอยากต้องเพิ่ม การตายเพราะถูกฆ่าต้องลด (เทียบยุคปกติ ทุกสายรวมกัน)"""
+def test_axis4_4_scarcity_food_absorbed_report(mechanism):
+    """(ก-3) ทรัพยากรน้อย — รายงาน + สองข้อบังคับ (ผู้ใช้ตัดสิน 2026-10-05)
+    คำถามที่ถาม: "เมื่อทรัพยากรหมด คนเข้าสู่ภาวะข้าวขาดจริงไหม หรือกลไกของโลกดูดซับได้?" — แทนคำถามเดิม "ตายเพราะหิวเพิ่มไหม"
+    เพราะผลวัดแล้วข้าวลดจริงแต่ไม่มีใครตายเพิ่ม (อดอยาก 0.002 → 0.003): ยุ้งฉาง 3 เดือน คนลงไร่ชดเชย และย้ายไปหาข้าวที่อื่น
+    เป็นกลไกที่มีอยู่จริงในโลก — ผู้ใช้ยืนยันว่าโลกทำงานถูก
+    บังคับผ่าน: ผลผลิตข้าวช่วงบังคับต้องลดลงจริงเมื่อสมุนไพรหมด (เทียบยุคปกติ) และบัญชีอาหารต้องปิดทั้งสองโลก
+    รายงาน: ความหิวสะสม (unmet = สำรับที่ขาด ≈ คน-วันที่หิว) ย้ายหาข้าว ลงไร่ชดเชย อดตาย ผู้ปิดด่านที่ต้องออก และสาเหตุการตาย"""
+    import warnings
     runs = {r["state"]: r for r in mechanism["survival"]}
-    share, main = {}, collections.defaultdict(dict)
+    calm, lean = runs["ยุคปกติ"], runs["ทรัพยากรน้อย"]
+    fc, fl = calm["food"], lean["food"]
+    drop = 1 - fl["produced"] / fc["produced"] if fc["produced"] else 0.0
+    absorb = {"ลงไร่ชดเชย (คน-ครั้ง)": fl["took_up_farming"] - fc["took_up_farming"],
+              "ย้ายหาข้าว (ครั้ง)": fl["migrated"] - fc["migrated"],
+              "ผู้ปิดด่านออกมาหาข้าว": fl["seclusion_cut"] - fc["seclusion_cut"]}
+    share = {}
     for st, r in runs.items():
         total = collections.Counter()
-        for blood, c in r["causes"].items():
+        for c in r["causes"].values():
             total.update(c)
-            n = sum(c.values())
-            if n >= SURVIVAL_MIN_DEATHS:
-                main[blood][st] = max(DEATH_KINDS, key=lambda k: c.get(k, 0))
         n = sum(total.values())
         share[st] = {k: round(total.get(k, 0) / n, 3) if n else 0.0 for k in DEATH_KINDS}
-    changes = {b: m for b, m in main.items() if len(m) == len(runs) and len(set(m.values())) > 1}
-    calm, lean = share["ยุคปกติ"], share["ทรัพยากรน้อย"]
-    msg = (f"  สัดส่วนสาเหตุการตาย (ทุกสายรวม) ต่อสถานการณ์: {share}\n"
-           f"  สาเหตุหลักต่อสาย (สายที่มีผู้ตาย ≥ {SURVIVAL_MIN_DEATHS}): {dict(main)}\n"
-           f"  ผู้ตายต่อสาย ต่อสาเหตุ: {[(st, r['causes']) for st, r in runs.items()]}\n"
-           f"  ผู้ตายที่ไม่ต้องกินข้าว ต่อสาย: {[(st, r['no_food_dead']) for st, r in runs.items()]}\n"
-           f"  ข้อมูลประกอบ — สัดส่วนรอดถึง {OLD_AGE} ของคนกินข้าวอายุ 45–61: "
-           f"{[(st, {k: (n, round(g / n, 3)) for k, (n, g) in r['rows'].items()}) for st, r in runs.items()]}")
+    msg = (f"  ผลผลิตข้าวช่วงบังคับ: ยุคปกติ {fc['produced']:,.0f} → ทรัพยากรน้อย {fl['produced']:,.0f} (ลด {drop:.1%})\n"
+           f"  ความหิวสะสม (สำรับที่ขาด ≈ คน-วัน): {fc['unmet']:,.1f} → {fl['unmet']:,.1f} · อดตาย {fc['starved']} → {fl['starved']}\n"
+           f"  กลไกดูดซับ (ส่วนที่เพิ่มเทียบยุคปกติ): {absorb}\n"
+           f"  บัญชีอาหาร ยุคปกติ ต่าง {calm['food_gap']:.2e} · ทรัพยากรน้อย ต่าง {lean['food_gap']:.2e}\n"
+           f"  สัดส่วนสาเหตุการตาย (รายงาน): {share}\n"
+           f"  ผู้ตายที่ไม่ต้องกินข้าว ต่อสาย: {[(st, r['no_food_dead']) for st, r in runs.items()]}")
     assert all(r["state_seen"] == st for st, r in runs.items()), "บังคับสถานการณ์ไม่ติด:\n" + msg
-    assert changes, "สาเหตุการตายหลักของทุกสายเหมือนเดิมทุกสถานการณ์:\n" + msg
-    assert lean["อดอยาก/ร่างกาย"] > calm["อดอยาก/ร่างกาย"] and lean["ถูกฆ่า"] < calm["ถูกฆ่า"], \
-        "ทรัพยากรน้อยแล้วสัดส่วนตายเพราะอดอยากไม่เพิ่ม หรือตายเพราะถูกฆ่าไม่ลด (เทียบยุคปกติ):\n" + msg
+    assert fl["produced"] < fc["produced"], "สมุนไพรหมดแล้วผลผลิตข้าวไม่ลดลง:\n" + msg
+    tol = 1e-6 * max(1.0, fc["produced"])
+    assert abs(calm["food_gap"]) < tol and abs(lean["food_gap"]) < tol, "บัญชีอาหารไม่ปิด:\n" + msg
+    warnings.warn("4.4 ทรัพยากรน้อย (รายงาน): " + msg.replace("\n", " | "), UserWarning)
 
 
 def test_axis4_4_leader_changes_with_world_state(mechanism):
