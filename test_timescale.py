@@ -179,10 +179,13 @@ class TestSeclusion(unittest.TestCase):
             WAGES.set_gold(sim, ch, tier, need, "test_seclusion_purse")
         sim.resolve(SECLUDE, ch, None, w, 30, StubRng())
         before = ch.insight
-        for _ in range(80):
+        # เดินทีละเหตุการณ์แล้วหยุดทันทีที่ออกจากด่าน — วัดความเข้าใจ ณ ตอนออก ก่อนการกระทำถัดไป (เช่นข้ามขั้น) ใช้ไป
+        # (ผู้ใช้อนุมัติ 2026-10-06: เดิมเดินทีละ 500 เหตุการณ์ ตัวละครออกจากด่านครบ 3 ปีแล้วข้ามขั้นอีก 13 วันต่อมาในก้อนเดียวกัน
+        #  ความเข้าใจที่วัดจึงถูกใช้ไปแล้ว) · เพดานเท่าเดิม 80 × 500 เหตุการณ์
+        for _ in range(80 * 500):
             if not ch.hidden or not ch.alive:
                 break
-            quiet(sim.run, 500)
+            quiet(sim.step)
         if not ch.alive:
             self.skipTest("ตายในด่าน — เป็นไปได้ตามกฎอายุขัย")
         self.assertFalse(ch.hidden)
