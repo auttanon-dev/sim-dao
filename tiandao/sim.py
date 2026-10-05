@@ -254,6 +254,7 @@ class Sim:
             ch.blood = {"chaos": 1.0}
             ch.inner_none = True
             ch.realm = C.REALM_CAP
+            ch.peak_realm = ch.realm
         lord = max(self.living_in(w.wid), key=lambda c: c.chaos_rank)
         lord.is_lord = True
         lord.chaos_rank = len(C.CHAOS_RANKS) - 1
@@ -662,6 +663,7 @@ class Sim:
             ch.realm = rng.randint(1, 2)
             ch.peak_realm = max(ch.peak_realm, ch.realm)
         ch.tier = world.tier
+        ch.peak_tier = max(ch.peak_tier, ch.tier)   # เกิดในแดนชั้นสูง — ขั้นสูงสุดต้องไม่ต่ำกว่าขั้นปัจจุบัน (seed 42: 10,706 คน)
         pl = PL.places_in(world.place_key)
         ch.place = self.rng.choice(pl) if pl else -1
         # ทายาทตระกูล = เกิดในตระกูลจริง มีบ้านเป็นสถานที่ของตระกูล
@@ -706,6 +708,9 @@ class Sim:
         EL.roll(ch, rng, _par)
         ch.name = self.unique_name(ch.name)
         ch.last_day = self.day
+        # ขั้นสูงสุดต้องไม่ต่ำกว่าขั้นที่เกิดมามี — เส้นทางสร้างคนหลายทางตั้ง realm โดยไม่ตั้ง peak_realm (seed 42: 4,488 คน หลังแก้ peak_tier)
+        ch.peak_tier = max(ch.peak_tier, ch.tier)
+        ch.peak_realm = max(ch.peak_realm, ch.realm)
         self.cast.append(ch)
         self.alive_cids.add(ch.cid)
         self._alive_ver = getattr(self, "_alive_ver", 0) + 1
@@ -756,6 +761,7 @@ class Sim:
                 ch.blood = {"chaos": 1.0}
                 ch.inner_none = True
                 ch.realm = C.REALM_CAP
+                ch.peak_realm = ch.realm
             return
         if len(self.alive_cids) >= C.POP_CEILING:
             return          # ทั้งจักรวาลคนถึงเพดานแล้ว ไม่เติมคนจากภายนอกอีก (เจ้าโกลาหลข้างบนมีจำนวนตายตัวของตัวเอง)
@@ -1600,7 +1606,7 @@ class Sim:
         out = EC.sect_output(sum(1 for cid in org.members
                                  if 0 <= cid < len(self.cast) and self.cast[cid].alive),
                              self.sect_territory(org))
-        got = min(out, max(0.0, w.heaven))
+        got = min(out, w.extractable())
         if got <= 0:
             org.monthly_resource = 0.0
             return 0.0
@@ -2582,6 +2588,7 @@ class Sim:
                     # ผ่าน unique_name ให้คนที่สองได้ชื่อที่ต่างออกไป ไม่งั้นบันทึกแยกเจ้าเมืองไม่ออก
                     ruler.name = self.unique_name(ruler_name, old=ruler.name)
                     ruler.realm = realm
+                    ruler.peak_realm = max(ruler.peak_realm, ruler.realm)
                     ruler.title = title
                     ruler.faction = faction
                     ruler.city_id = c["id"]
@@ -2642,6 +2649,7 @@ class Sim:
                             old=beast.name, marker="ตัวที่")
                         beast.is_beast = True
                         beast.realm = min(C.REALM_CAP, max(1, ch.realm + self.rng.randint(-1, 1)))
+                        beast.peak_realm = max(beast.peak_realm, beast.realm)
                         safe_print(f"\n🐾 [ป่าหมื่นอสูร] [{ch.name}] ออกล่าสัตว์อสูรและปะทะกับ [{beast.name}] ขั้น {beast.realm}!")
                         # We don't trigger combat.resolve directly here to avoid circular imports / missing world refs if not careful,
                         # but we can just use the event emitter or resolve it simply:
@@ -2939,8 +2947,14 @@ class Sim:
 
 
         if not actor.alive:
-            return self.emit(world, "สิ้นอายุขัย", actor, None, ["ความตาย"], "ตาย",
-                             f"{actor.name}สิ้นอายุขัย", elapsed, {})
+            # ตายระหว่างร่างกายเดิน (age_and_decay): อายุขัยหมด หรือบาดแผล/อวัยวะล้มเหลว/ร่างเย็น ฯลฯ — เหตุการณ์ต้องบอกสาเหตุจริง
+            # (death_cause ที่ DEATH.resolve บันทึก) เดิมเขียน "สิ้นอายุขัย" ทุกกรณี: seed 42 ใน 50 ปีมี 615 คนที่ตายจากบาดแผล
+            # แต่ประวัติบอกว่าแก่ตาย
+            cause = actor.death_cause or "สิ้นอายุขัย"
+            kind = "สิ้นอายุขัย" if cause.startswith("สิ้นอายุขัย") else "สิ้นชีพ"
+            return self.emit(world, kind, actor, None, ["ความตาย"], "ตาย",
+                             f"{actor.name}สิ้นอายุขัย" if kind == "สิ้นอายุขัย" else f"{actor.name}สิ้นชีพ — {cause}",
+                             elapsed, {"สาเหตุ": cause})
 
         # งานประมูลใหญ่ของตลาด — เหตุการณ์ของ "สถานที่" ไม่ใช่ของอาชีพ
         # วัดจากรันจริง 79 ปี: ผู้มีจิตใจได้เข้างานประมูลแค่ครั้งเดียว เพราะท่า "เปิดประมูล" เปิดให้เฉพาะ
@@ -4662,9 +4676,9 @@ class Sim:
             # ต้องย้ายหรือยอมลง — ซึ่งเป็นแรงผลักให้คนออกเดินทางหาที่ที่ดีกว่า
             rho = self.qi_density(a.place, w)
             spare = EC.place_ceiling(rho) - a.realm
-            if spare > 0 and w.heaven > 0:
+            if spare > 0 and w.extractable() > 0:
                 crop = min(EC.upkeep_qi(a.realm) * spare * C.CONDENSE_RATE * (gap / 365.0),
-                           max(0.0, w.heaven))
+                           w.extractable())
                 if crop > 0:
                     w.heaven -= crop
                     a.qi_taken = getattr(a, "qi_taken", 0.0) + crop
@@ -4897,8 +4911,8 @@ class Sim:
                 a.cores += got_cores
                 d["เก็บได้"] = f"แก่นพลัง×{got_cores}"
                 # สายหินวิญญาณที่แทรกอยู่ในแหล่งแก่นพลัง — ขุดขึ้นมาก็คือดูดปราณออกจากโลก
-                if rng.random() < C.VEIN_FIND_P and w.heaven > 0:
-                    vein = min(C.VEIN_QI * eco * (1.0 + a.fate * C.VEIN_FATE), w.heaven)
+                if rng.random() < C.VEIN_FIND_P and w.extractable() > 0:
+                    vein = min(C.VEIN_QI * eco * (1.0 + a.fate * C.VEIN_FATE), w.extractable())
                     w.heaven -= vein
                     grade = min(len(EC.GRADE_NAMES) - 1, w.tier)
                     EC.add_stones(a, grade, EC.mint(vein, grade))
@@ -5351,6 +5365,7 @@ class Sim:
                 return "ประตูปิด", f"{pv[0]}ไม่เปิดในเวลานี้", d
             self.move_world(a, dest.wid)        # ย้ายพร้อมปรับตัวนับประชากรทั้งสองแดน
             a.tier = dest.tier
+            a.peak_tier = max(a.peak_tier, a.tier)   # ผ่านประตูขึ้นแดนชั้นสูง — นับเป็นขั้นสูงสุดด้วย
             a.realm = max(0, a.realm - gate["push"])
             pl = PL.places_in(dest.place_key)
             a.place = rng.choice(pl) if pl else -1

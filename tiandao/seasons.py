@@ -71,10 +71,12 @@ def maybe_trigger_disaster(sim, world, rng):
         if not spots:
             return None
         n_hit = max(1, len(spots) // 3)
-        for idx in rng.sample(spots, n_hit):
+        hit = rng.sample(spots, n_hit)
+        for idx in hit:
             key = sim._eco_key(world.wid, idx, None)
             sim.eco_harvest(world.wid, idx, sim.place_stock[key] * 0.6, cause="disaster")
         text = f"{name}แผดเผา{world.name} แหล่งวัตถุดิบ {n_hit} แห่งเหือดแห้งลงหนัก"
+        where = ", ".join(PL.PLACES[i][0] for i in hit)
 
     elif kind == "น้ำท่วม":
         spots = _resource_places(world)
@@ -83,14 +85,18 @@ def maybe_trigger_disaster(sim, world, rng):
         idx = rng.choice(spots)
         sim.ruined[idx] = sim.day + 60
         text = f"{name}ซัด{PL.PLACES[idx][0]}ใน{world.name}จนกลายเป็นซากปรักหักพังชั่วคราว"
+        where = PL.PLACES[idx][0]
 
     else:  # ข้าวยากหมากแพง — ฤดูหนาวโหด กระทบพลังฟ้าดินของโลกโดยตรง
         loss = world.heaven * 0.05
         world.heaven = max(0.0, world.heaven - loss)
         text = f"{name}เหน็บหนาวปกคลุม{world.name} ปุถุชนล้มตายมาก พลังฟ้าดินร่อยหรอลง"
+        where = f"ทั้ง{world.name}"
 
-    actor = next(iter(sim.living_in(world.wid)), None)
-    if actor is None:
+    # ภัยตามฤดูเป็นเหตุการณ์ของแดน ไม่มีใครเป็นผู้ก่อ (เหมือนมหาผนึก ลางมหาศึก) — ผู้กระทำ None ที่เกิดคือศูนย์กลางของแดน (Sim._event_site)
+    # ที่ที่ถูกภัยอยู่ในรายละเอียด · เดิมใส่ "คนแรกที่ยังมีชีวิตในแดน" เป็นผู้กระทำ: seed 42 ใน 50 ปี ภัย 4,122 ครั้งตกอยู่กับ 141 คน
+    # บางคนถูกเขียนว่าเป็นผู้ก่อภัยถึง 81 ครั้ง · ผู้ที่ทำให้ธรรมชาติเสื่อมจริงสะสมเป็นโอกาสเกิดภัย (Sim.nature_speedup) ไม่ใช่คนหนึ่งคน
+    if not sim.living_in(world.wid):
         return None
-    return sim.emit(world, "ภัยพิบัติตามฤดู", actor, None,
-                     ["ฤดูกาล", kind], kind, text, 0, {"ฤดู": name})
+    return sim.emit(world, "ภัยพิบัติตามฤดู", None, None,
+                     ["ฤดูกาล", kind], kind, text, 0, {"ฤดู": name, "ที่ที่ถูกภัย": where})

@@ -104,6 +104,13 @@ class World:
     def ratio(self) -> float:
         return self.heaven / self.cap()
 
+    def extractable(self) -> float:
+        """ปราณที่ดูด/ขุด/เก็บออกจากคลังฟ้าได้ = ส่วนที่เกิน "เมล็ด" HEAVEN_SEED_RATIO × เพดาน
+        เมล็ดคือปราณที่แผ่นดินเก็บไว้เลี้ยงตัวเอง — การฟื้นแบบลอจิสติก (rules.heaven_inflow) โตจากตัวมันเอง ถ้าถูกดูดถึงศูนย์
+        ก็ไม่มีวันฟื้น วัดจริง (seed 42 ปีที่ 273): ผู้ฝึก สำนัก และการเก็บเกี่ยวดูดจนคลังโลกมนุษย์เหลือ 0.05% แล้วติดอยู่ตรงนั้น
+        การฟื้น +2.5 ต่อ 3 ปี ถูกดูดออก −57 ทันที — ไม่ได้สร้างพลังเพิ่ม แค่ห้ามดูดส่วนที่ใช้งอกกลับ (ภัยและการทำลายยังกินได้)"""
+        return max(0.0, self.heaven - C.HEAVEN_SEED_RATIO * self.cap())
+
     def state(self) -> str:
         r = self.ratio()
         if r >= C.FLOURISH_RATIO:

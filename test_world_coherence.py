@@ -1257,3 +1257,93 @@ def test_axis4_5_longrun_world_not_frozen(cycle):
     warnings.warn(f"4.5 ระยะยาว: ผนึกพังปีที่ {broke} ท้ายรัน {s[-1]['mara_seal']} "
                   f"(พังอยู่ท้ายรัน = {s[-1]['seal_broken']}) · ยุค {FLAT_YEARS} ปีท้าย {sorted({r['era0'] for r in tail})} "
                   f"· มหาศึกใน {FLAT_YEARS} ปีท้าย = {war}", UserWarning)
+
+
+# ------------------------------------------------------------------ กันบั๊กที่เจอจากการเดินโลกจริง (seed 42 273 ปี, 2026-10-05)
+ERA_TRIAL_TICKS = 24                   # รอบโลก (30 วัน) ที่คงคลังฟ้าไว้ใต้จุดล่ม — บั๊กเดิมล่มทุกรอบ = 24 ครั้ง
+SEED_TRIAL_YEARS = 6                   # เดินโลกต่อกี่ปีหลังคลังฟ้าโลกมนุษย์ถูกดูดถึงศูนย์ ต้องฟื้นขึ้นเหนือเมล็ด
+CAUSE_TRIAL_YEARS = 15                 # เดินโลกกี่ปีเพื่อเทียบสาเหตุการตายกับเหตุการณ์วันเดียวกัน
+
+
+def test_era_collapse_is_an_event_not_a_monthly_state():
+    """ยุคล่มต้องเป็น "เหตุการณ์ที่โลกตกถึงจุดล่ม" ครั้งเดียว ไม่ใช่ซ้ำทุกรอบโลกที่คลังยังต่ำ (บั๊กเดิม: seed 42 ล่ม 1,165 ครั้งใน 273 ปี
+    ห่างกัน 30 วัน ตายไปกับยุค 3,956 คน · โลกจริงยุคที่ 10,307) — คงคลังใต้จุดล่ม ERA_TRIAL_TICKS รอบ ต้องล่มครั้งเดียว
+    แล้วคลังกลับขึ้นเหนือจุดล่มและตกอีกครั้ง จึงล่มครั้งที่สอง · และการดูด/ขุด/เก็บต้องไม่ลากคลังลงใต้เมล็ด (World.extractable) —
+    เริ่มที่ 1.5 เท่าของเมล็ด เดิน SEED_TRIAL_YEARS ปี ต้องยังอยู่เหนือเมล็ด (โค้ดเดิมดูดลงถึง ~0 แล้วติดอยู่ตรงนั้น)"""
+    from tiandao import config as C
+    from tiandao import rules as R
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        sim = S.Sim(seed=CYCLE_SEED)
+        w = sim.worlds[0]
+        era0 = w.era
+        falls = []
+        for i in range(ERA_TRIAL_TICKS):
+            w.heaven = w.cap() * C.COLLAPSE_RATIO * 0.3
+            sim.day += C.WORLD_TICK_DAYS
+            if R.check_world(sim, w, sim.rng) is not None:
+                falls.append(sim.day)
+        held = len(falls)
+        w.heaven = w.cap() * (C.COLLAPSE_RATIO + 0.05)
+        sim.day += C.WORLD_TICK_DAYS
+        R.check_world(sim, w, sim.rng)
+        w.heaven = w.cap() * C.COLLAPSE_RATIO * 0.3
+        sim.day += C.WORLD_TICK_DAYS
+        again = R.check_world(sim, w, sim.rng) is not None
+
+        sim2 = S.Sim(seed=CYCLE_SEED)
+        w2 = sim2.worlds[0]
+        seed = getattr(C, "HEAVEN_SEED_RATIO", 0.02) * w2.cap()      # ค่าตั้งเผื่อรันกับโค้ดเก่าที่ยังไม่มีเมล็ด (พิสูจน์ว่าเทสต์จับบั๊กได้)
+        w2.heaven = seed * 1.5           # เหนือเมล็ดเล็กน้อย — โค้ดเดิมดูดลงถึงศูนย์ ใหม่ต้องดูดได้แค่ถึงเมล็ด
+        start = sim2.day
+        low = []
+        while sim2.day < start + SEED_TRIAL_YEARS * 365:
+            if sim2.step() is None:
+                break
+            low.append(w2.heaven)
+    msg = (f"  คงใต้จุดล่ม {ERA_TRIAL_TICKS} รอบ: ล่ม {held} ครั้ง (วัน {falls[:5]}) · ยุค {era0} → {w.era} · "
+           f"กลับขึ้นแล้วตกอีก: ล่ม = {again}\n"
+           f"  คลังเริ่มที่ 1.5 เท่าของเมล็ด ({seed * 1.5:.0f}): หลัง {SEED_TRIAL_YEARS} ปี {w2.heaven:.1f} ต่ำสุด {min(low, default=0):.1f} "
+           f"(เมล็ด {seed:.0f} · เพดาน {w2.cap():.0f})")
+    assert held == 1, "คลังค้างใต้จุดล่ม ยุคล่มซ้ำทุกรอบโลก:\n" + msg
+    assert again, "คลังกลับขึ้นเหนือจุดล่มแล้วตกอีก ยุคไม่ล่ม:\n" + msg
+    assert w2.heaven >= seed, "ผู้ฝึก/สำนัก/การเก็บเกี่ยวดูดคลังฟ้าลงใต้เมล็ด (ฟื้นไม่ได้):\n" + msg
+
+
+def test_recorded_cause_matches_the_death_event():
+    """สาเหตุที่บันทึก (death_cause) ต้องตรงกับเหตุการณ์ความตายวันเดียวกัน — บั๊กเดิม: ตายจากบาดแผลระหว่างร่างกายเดิน
+    แต่เหตุการณ์เขียนว่า "สิ้นอายุขัย" (seed 42 ใน 50 ปี 615 คน) · ตรวจ: เหตุการณ์ "สิ้นอายุขัย" ของผู้ตายต้องมีสาเหตุเป็นอายุขัย
+    และผู้ตายที่สาเหตุเป็นอายุขัยต้องไม่มีเหตุการณ์ความตายที่บอกสาเหตุอื่น"""
+    from tiandao import config as C
+    from tiandao import death as DEATH
+    from tiandao import sim as S
+    causes = {}
+    real = DEATH.resolve
+
+    def resolve(sim_, ch, cause, killer=None, natural=False):
+        if ch.alive and not ch.is_lord:
+            causes[ch.cid] = (sim_.day, cause)
+        real(sim_, ch, cause, killer, natural)
+
+    DEATH.resolve = resolve
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            sim = S.Sim(seed=CYCLE_SEED)
+            while sim.day < CAUSE_TRIAL_YEARS * 365:
+                if sim.step() is None:
+                    break
+    finally:
+        DEATH.resolve = real
+    wrong, checked = [], 0
+    for e in sim.log:
+        if e.kind != "สิ้นอายุขัย" or e.actor not in causes:
+            continue
+        checked += 1
+        day, cause = causes[e.actor]
+        if not cause.startswith("สิ้นอายุขัย"):
+            wrong.append((e.seq, e.day, e.actor, cause[:40]))
+    wound = sum(1 for d, c in causes.values() if "บาดแผล" in c or "เลือดไหล" in c)
+    msg = (f"  เหตุการณ์ 'สิ้นอายุขัย' {checked} ครั้ง · สาเหตุจริงไม่ใช่อายุขัย {len(wrong)} เช่น {wrong[:5]}\n"
+           f"  ผู้ตายทั้งหมด {len(causes)} · ตายจากบาดแผล/เลือดไหล {wound}")
+    assert checked > 0 and wound > 0, "ข้อมูลไม่พอตรวจ (ไม่มีการตายตามวัยหรือจากบาดแผล):\n" + msg
+    assert not wrong, "เหตุการณ์เขียนว่าสิ้นอายุขัย แต่สาเหตุที่บันทึกคืออย่างอื่น:\n" + msg

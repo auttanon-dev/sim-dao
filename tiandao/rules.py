@@ -615,7 +615,7 @@ def attempt_break(sim, ch: Character, world: World, rng, pills=0):
     # ตอนนี้ถ้าฟ้าไม่พอ ต้องเอาหินวิญญาณของตัวเองมาเติม — ซึ่งคือเหตุผลที่คนตุนหิน
     # และถ้ายังไม่พออีกก็เลื่อนไม่ได้ ต้องรอให้โลกฟื้นหรือไปหาแดนที่ปราณหนากว่า
     from . import economy as _EC
-    short = cost - max(0.0, world.heaven)
+    short = cost - world.extractable()      # ส่วนเมล็ดของคลังฟ้าดูดไม่ได้ (World.extractable)
     if short > 0:
         if _EC.purse_qi(ch) < short:
             return "ปราณฟ้าดินไม่พอ", \
@@ -691,7 +691,7 @@ def attempt_break(sim, ch: Character, world: World, rng, pills=0):
 
     # สำเร็จ — ถอนพลังจากคลังฟ้า
     _spend_accumulation(ch, req, 1.0)
-    take = min(cost, max(0.0, world.heaven))
+    take = min(cost, world.extractable())
     world.heaven = max(0.0, world.heaven - take)
     if take < cost:
         # ส่วนที่ฟ้าจ่ายไม่ไหว เจ้าตัวเผาหินของตัวเองเติม — ตรวจไว้แล้วข้างบนว่ามีพอ
@@ -862,9 +862,8 @@ def sustain(sim, ch: Character, world: World, years: float):
     reach = ch.realm + C.AMBITION_REALMS
     rho = sim.qi_density(ch.place, world) if hasattr(sim, "qi_density") else C.QI_REFERENCE
     want = EC.absorb_per_year(reach, rho) * years
-    pool = max(0.0, world.heaven)
-    drawn = min(want, pool)
-    world.heaven = pool - drawn
+    drawn = min(want, world.extractable())
+    world.heaven = max(0.0, world.heaven) - drawn
     ch.qi_taken = getattr(ch, "qi_taken", 0.0) + drawn
     # ส่วนหนึ่งของปราณที่ดูดเข้ามาไม่ได้ถูกเผาทิ้ง แต่**สะสมอยู่ในร่าง** — ซึ่งก็คือนิยาม
     # ของการบำเพ็ญนั่นเอง ส่วนนี้จึงคืนสู่ฟ้าตอนเจ้าตัวตาย (ดู death_return)
@@ -1066,6 +1065,7 @@ def check_world(sim, world: World, rng):
         world.era_day = sim.day
         world.era += 1
     if world.ratio() > C.COLLAPSE_RATIO:
+        world.era_fallen = False             # กลับขึ้นเหนือจุดล่มแล้ว — ถ้าตกอีกครั้งจึงเป็นยุคล่มครั้งใหม่
         # รอดพ้นยุคเสื่อมแล้ว — ล้างสถิติการล่มติดต่อกัน
         if world.ratio() >= C.DECLINE_RATIO:
             world.fall_streak = 0
@@ -1091,6 +1091,13 @@ def check_world(sim, world: World, rng):
             # และทำให้เลื่อนชั้นซ้ำๆ ได้ฟรี ตอนนี้ ratio จึงร่วงเองหลังเลื่อน ต้องสะสมใหม่จริง
             world.heaven = min(world.cap(), world.heaven)
         return None
+    # ยุคล่มคือ "เหตุการณ์ที่โลกตกลงไปถึงจุดล่ม" ไม่ใช่สถานะที่เกิดซ้ำทุกรอบตรวจ — ล่มครั้งเดียวตอนตกถึงจุดนั้น แล้วล่มใหม่ได้ก็ต่อเมื่อ
+    # คลังฟ้ากลับขึ้นเหนือ COLLAPSE_RATIO ก่อนแล้วตกลงมาอีก · เดิมไม่มีความจำนี้: คลังที่ติดอยู่ใต้จุดล่ม (ผู้ฝึกดูดจนเหลือ 0.05% —
+    # ดู World.extractable) ทำให้ "ยุคล่ม" ทุกรอบโลก 30 วัน (seed 42: 1,165 ครั้งใน 273 ปี ตายไปกับยุค 3,956 คน · โลกจริงยุคที่ 10,307)
+    # ยุคที่เปลี่ยนทุกเดือนโดยไม่มีอะไรเกิดขึ้นทำให้ "ยุค" ในเรื่องเล่าไร้ความหมาย
+    if getattr(world, "era_fallen", False):
+        return None
+    world.era_fallen = True
     notes = []
     for ch in sim.living_in(world.wid):
         if ch.is_lord:
