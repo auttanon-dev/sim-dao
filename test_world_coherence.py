@@ -1498,3 +1498,71 @@ def test_caught_cheater_returns_money_and_owes():
             sim2.day += 365
     assert "หัวหมอ" in kid2.traits and getattr(kid2, "cheat_caught", 0) == 0, \
         f"โกงสำเร็จครบแล้วไม่ติดหัวหมอ: สำเร็จ {getattr(kid2, 'cheat_ok', 0)} ถูกจับ {getattr(kid2, 'cheat_caught', 0)} {kid2.traits}"
+
+
+# ------------------------------------------------------------------ มารบุก: จังหวะตามเวลาโลก และผู้บุกหมุนเวียน (2026-10-06)
+RAID_TRIAL_YEARS = 12                  # เดินโลกกี่ปีเพื่อนับมารบุกต่อแดนต่อรอบโลก
+RAID_ROUNDS = 8                        # สั่งบุกกี่ครั้งเพื่อดูว่าผู้บุกหมุนเวียน
+
+
+def _raider(e):
+    return e.target if e.outcome == "ปราบมารได้" else e.actor
+
+
+def test_mara_raid_cadence_follows_the_world_clock():
+    """MARA_RAID_P ทอยครั้งเดียวต่อแดนมนุษย์ต่อรอบโลก — มารบุกในแดนหนึ่งต้องไม่เกินหนึ่งครั้งต่อรอบโลก
+    บั๊กเดิม: ทอยทุกเทิร์นของตัวละครใน _step (seed 42 ใน 100 ปี 1,754 ครั้ง)"""
+    from tiandao import config as C
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        sim = S.Sim(seed=CYCLE_SEED)
+        while sim.day < RAID_TRIAL_YEARS * 365:
+            if sim.step() is None:
+                break
+    raids = [e for e in sim.log if e.kind == "มารบุก"]
+    per_tick = collections.Counter((e.world_id, e.day // C.WORLD_TICK_DAYS) for e in raids)
+    over = [(k, v) for k, v in per_tick.items() if v > 1]
+    msg = f"  มารบุก {len(raids)} ครั้งใน {RAID_TRIAL_YEARS} ปี · แดน-รอบที่บุกเกินหนึ่งครั้ง {len(over)} เช่น {over[:5]}"
+    assert raids, "ไม่มีมารบุกเลย (กลไกหายไป):\n" + msg
+    assert not over, "มารบุกเกินหนึ่งครั้งต่อแดนต่อรอบโลก (ทอยตามเทิร์นตัวละคร):\n" + msg
+
+
+def test_mara_raiders_rotate():
+    """ผู้บุกต้องหมุนเวียน — ขั้นใกล้เหยื่อ → บุกครั้งล่าสุดนานที่สุด (raided_day) → cid ไม่สุ่มเพิ่ม
+    บั๊กเดิม: เสมอกันเอา cid น้อยเสมอ มารคนเดิมถูกส่งมาทุกครั้ง (seed 42: 3 คนแรกถือ 35%) · มารขั้นเดียวกันหลายตน ต้องได้ผู้บุกหลายคน"""
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        sim = S.Sim(seed=CYCLE_SEED)
+        w = next(x for x in sim.worlds if x.kind == "mortal" and x.lateral and sim.world(x.lateral[0]).kind == "mara")
+        mara = [c for c in sim.living_in(w.lateral[0]) if c.age(sim.day) >= 14][:4]
+        for c in mara:
+            c.realm = 3
+        others = {c.cid for c in mara}
+        for c in sim.living_in(w.lateral[0]):
+            if c.cid not in others:
+                c.realm = 0                   # นอกเกณฑ์ผู้บุก (ขั้น < 2)
+        w.defense_array = 0.0
+        raiders = []
+        for _ in range(RAID_ROUNDS):
+            n = len(sim.log)
+            sim.mara_raid(w, 0, sim.rng)
+            raiders += [_raider(e) for e in sim.log[n:] if e.kind == "มารบุก"]
+            sim.day += 1
+    msg = f"  ผู้บุก {raiders} · มารขั้น 3 {sorted(others)} · raided_day {[getattr(c, 'raided_day', None) for c in mara]}"
+    assert len(raiders) >= RAID_ROUNDS // 2, "สั่งบุกแล้วไม่เกิดเหตุการณ์:\n" + msg
+    assert len(set(raiders)) > 1, "ผู้บุกคนเดิมทุกครั้ง:\n" + msg
+
+
+def test_childhood_history_seq_is_always_a_number():
+    """ประวัติวัยเด็ก (Character.childhood) ต้องมี seq เป็นตัวเลขทุกปี — ชั้นจิตใจเรียงสมุดชีวิตด้วย int(seq)
+    (mind/manager._backfill_childhood) บั๊ก: ตอนตัดเสียงรบกวนวัยเด็ก ปีที่ไม่บันทึกเหตุการณ์ได้ seq = None → test_minds พัง"""
+    from tiandao import sim as S
+    with contextlib.redirect_stdout(io.StringIO()):
+        sim = S.Sim(seed=CYCLE_SEED)
+        while sim.day < 6 * 365:
+            if sim.step() is None:
+                break
+    rows = [(c.cid, h) for c in sim.cast for h in (getattr(c, "childhood", None) or []) if isinstance(h, dict)]
+    bad = [(cid, h.get("age"), h.get("seq")) for cid, h in rows if not isinstance(h.get("seq"), int)]
+    assert rows, "ไม่มีประวัติวัยเด็กให้ตรวจ"
+    assert not bad, f"ประวัติวัยเด็กที่ seq ไม่ใช่ตัวเลข {len(bad)} จาก {len(rows)} เช่น {bad[:5]}"

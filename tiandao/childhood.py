@@ -390,7 +390,10 @@ def turn(sim, child, world, elapsed, rng):
                          {"อายุ": f"{age} ปี", "กิจวัตร": routine})
     if not any(h.get("age") == age for h in history if isinstance(h, dict)):
         history.append({"day": sim.day, "age": age, "text": text, "place": child.place,
-                        "outcome": outcome, "routine": routine, "seq": event.seq if event else None})
+                        "outcome": outcome, "routine": routine,
+                        # ปีที่ไม่บันทึกเหตุการณ์ใช้ตำแหน่งประวัติ ณ ตอนนั้น (sim.seq) — สมุดชีวิตของชั้นจิตใจเรียงตาม seq และต้องเป็นตัวเลข
+                        # (mind/manager._backfill_childhood: int(seq) — None ทำให้ test_minds พัง)
+                        "seq": event.seq if event else sim.seq})
         del history[:-14]
     # กลับมาอีกครั้งใกล้วันเกิดถัดไป (ตัวคลาดเคลื่อนจาก rng ของโลกเหมือนเดิม) — ถูกขัดจังหวะก็ได้เทิร์นเร็วกว่านี้
     sim.schedule(child, max(30, next_birthday - sim.day + rng.randint(0, 30)))

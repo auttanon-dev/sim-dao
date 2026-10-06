@@ -2358,6 +2358,14 @@ class Sim:
         for w in self.worlds:
             if w.kind == "mortal" and rng.random() < C.AUCTION_EVENT_P:
                 self.market_auction(w, rng)
+
+        # มารบุกโลกมนุษย์ — ทอยครั้งเดียวต่อแดนมนุษย์ที่ติดแดนมารต่อรอบโลก (ผนึกแตก โอกาส × 2.5 เท่าเดิม)
+        # เดิมทอย MARA_RAID_P ทุกเทิร์นของตัวละครใน _step: seed 42 ใน 100 ปี 1,754 ครั้ง (17.5 ต่อปี)
+        mara_raid_p = C.MARA_RAID_P * (2.5 if getattr(self, "mara_seal_broken", False) else 1.0)
+        for w in self.worlds:
+            if (w.kind == "mortal" and w.lateral and self.world(w.lateral[0]).kind == "mara"
+                    and rng.random() < mara_raid_p):
+                self.mara_raid(w, 0, rng)
         if self.day - getattr(self, "last_disaster_day", 0) >= C.WORLD_TICK_DAYS:
             round_days = self.day - getattr(self, "last_disaster_day", 0)
             self.last_disaster_day = self.day
@@ -2968,12 +2976,6 @@ class Sim:
         # (ย้ายไป _world_tick: AUCTION_EVENT_P คือโอกาสต่อแดนต่อหนึ่งช่วงเวลาโลก ตามที่ config ระบุ — เดิมทอยที่นี่ทุกเทิร์นของตัวละคร
         #  แดนที่คนมากจึงมีงานประมูลถี่ตามจำนวนเทิร์น ไม่ใช่ตามเวลา: seed 42 ใน 100 ปี 3,232 งาน เจ้าภาพคนเดียวถือ 37 งาน)
 
-        # มารบุกโลกมนุษย์ (หากผนึกแตก โอกาสบุกจะเพิ่มขึ้นอย่างมาก)
-        mara_raid_p = C.MARA_RAID_P * (2.5 if getattr(self, "mara_seal_broken", False) else 1.0)
-        if world.kind == "mortal" and world.lateral and rng.random() < mara_raid_p:
-            mw = self.world(world.lateral[0])
-            if mw.kind == "mara":
-                self.mara_raid(world, elapsed, rng)
         # โลกที่ถูกฉีกจนรอยแยกกว้างพอ จะรวมกำลังบุกกลับเข้าไปถึงถิ่นของมันเอง
         # ยกไปปราบได้เมื่อ **มีตัวให้ปราบ** (มันตื่นอยู่) หรือเมื่อรอยแยกกว้างจนทนไม่ไหว
         # เงื่อนไขเดิมมีแต่ข้อหลัง ซึ่งพอ seal_rift ใช้งานได้จริงแล้วรอยแยกก็แทบไม่เคยถึง 3.0 อีก
@@ -3927,8 +3929,10 @@ class Sim:
         if C.MARA_RAID_MATCH_REALM:
             # ส่งมารที่ขั้นพลังใกล้เหยื่อที่สุดมาบุก — เดิมสุ่มทั้งแดนมาร เหยื่อขั้น 1-3 จึงเจอมารขั้น 6
             # เป็นส่วนใหญ่ (วัดจริง 1,536 จาก 3,000 ครั้ง) การสู้กลับเลยไม่มีวันเกิดกับตัวละครของเรา
-            # เลือกแบบกำหนดได้ (ไม่กิน RNG เพิ่ม) เสมอกันให้ cid น้อยกว่า
-            m = min(raiders, key=lambda c: (abs(c.realm - v.realm), c.cid))
+            # ลำดับ (ไม่กิน RNG เพิ่ม): ขั้นใกล้เหยื่อ → บุกครั้งล่าสุดนานที่สุด (raided_day) → cid
+            # เดิมเสมอกันเอา cid น้อยเสมอ มารคนเดิมจึงถูกส่งมาทุกครั้ง (seed 42: 3 คนแรกถือ 35% ของ 1,754 ครั้ง)
+            m = min(raiders, key=lambda c: (abs(c.realm - v.realm), getattr(c, "raided_day", -10 ** 9), c.cid))
+        m.raided_day = self.day
         
         if world.defense_array > 0:
             if rng.random() < 0.80:  # โอกาสสกัดสำเร็จ 80%
