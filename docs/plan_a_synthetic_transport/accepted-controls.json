@@ -1,0 +1,90 @@
+{
+  "schema": "plan-a-synthetic-controls-provenance-v1",
+  "repository_anchor": "8822657",
+  "accepted_controls": [
+    {
+      "control": "positive_named_trace",
+      "revision": "2aad5dcde08393c9688f3ce4c57c80ad9726758417555002df4db13ff0d43dfb",
+      "transport": "WINDOWS-POPEN-EXTERNAL-FAULTHANDLER-SYNTHETIC-v1",
+      "owner_artifact_sha256": "46de83305125af45bf9a9999c69581590689039a71cc62e3340e1de887d70860",
+      "outer_result_sha256": "aa39c9fcb83eee6361a5252cb688f8cfe99a32dd49b601caefb9ddadc530ad0c",
+      "manifest_sha256": "3b20e13b8cbd5e02a6745270f3c980c3a25b47e43916f3b288b240118647a6da",
+      "retained_data_bytes": 664,
+      "retained_data_sha256": "1db33d8eaa77f7361ae4b17c91b1db1879ca571e3476126fa172034a10b2304e",
+      "critic_review_sha256": "91972b8f19da411099bb9402dd44f2e4782735d3c82844b84fc370babb625f71",
+      "capture_complete": true,
+      "expected_reason": null,
+      "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
+      "scope": "one cooperative synthetic control, no real reader diagnosis/issuer or universal failure proof"
+    },
+    {
+      "control": "cancellation",
+      "revision": "afb1c584c3028cb772a0037ceb1b7bd856b534685c0b048a5169f4a615dd7dae",
+      "transport": "WINDOWS-POPEN-EXTERNAL-FAULTHANDLER-SYNTHETIC-v1",
+      "owner_artifact_sha256": "d6946fd7d68f3a36693d6514c243a607ca0556127d1356970e7907c556e15815",
+      "outer_result_sha256": "27833474ca477d9e6b59d25591232cd676d16c8a16ba05f8793fed9dbd353a4f",
+      "manifest_sha256": "2d50c07317fb46c905f0ee69d03cc1a326c1d062dfd1492a8c4f607ac5676478",
+      "retained_data_bytes": 0,
+      "retained_data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "critic_review_sha256": "bdb5bb0748140d6924b72b53a88fefb22c45a0fefa574874c87a4b6158bd359c",
+      "capture_complete": false,
+      "expected_reason": "ExpectedCancellationNegative",
+      "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
+      "scope": "one cooperative synthetic control, no real reader diagnosis/issuer or universal failure proof"
+    },
+    {
+      "control": "sink_death",
+      "revision": "063c12f84ae24816168d09157d42ad2efdad0964d2d736d035ace30a83b7f3d9",
+      "transport": "WINDOWS-POPEN-EXTERNAL-FAULTHANDLER-SYNTHETIC-v1",
+      "owner_artifact_sha256": "33cc95ba7054b0135fd7db21ae64606150329c4385c5305f62e9769f14db8a16",
+      "outer_result_sha256": "8efc12191ef9f4d8d541c3fb2af6057d8eefa2ea36b9d70ce99a4e2daa2cb338",
+      "manifest_sha256": "3634b88d9dd21b8f884b41bf5bb9bde00d6cbc558ee58151c9a644b3272785eb",
+      "retained_data_bytes": 0,
+      "retained_data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "critic_review_sha256": "b2481bc966af9fb008a72e9c01a47cbe607feca7f8a1e4ec24b16b3907c2c39d",
+      "capture_complete": false,
+      "expected_reason": "ExpectedSinkDeathNegative",
+      "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
+      "scope": "one cooperative synthetic control, no real reader diagnosis/issuer or universal failure proof"
+    },
+    {
+      "control": "overflow",
+      "revision": "6a4aac879cb490fe131e46d857a0c2e174aa4de16691ab8989d0611fc88325af",
+      "transport": "WINDOWS-POPEN-EXTERNAL-FAULTHANDLER-SYNTHETIC-v1",
+      "owner_artifact_sha256": "fe52f3e0d1122fa3da3bc032c810d908dbe506a3d4a65a7b7d4b4f461228444e",
+      "outer_result_sha256": "b12c5aacab21653f0398645370c062f4358397b6887468412f8f9ded8e02cdb1",
+      "manifest_sha256": "daa0d2544cd8c4b747dbd261826a0d15f2d2a89ab49f2adebe1254da8116a18c",
+      "retained_data_bytes": 4096,
+      "retained_data_sha256": "c8f5d0341d54d951a71b136e6e2afcb14d11ed8489a7ae126a8fee0df6ecf193",
+      "critic_review_sha256": "5b80aba8a1fb7d00c16ca02db2dce326047ee28fc8eae88647d01db77043eadf",
+      "capture_complete": false,
+      "expected_reason": "ExpectedOverflowNegative",
+      "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
+      "scope": "one cooperative synthetic control, no real reader diagnosis/issuer or universal failure proof"
+    },
+    {
+      "control": "held_writer",
+      "revision": "990a33f9e5e27a079b27e0191614cd3f23498715e727bcde275ca75215a222b7",
+      "transport": "WINDOWS-POPEN-EXTERNAL-FAULTHANDLER-SYNTHETIC-v1",
+      "owner_artifact_sha256": "9eef1092759f7e607dda93b0586868b2e8fbf71b2ac98fed5489a1379ebbcd0e",
+      "outer_result_sha256": "5deca1dc52d4c2dcaad848a72302182156786ac1c483b024fee62e766beb476b",
+      "manifest_sha256": "1a69846c46ce6de03b8f3c47f98c179f1f9b3415d4a121cb04d2d0865dba38b9",
+      "retained_data_bytes": 39,
+      "retained_data_sha256": "ae295d2c92aa7c1bbb527a25beb7f9984cd76d1b945a038bf04bcf0fd3f29153",
+      "critic_review_sha256": "c652d0c3d118f5bf86f29f175079a1825a9b02bc966b36e42fd10d37ec1a776b",
+      "capture_complete": false,
+      "expected_reason": "ExpectedHeldWriterNegative",
+      "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
+      "scope": "one cooperative synthetic control, no real reader diagnosis/issuer or universal failure proof"
+    }
+  ],
+  "not_acceptance_of": [
+    "C/GIL recovery",
+    "hard RSS/commit/startup/deadline guarantees",
+    "real reader dispatch",
+    "runtime receipt integration",
+    "save/load equivalence",
+    "G2 extraction"
+  ],
+  "raw_evidence_policy": "Local private untracked scratch, mutable and subject to pruning; hashes are not durability, immutability or authentication; no verified archive exists. Raw evidence is not tracked."
+}
