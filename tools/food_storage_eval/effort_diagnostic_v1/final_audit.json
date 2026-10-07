@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "persisted_records": 258,
+  "variants": 33,
+  "repeated_variant_runs": 66,
+  "original_kernel_baselines": 11,
+  "all_baseline_records_exact": true,
+  "determinism_full_records": true,
+  "formula_recomputed_independently": true,
+  "child_capacity_unchanged": true,
+  "roster_eligibility_unchanged_within_ticks": true,
+  "closures_and_pay_checked": true
+}

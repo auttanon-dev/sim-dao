@@ -1,0 +1,15 @@
+{
+  "variants": 33,
+  "baseline_cases": 11,
+  "repetitions": 2,
+  "effort_1_baseline_agreement": true,
+  "determinism_all_variants": true,
+  "rng_draws": 0,
+  "max_food_gap": 4.405364961712621e-13,
+  "max_gold_gap": 3.637978807091713e-12,
+  "max_demand_gap": 3.694822225952521e-13,
+  "no_after_start_endowment": true,
+  "source_instrumentation_unchanged": true,
+  "worked_for_food": 0.0,
+  "starved": 0
+}

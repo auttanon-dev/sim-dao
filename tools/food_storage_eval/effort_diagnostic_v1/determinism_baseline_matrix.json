@@ -1,0 +1,1117 @@
+{
+  "variants": 33,
+  "persisted_record_equality_verified": true,
+  "hash_semantics": "SHA256 of UTF8 JSON sorted keys, compact separators for evidence witness; original simulation state digest remains unchanged and separate",
+  "matrix": [
+    {
+      "fixture": "single_low_demand_overflow",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "0b4fc9c805068f5043505680d9310354b0f6bd0125a411373dc5f0badeaec6fe",
+        "5c42413082f80b13bd0928bf0bb91cbb5791076e034fee802cbf479237fe339e",
+        "bba264b43e4184ace50eca9b2e10f3e1e8645bcefac58f58068ebdd6b0814325",
+        "9327557bc523c33c923400d2fa2da9b23ba7d278d07171559cc841c4b03abfe9"
+      ],
+      "full_record_sha256_rep2": [
+        "0b4fc9c805068f5043505680d9310354b0f6bd0125a411373dc5f0badeaec6fe",
+        "5c42413082f80b13bd0928bf0bb91cbb5791076e034fee802cbf479237fe339e",
+        "bba264b43e4184ace50eca9b2e10f3e1e8645bcefac58f58068ebdd6b0814325",
+        "9327557bc523c33c923400d2fa2da9b23ba7d278d07171559cc841c4b03abfe9"
+      ],
+      "whole_state_sha256": [
+        "15c9bef8ff13d184083d00406f647550ae49b3822b4b45ccf6c555fc90bdda86",
+        "21f83cf60fc0632e1d8ed3b2bb0098d84d9df203fdc90ddbf78bf37b431ae8da",
+        "da96744a8402fab892bfef785017ca1a27e115734a84086a030b357acff5b2ef",
+        "f3bddd31e252fc40dfe542fb05417d80ed5dbba3d39eaf92524436003ade7674"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\single_low_demand_overflow.baseline.json",
+        "sha256": "b6914bd4de8f19cbef247f1fb7fcf0656271cec70fa7cb2f4aa30bf1ff63b4f2"
+      }
+    },
+    {
+      "fixture": "single_low_demand_overflow",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "c80055cd2cdfde8dc16e909f48838e1f7166eb49f0f8e33e3cc97096996d5c8a",
+        "0573dcd90ef01890fcf67e9286d88528bfc349d301d468cd9468c954e181e612",
+        "36e1dc0ba89cda0e96cbcd380c44bd85dae965743f9ed08a318489c6f081c1a4",
+        "11937cdff59cadf701f570daa48ba27ae694c850ea2c30b7c6cb65843fc7b964"
+      ],
+      "full_record_sha256_rep2": [
+        "c80055cd2cdfde8dc16e909f48838e1f7166eb49f0f8e33e3cc97096996d5c8a",
+        "0573dcd90ef01890fcf67e9286d88528bfc349d301d468cd9468c954e181e612",
+        "36e1dc0ba89cda0e96cbcd380c44bd85dae965743f9ed08a318489c6f081c1a4",
+        "11937cdff59cadf701f570daa48ba27ae694c850ea2c30b7c6cb65843fc7b964"
+      ],
+      "whole_state_sha256": [
+        "aac500d771fd048c7208f5be6acb348efe3f0ccda56b0ddb4ca2dea4b7ac0d90",
+        "3a3e98db3a8ba5dc650680f464678f6274237c7c10b8609ad1000d23687f123d",
+        "79843e351bcfdffaffd5ca88ecc1ce19dd9619ac46205ed2ba03540b73c02030",
+        "4e7648564eeba56243f17aa457c4ab2954530b94262c75d090fa80cc20c21797"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\single_low_demand_overflow.baseline.json",
+        "sha256": "b6914bd4de8f19cbef247f1fb7fcf0656271cec70fa7cb2f4aa30bf1ff63b4f2"
+      }
+    },
+    {
+      "fixture": "single_low_demand_overflow",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "84ff80c5ac4dbe856930f1c400529b3476c1ca65274872670e6feb48342ed170",
+        "8d0651c7e1ff25e88a45bb529fdcbe0587f6d54f2c38731b93df762edd55ac42",
+        "1ec7b4c62d5287da93493efbba71cde35134c9f69951bc8e8339baabf3c1e497",
+        "56dcdac28e441deb65303ca89448a14b19068595dd0ff7cd47dfb6f0225bfa33"
+      ],
+      "full_record_sha256_rep2": [
+        "84ff80c5ac4dbe856930f1c400529b3476c1ca65274872670e6feb48342ed170",
+        "8d0651c7e1ff25e88a45bb529fdcbe0587f6d54f2c38731b93df762edd55ac42",
+        "1ec7b4c62d5287da93493efbba71cde35134c9f69951bc8e8339baabf3c1e497",
+        "56dcdac28e441deb65303ca89448a14b19068595dd0ff7cd47dfb6f0225bfa33"
+      ],
+      "whole_state_sha256": [
+        "88e04ca9384998c5c5136aea63e598b60fb0c3f38e9bc75b433b5a6e1635dec1",
+        "d27b7fdc2540b23d66f3a9d50c86d97288de8e9713d233916fb63916588cad14",
+        "38f7a82200c0e28cdfd29b0aa742708c10fb1e33abd372b4f851a098aa93c2bf",
+        "f902ae8e74a829da1f56ddd13a9993638e09674e07b9e0fa81049ce981574105"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\single_low_demand_overflow.baseline.json",
+        "sha256": "b6914bd4de8f19cbef247f1fb7fcf0656271cec70fa7cb2f4aa30bf1ff63b4f2"
+      }
+    },
+    {
+      "fixture": "normal_volunteer_child",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "246a0286e3fe6553691710478c548cf7bff48222caa2a145f0852fd4d92f93ed",
+        "d36a25b68842f0afb134d31a2aefce405b0cacc2fc15e74fc2d1f747b4a15c99",
+        "c38d18f680a643ccf5673b53ddd7ce0617670fd3effcbbb73a74ac8bb1387bef",
+        "5fcce5282e06370e5c8fb27bfb7d7d95446c005ec50d2649634e036cffb3b129"
+      ],
+      "full_record_sha256_rep2": [
+        "246a0286e3fe6553691710478c548cf7bff48222caa2a145f0852fd4d92f93ed",
+        "d36a25b68842f0afb134d31a2aefce405b0cacc2fc15e74fc2d1f747b4a15c99",
+        "c38d18f680a643ccf5673b53ddd7ce0617670fd3effcbbb73a74ac8bb1387bef",
+        "5fcce5282e06370e5c8fb27bfb7d7d95446c005ec50d2649634e036cffb3b129"
+      ],
+      "whole_state_sha256": [
+        "c411a2f980ed3dc4ea28655ce953d1c019027c95541e8131bcbd3ad2dc5c227d",
+        "f67756e445adf8d4f69fd59cbf2f2c042ad0aa374175b45623a4497a51bbf381",
+        "e4f80cd80a1a301d62c4cbf7bd856dd98a76135cf4e24f68550c8b6f9a8e996f",
+        "5f266d62ed8588382aa5e318e547270f6d3de46b67d2cfe76ff3529af7aea0af"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\normal_volunteer_child.baseline.json",
+        "sha256": "5590fe4f02723763b6fd8d4a29e620abfe1593d82d5475d514681587fd59ad98"
+      }
+    },
+    {
+      "fixture": "normal_volunteer_child",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "85b561f87e749bc95140113b20a936e1cedcd9c81cca735f8460bac3481a0e0a",
+        "118d10cf7e90f6d91f35502cbeae80eb349b9da4e8d76b858cfbf51f6f6a31ec",
+        "aec7411622cc8d58bdfb70377f93aaa503b968a8e4cfc8661979432a87272579",
+        "797fcaf2f7309ab25d996552ab52fd8190e3e5de9b887733717aacea15df99a0"
+      ],
+      "full_record_sha256_rep2": [
+        "85b561f87e749bc95140113b20a936e1cedcd9c81cca735f8460bac3481a0e0a",
+        "118d10cf7e90f6d91f35502cbeae80eb349b9da4e8d76b858cfbf51f6f6a31ec",
+        "aec7411622cc8d58bdfb70377f93aaa503b968a8e4cfc8661979432a87272579",
+        "797fcaf2f7309ab25d996552ab52fd8190e3e5de9b887733717aacea15df99a0"
+      ],
+      "whole_state_sha256": [
+        "e7379ea1751709aa38ac1048a3a3f2388ade0c6b2988b988b43955d5dae53d21",
+        "69a2689c37d082b5d2a7214c2441187eb6e1b881858807e42f8f57df04fedb48",
+        "0a8d10cc62d8b7e799e11d100db695dd11c908a31cfc43ea2ace5562db3c7f65",
+        "9e78557e96e0b9f71f9873961ca21487ee8bebdb2ed572061bda6b0a22eed3b4"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\normal_volunteer_child.baseline.json",
+        "sha256": "5590fe4f02723763b6fd8d4a29e620abfe1593d82d5475d514681587fd59ad98"
+      }
+    },
+    {
+      "fixture": "normal_volunteer_child",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "8558cc6c57ed6fb2778fc9c04832822f23250ff710d15c14c6efbb5e148bbcdb",
+        "6584a5a5240a86ba04e4e17a6bf39e76ce3deeba6e52d0154b45825e89db1093",
+        "2e94fc6d67f036fbf6402d1af962c0ff0a8b6a8773899baf1217fb5c72264fd3",
+        "362423078523e09a25f98c308d4cd786aa01b3c4958362e6cd01f814a8a79e1f"
+      ],
+      "full_record_sha256_rep2": [
+        "8558cc6c57ed6fb2778fc9c04832822f23250ff710d15c14c6efbb5e148bbcdb",
+        "6584a5a5240a86ba04e4e17a6bf39e76ce3deeba6e52d0154b45825e89db1093",
+        "2e94fc6d67f036fbf6402d1af962c0ff0a8b6a8773899baf1217fb5c72264fd3",
+        "362423078523e09a25f98c308d4cd786aa01b3c4958362e6cd01f814a8a79e1f"
+      ],
+      "whole_state_sha256": [
+        "15d01538bdd26f1efb119982c4c034db28c7ec7e33198135014e908c6c13835e",
+        "9207fcc3644b1519e849b4456c24ae57935dca82f4964645d20a5ca574d19df1",
+        "818965766ca7bae6b5a26a098c3fcb40d8a15e24d091f957845d43b1509837fd",
+        "39137f0c1e0412edee548d4646beb7f9fd82cf288b85827f998dc0a24ebbeed7"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\normal_volunteer_child.baseline.json",
+        "sha256": "5590fe4f02723763b6fd8d4a29e620abfe1593d82d5475d514681587fd59ad98"
+      }
+    },
+    {
+      "fixture": "no_normal_producer_affordability",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "a2c83c149aacb3559020f97c29edafd2c56181aca05bc3e755197ba3c3e82849",
+        "ca3f496c9b3cbbb1eb299e69cc98557538ebf62025ea21d7e0d46c3f818095b7",
+        "4c9802da747455e31514204f12858f9995f590ec8eb2d76bcd4ee18d1279e8a2"
+      ],
+      "full_record_sha256_rep2": [
+        "a2c83c149aacb3559020f97c29edafd2c56181aca05bc3e755197ba3c3e82849",
+        "ca3f496c9b3cbbb1eb299e69cc98557538ebf62025ea21d7e0d46c3f818095b7",
+        "4c9802da747455e31514204f12858f9995f590ec8eb2d76bcd4ee18d1279e8a2"
+      ],
+      "whole_state_sha256": [
+        "4caed42e0799d033033fa75c63688d43100543b4544679b1fd3db0fcab6104c6",
+        "c45e6f8d49d89e2c2f3a4c571da0d659132d1362660f0eee07b65204667bc3bd",
+        "32a28c3c51a98e7dcde64f038644e824835ad5e6987d13a00b401d2d07745029"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\no_normal_producer_affordability.baseline.json",
+        "sha256": "16be06e93e646ae5fbd97211ec9ab782daa821627dc19754abdddfc9665b172b"
+      }
+    },
+    {
+      "fixture": "no_normal_producer_affordability",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "3d92b066a4eb9ad064fcf793707c5c4c2f6acf3c567bcbb3a6cc1afbd414ce8d",
+        "0aeacdd75e6cb3a49217632ce7107c7c7d91c9e1259d6045a53b4d7a3a80f358",
+        "0004ee0f9bd1d8fc37fd40f1fad59359b8ff2341d02ffa787f045ce226d4c8e5"
+      ],
+      "full_record_sha256_rep2": [
+        "3d92b066a4eb9ad064fcf793707c5c4c2f6acf3c567bcbb3a6cc1afbd414ce8d",
+        "0aeacdd75e6cb3a49217632ce7107c7c7d91c9e1259d6045a53b4d7a3a80f358",
+        "0004ee0f9bd1d8fc37fd40f1fad59359b8ff2341d02ffa787f045ce226d4c8e5"
+      ],
+      "whole_state_sha256": [
+        "b8086b4345736b145ac73ebf90cae1b4f033854876d5625a75cb69d43b86b0db",
+        "d2411803f905e1d283e3502e761ad8f1040fb9367d705254529e86b8db271ca6",
+        "2460d6bdd6fe3695b3180140e7ea9020d06524eb7592644a545733251bbfc8e7"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\no_normal_producer_affordability.baseline.json",
+        "sha256": "16be06e93e646ae5fbd97211ec9ab782daa821627dc19754abdddfc9665b172b"
+      }
+    },
+    {
+      "fixture": "no_normal_producer_affordability",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "4259ad9c009dc5b91911c4accd3feaf72bbf9cf85380da70867000ae68800663",
+        "182c8e00d29bb9a925f10d7ed0f58a25acf5f0a06afb60b02d9e4a22a8567e9f",
+        "7e1e5ff3007aa1f17b2c396dce447363b7166818ddd44bca175dbcb55b1554d2"
+      ],
+      "full_record_sha256_rep2": [
+        "4259ad9c009dc5b91911c4accd3feaf72bbf9cf85380da70867000ae68800663",
+        "182c8e00d29bb9a925f10d7ed0f58a25acf5f0a06afb60b02d9e4a22a8567e9f",
+        "7e1e5ff3007aa1f17b2c396dce447363b7166818ddd44bca175dbcb55b1554d2"
+      ],
+      "whole_state_sha256": [
+        "79c37a64227296aa416daaed7ff7ea14245d765d47a3bce42ae8b864ca1854be",
+        "08235f3ef6347c50d6d049a92467287a53174ed1f1f49d3c8658b556f46bf089",
+        "acd4cbc645af38d9a35bb0df56d60c8051ff057cef4310188791544c2a277a8d"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\no_normal_producer_affordability.baseline.json",
+        "sha256": "16be06e93e646ae5fbd97211ec9ab782daa821627dc19754abdddfc9665b172b"
+      }
+    },
+    {
+      "fixture": "shared_source_competing_destinations",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "c47df5e985e2a83b7b3ed725960a774fe6b3d11f64b99691b6082255f0b87261",
+        "4056e3ba715bd8fd048f49de23a370fec4bfd8e2e1e9cac6d08d22b065b4a91c",
+        "be3c6e231395071bb2ca15710299d44dd8a901c9a248589464a30f0fba921ff9",
+        "92d2bbbd904325cbb090b3a01a1b1b582fbdd28710653a65809a12db361b4e13"
+      ],
+      "full_record_sha256_rep2": [
+        "c47df5e985e2a83b7b3ed725960a774fe6b3d11f64b99691b6082255f0b87261",
+        "4056e3ba715bd8fd048f49de23a370fec4bfd8e2e1e9cac6d08d22b065b4a91c",
+        "be3c6e231395071bb2ca15710299d44dd8a901c9a248589464a30f0fba921ff9",
+        "92d2bbbd904325cbb090b3a01a1b1b582fbdd28710653a65809a12db361b4e13"
+      ],
+      "whole_state_sha256": [
+        "4b71d655ab2cba71f5f5beb0493aa10a680e61febff1ccadcfd7e4d9fc4aa75a",
+        "d9201fd813440130fd5c5ea32b2a6227d961464d9d90da2fef3d662e64ffb737",
+        "cadba362eb7859269d59158f18120827f39732f3637f43d831acc2113fac267d",
+        "9a18b5ce6671d07cf6aa5736a59c150c7d30383fd6d5488047a72f0b8e9e7e2b"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\shared_source_competing_destinations.baseline.json",
+        "sha256": "9b5787e34de99e7c8709da3584f12cd6e0c11f6090f9a8446f8fa84c4e7deca2"
+      }
+    },
+    {
+      "fixture": "shared_source_competing_destinations",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "5879485bf0accda644cba21f62d264cd664b4ee3b73bd433ea87b8cdaa6d99d9",
+        "be3afe62d5629a1be0b5fe40466f0a69ee0550d3f3d695364d3956f7c0bbf7f9",
+        "a89defd600196332bf334a2b3fc796584da630902288bfacc4a87b0719c68bf5",
+        "d6a2de04c6d9dc859724753c7be0ef4df456dd4aac91229a686bdc163cbd3567"
+      ],
+      "full_record_sha256_rep2": [
+        "5879485bf0accda644cba21f62d264cd664b4ee3b73bd433ea87b8cdaa6d99d9",
+        "be3afe62d5629a1be0b5fe40466f0a69ee0550d3f3d695364d3956f7c0bbf7f9",
+        "a89defd600196332bf334a2b3fc796584da630902288bfacc4a87b0719c68bf5",
+        "d6a2de04c6d9dc859724753c7be0ef4df456dd4aac91229a686bdc163cbd3567"
+      ],
+      "whole_state_sha256": [
+        "6632b7c19e7868787b2289dd0eb22bef59c8fc8725e8185370b89f3b908c2ddf",
+        "fedc08a9b3af352df9b80984d3b0acddb910c3382cb93c4b432cb10255dbe67b",
+        "be657c23683ab39d6c6a5e89c4496a5160a35aacac6a485137210008418ff51a",
+        "c6762ce4c3c576ecb05fdebda5b8e3ff1e9962cf485ac45ff5bd2d0ff65274e1"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\shared_source_competing_destinations.baseline.json",
+        "sha256": "9b5787e34de99e7c8709da3584f12cd6e0c11f6090f9a8446f8fa84c4e7deca2"
+      }
+    },
+    {
+      "fixture": "shared_source_competing_destinations",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "581206599796a1d2bd2d6d3bc98a3bccfe9e409b31eddbb1bbbbcd1246e33278",
+        "293aabc7b7035b9610b2ab4e2262a4557aa6494f5291b8056a64d72061a1e0a0",
+        "c5aec14f7776087b3eda9362acb6ecc3e93dae294839a4eef08d8999d4441673",
+        "6ae01de32e46851c0d12cf7289ccce3266ab2d78e0133ca36d661e07c2d74393"
+      ],
+      "full_record_sha256_rep2": [
+        "581206599796a1d2bd2d6d3bc98a3bccfe9e409b31eddbb1bbbbcd1246e33278",
+        "293aabc7b7035b9610b2ab4e2262a4557aa6494f5291b8056a64d72061a1e0a0",
+        "c5aec14f7776087b3eda9362acb6ecc3e93dae294839a4eef08d8999d4441673",
+        "6ae01de32e46851c0d12cf7289ccce3266ab2d78e0133ca36d661e07c2d74393"
+      ],
+      "whole_state_sha256": [
+        "dfdbbfdec03d291dbe5ecfb3fd149bcab6929433aba873e9323265b54babf5e2",
+        "9b9a3fe283639c1fab614ef616745486adb33837daf3db833a4975e61c0f209f",
+        "513079fedf706883d1851a7776abea821e99a50447cb613e9ddb0769ced8c354",
+        "f46dc743bc87f1cad3a809c4cfb98b76cd6fac16de49df9e411f59246475508c"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\shared_source_competing_destinations.baseline.json",
+        "sha256": "9b5787e34de99e7c8709da3584f12cd6e0c11f6090f9a8446f8fa84c4e7deca2"
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "99eab34155e38bfb37391ee63ff460ccab38f2a3dbc49f6b4ee8c39faaa1a85a",
+        "33e3ce07525e3331de4175f8d0d0a4d136649c1f422323a6ef957ab001f2a223",
+        "89568530341b14b221b1d368fcd69f9b17561a7910db879fde17ba14eb7a6bcf",
+        "7af39ac5e68050899ecde77be9553f16c3796b92ca60a66c25bfbfe36e69024d"
+      ],
+      "full_record_sha256_rep2": [
+        "99eab34155e38bfb37391ee63ff460ccab38f2a3dbc49f6b4ee8c39faaa1a85a",
+        "33e3ce07525e3331de4175f8d0d0a4d136649c1f422323a6ef957ab001f2a223",
+        "89568530341b14b221b1d368fcd69f9b17561a7910db879fde17ba14eb7a6bcf",
+        "7af39ac5e68050899ecde77be9553f16c3796b92ca60a66c25bfbfe36e69024d"
+      ],
+      "whole_state_sha256": [
+        "332f26fa976e7b94d8942f0356cb8e7e3a77fdf25d3b307ad3aa3bb025aa70fb",
+        "f64ccf03f732bf3b9772f2f1ef72aac440306fb43020ccb4ca4abc185259a70f",
+        "a38508711471b663041201a05ea0839a1d3d966dfc21ea0fc048d45196414cc4",
+        "83f99ba752009c4cdadcbfbe8d62272d65b497748e05c834e969c7468f7606f8"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\winter_entry.baseline.json",
+        "sha256": "31848cc450ad4d90fd1160e4b92999c3deafaa975f948b893a9f8034f2ee25f7"
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "49cbd5d7cc88e222535bc1c746345c1e132a7948b9883986b9a0cdb949741ec5",
+        "45c115b9dd6560521202d73e096c7260a74f44a5a19475f2447d7b4a8aa68c85",
+        "b9ac9586510b9ab8d9be5fe0f9ab209691723e2a512efc229231f04bc0d1e986",
+        "700f5c18ecfcf1c96f90c17ab7e0611c3f0fe486b0d2e4126fa16e4c55357bad"
+      ],
+      "full_record_sha256_rep2": [
+        "49cbd5d7cc88e222535bc1c746345c1e132a7948b9883986b9a0cdb949741ec5",
+        "45c115b9dd6560521202d73e096c7260a74f44a5a19475f2447d7b4a8aa68c85",
+        "b9ac9586510b9ab8d9be5fe0f9ab209691723e2a512efc229231f04bc0d1e986",
+        "700f5c18ecfcf1c96f90c17ab7e0611c3f0fe486b0d2e4126fa16e4c55357bad"
+      ],
+      "whole_state_sha256": [
+        "c8cbfda051ceec95182891bfd25d0b0058e057fb14a1f87e4ee04d89221ab934",
+        "045b73e501289f18941604ffde7e3242c693b018424bc2ca0528d1b10d053070",
+        "58ac40557209155c1560caef2f3a3f7a9eaf7c51a2ace096e482c37d9d620ef8",
+        "9f0aab703bafe4cb587c494800c0c5bcb4987aeb6f1cd23ce9ff234fe9d9df93"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\winter_entry.baseline.json",
+        "sha256": "31848cc450ad4d90fd1160e4b92999c3deafaa975f948b893a9f8034f2ee25f7"
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "9161fc234899563502875405fef82c3941a1d7a3e4ed852bf5db86730e1ab1f1",
+        "205e2328a2b169e90cf7d8fb833248581cd8908a1a03fa2cf59ca68e847eac1e",
+        "ae9223e51aa86dd9954319b2e6b34a6c2233c1f88109b64f41bfc616721fa14b",
+        "8fad612766a4b0c3823db2c797b4c50e94fd1237bda1db82fbfb766ecf69244f"
+      ],
+      "full_record_sha256_rep2": [
+        "9161fc234899563502875405fef82c3941a1d7a3e4ed852bf5db86730e1ab1f1",
+        "205e2328a2b169e90cf7d8fb833248581cd8908a1a03fa2cf59ca68e847eac1e",
+        "ae9223e51aa86dd9954319b2e6b34a6c2233c1f88109b64f41bfc616721fa14b",
+        "8fad612766a4b0c3823db2c797b4c50e94fd1237bda1db82fbfb766ecf69244f"
+      ],
+      "whole_state_sha256": [
+        "5817ff40506ce90f7fb37df4f295f03a5a552b35dad866e0d895213bf834da99",
+        "211da027d35f4d338396c0a887b6998431ab5ab87a7fa781ee71645fb4aa7e48",
+        "34c6d63ceda9962fa922e1e67f70bd9d277d7af6ea32cf634197b26d8e596773",
+        "f29ee45e916411312e98f2bcacee3f8d6534e188a16e5e7039f47ddfd71de828"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\winter_entry.baseline.json",
+        "sha256": "31848cc450ad4d90fd1160e4b92999c3deafaa975f948b893a9f8034f2ee25f7"
+      }
+    },
+    {
+      "fixture": "empty_stock_import_dependence",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "ecb904c1deaaada10326e48317a0fa971746814e1d6c811153b93edac7e2a6b1",
+        "ae37decdf0436211e37549a4889cac67812ccef3ea236d033e4a9d30ed16907b",
+        "748e8260209055b694a810f1b7a11de3ce006275bde1bddae6b20b85c566136c",
+        "e8dcb94b82a0b154822445e3ef40915db92785766a4466268f13eb2c0c2dab58"
+      ],
+      "full_record_sha256_rep2": [
+        "ecb904c1deaaada10326e48317a0fa971746814e1d6c811153b93edac7e2a6b1",
+        "ae37decdf0436211e37549a4889cac67812ccef3ea236d033e4a9d30ed16907b",
+        "748e8260209055b694a810f1b7a11de3ce006275bde1bddae6b20b85c566136c",
+        "e8dcb94b82a0b154822445e3ef40915db92785766a4466268f13eb2c0c2dab58"
+      ],
+      "whole_state_sha256": [
+        "1a6a6f1a730023eb9e86e78150ea438cf882cb2ad55d7cbb510aa2dd4a872720",
+        "8c1793dc96e2b16006ab7c4deb78ac1f8f176bf99e28779cd2196f49ee2970a2",
+        "09a7386d07b5d4ad161081e58f5d15738f6691f2fbc47306e835ffe933bbd1cc",
+        "260a38cc620bbe18bed2937ff31646870ba6c78357dd386cbd0fe9cc15b12470"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\empty_stock_import_dependence.baseline.json",
+        "sha256": "26fa9fae6c4d4c3a6a0a71775b2b6f666a1ddca7fc0def7dd4e8401a807b0d87"
+      }
+    },
+    {
+      "fixture": "empty_stock_import_dependence",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "538e5f1f655768d7c7bfb8cdf0017a9cee435e233433abbe6ce17cfbf3505fa4",
+        "3a20403ea5cd05d03bf795895c24140aee0aa7752f13352386d164c5423aa57e",
+        "26f5f69232769d7e40f1f82a7de5e6b1791b153aeaac35e08bb351cd21fb0690",
+        "2a77d62eb199b1e6fec01ab1e744b8277b83dc41ec73715384cbc47ebbcfd378"
+      ],
+      "full_record_sha256_rep2": [
+        "538e5f1f655768d7c7bfb8cdf0017a9cee435e233433abbe6ce17cfbf3505fa4",
+        "3a20403ea5cd05d03bf795895c24140aee0aa7752f13352386d164c5423aa57e",
+        "26f5f69232769d7e40f1f82a7de5e6b1791b153aeaac35e08bb351cd21fb0690",
+        "2a77d62eb199b1e6fec01ab1e744b8277b83dc41ec73715384cbc47ebbcfd378"
+      ],
+      "whole_state_sha256": [
+        "8e75757f9092ccf4df82a1563df210d455b60cf0fd0138123c7844283649957a",
+        "b2cde6521e382eb37347107c96ada2351ce58344e54f1ff5468001969b226f90",
+        "5f7ad448482dfb443716d7f2692397b26a85777c1f1a3b01679d4ddf5959df06",
+        "8eb008f5b912a5766232bf79ce4af9259c21fdf54c2249ceae4378c92a6c299c"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\empty_stock_import_dependence.baseline.json",
+        "sha256": "26fa9fae6c4d4c3a6a0a71775b2b6f666a1ddca7fc0def7dd4e8401a807b0d87"
+      }
+    },
+    {
+      "fixture": "empty_stock_import_dependence",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "fe92ffe50c86821b1c89d38e5fcf1978316ca6d4ab46b6544bd2ba57e7b56d52",
+        "1dd1fc31542b0762eb06483b8cc5596bda0ce30e171383a3c5d166f3faba5d19",
+        "6fdea25e6d18461ddda4692ba79057cad54ef5b3c8fdeb55e181aa45920877ef",
+        "187ed2dbb5c503d2946570d0fea1f90d90227a8237f65f3c0f0bbfb570d5f2bf"
+      ],
+      "full_record_sha256_rep2": [
+        "fe92ffe50c86821b1c89d38e5fcf1978316ca6d4ab46b6544bd2ba57e7b56d52",
+        "1dd1fc31542b0762eb06483b8cc5596bda0ce30e171383a3c5d166f3faba5d19",
+        "6fdea25e6d18461ddda4692ba79057cad54ef5b3c8fdeb55e181aa45920877ef",
+        "187ed2dbb5c503d2946570d0fea1f90d90227a8237f65f3c0f0bbfb570d5f2bf"
+      ],
+      "whole_state_sha256": [
+        "4fdd5eade0e90638a3270321024c0270c08ca3c5de79bbd95552364b6492c9e9",
+        "11ea8d8deee4492ea2812e156106aa990a7dccb73bb05322f175e3c832e92091",
+        "68e80d88bcee588672484f00db99b4576a2f2cd6f44045681d2699943b73c325",
+        "36b4a45e03ec97b5fbb5a6df06ddff95da411d681b5024de016591ab07d0de91"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\empty_stock_import_dependence.baseline.json",
+        "sha256": "26fa9fae6c4d4c3a6a0a71775b2b6f666a1ddca7fc0def7dd4e8401a807b0d87"
+      }
+    },
+    {
+      "fixture": "delivery_reference",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "4f6f0f72e67d5e8da1078f19328360ef604ed886742811735544a6d480499f07",
+        "b4e495937d71a3ebb6275c49bcf4a1af8b80aabef00d5ee13057cae1687cc936",
+        "9eeb6c2e2a6e22711bd4c51aef5da5251ac7098a65bc0b09df722428df7779dd",
+        "89c33151a7256d587d428b9da4f5c772cac5750096b71d9e477a6ebf9a1a2bb2"
+      ],
+      "full_record_sha256_rep2": [
+        "4f6f0f72e67d5e8da1078f19328360ef604ed886742811735544a6d480499f07",
+        "b4e495937d71a3ebb6275c49bcf4a1af8b80aabef00d5ee13057cae1687cc936",
+        "9eeb6c2e2a6e22711bd4c51aef5da5251ac7098a65bc0b09df722428df7779dd",
+        "89c33151a7256d587d428b9da4f5c772cac5750096b71d9e477a6ebf9a1a2bb2"
+      ],
+      "whole_state_sha256": [
+        "464d830da4a37ca004bf22af786b927ca2b5b903e516026c1c757efda91581e4",
+        "b4a1c0a8d634c97653aa8ceae4467aa2cd2efadac21db009df964c0dc240023c",
+        "9cc8f4915f17b9dfcc1c2f2b37a53120dbf365079d3fe008e32626c49551d645",
+        "30ed38d0bf10cac4675dcad74d0b326587a1272096e83d41d974a28db765b153"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_reference.baseline.json",
+        "sha256": "9fe7cdc919cd1ed82911aa1efc17f586697d007628db9ebac973e59f0fc80377"
+      }
+    },
+    {
+      "fixture": "delivery_reference",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "87c4b0081b1ec321ad78216d78893bb998a6e3d02b26a826ad3d550c07a27543",
+        "02835e67e0c81d1ad76b8cf145bed8ee8d05eb29daed4e725b104895036cfa3a",
+        "e4b6a55488483cade932ea5e3daec6788a91b9b433055e00958ba930be611c90",
+        "6c8b290384ad44e43cceaebf034b7aee02c855e6c3eaa7d8881700351a490906"
+      ],
+      "full_record_sha256_rep2": [
+        "87c4b0081b1ec321ad78216d78893bb998a6e3d02b26a826ad3d550c07a27543",
+        "02835e67e0c81d1ad76b8cf145bed8ee8d05eb29daed4e725b104895036cfa3a",
+        "e4b6a55488483cade932ea5e3daec6788a91b9b433055e00958ba930be611c90",
+        "6c8b290384ad44e43cceaebf034b7aee02c855e6c3eaa7d8881700351a490906"
+      ],
+      "whole_state_sha256": [
+        "84ba1d2c39c7f7f58a7617d62189e2da8064f81cc764e187039701beb91b15c3",
+        "f5af3af867671ed99be2f2e855d35caa2b48687b5f3fb7ff74c36cc4585340e2",
+        "18fac7950114bbbb8ad567d6dd0b2e223f11673577d81b3eea47bad01eb43ef1",
+        "f7cd5777a192c69100ded4fa3d15ccc95083c00c2424f1aefc1951d5a7b2af9e"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_reference.baseline.json",
+        "sha256": "9fe7cdc919cd1ed82911aa1efc17f586697d007628db9ebac973e59f0fc80377"
+      }
+    },
+    {
+      "fixture": "delivery_reference",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "079c854124d9751cfe59f8c877f86624f837bd183d1afb98f84b612fbceace7a",
+        "a02570a9b6eedf5641835a97c89229055b93827bb779f230b573e611d797dd11",
+        "c387a1cabfd228ba0876d88a2fc2a5f901119c2a0070694d1790ec9b5fccfafe",
+        "a8eb3888c1c3e654f7faff3dad6ddf51c9e99d050be0ce9d61e4e8feeef5ac63"
+      ],
+      "full_record_sha256_rep2": [
+        "079c854124d9751cfe59f8c877f86624f837bd183d1afb98f84b612fbceace7a",
+        "a02570a9b6eedf5641835a97c89229055b93827bb779f230b573e611d797dd11",
+        "c387a1cabfd228ba0876d88a2fc2a5f901119c2a0070694d1790ec9b5fccfafe",
+        "a8eb3888c1c3e654f7faff3dad6ddf51c9e99d050be0ce9d61e4e8feeef5ac63"
+      ],
+      "whole_state_sha256": [
+        "c47965ce07fff6c3c30cfc59df380cf9baeb4479ba3683e1c82c3697f7f79277",
+        "116d00b3c7bf0eb5816dba2dde733fa823e8be33d8650e6c5e1a7d8fb827ac0e",
+        "82f4f61d1f578aadd9a14428b0c984f7d60f37975dfeed1c3976b096418e5241",
+        "6394e5076930bbdf7d4540e5c8d6dde79872d5e82b9fe4f3fc0a84e467e5a2de"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_reference.baseline.json",
+        "sha256": "9fe7cdc919cd1ed82911aa1efc17f586697d007628db9ebac973e59f0fc80377"
+      }
+    },
+    {
+      "fixture": "delivery_source_scarcity",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "5b96d893b3b7e906affbea9f939702b2132521c1aa8457d2a94d1e23f790d741",
+        "1f33c9ec9c1bd6797c9d2fb53f6442dfe4fde0853d27d6c05d7ee227b3b9d80b",
+        "366a129da3a463d5ebc080de2938fb8b94cd6ec2def516b8d42f32c07ec5dc9c",
+        "f0ef27d757715b22ad99948016b0c77947b694efe7f0bcf07568168e5702b74a"
+      ],
+      "full_record_sha256_rep2": [
+        "5b96d893b3b7e906affbea9f939702b2132521c1aa8457d2a94d1e23f790d741",
+        "1f33c9ec9c1bd6797c9d2fb53f6442dfe4fde0853d27d6c05d7ee227b3b9d80b",
+        "366a129da3a463d5ebc080de2938fb8b94cd6ec2def516b8d42f32c07ec5dc9c",
+        "f0ef27d757715b22ad99948016b0c77947b694efe7f0bcf07568168e5702b74a"
+      ],
+      "whole_state_sha256": [
+        "53307a108d558b89cfb7e23585980bf291621d7feb96726fe2a5cabf5d2140b9",
+        "1d7bf1f7514d715212e4c4a2d3460a3d8a1c047e0e199282cd3bb53627c14f75",
+        "c7d11d2b42849bd1624f3630a9ba77906a123db97ef568037d8b7dd512a17860",
+        "9941f8bfce43c04fb3956dac7dfc658eba95c0cc5e88f4b5439ef9a35014533f"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_source_scarcity.baseline.json",
+        "sha256": "2703ab6c1bf6086f47bfd001c3aee0ddca0eda76fad14a36f3607a14fb15b69b"
+      }
+    },
+    {
+      "fixture": "delivery_source_scarcity",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "e4a933d9a2b444aa2f4df215efbefe84abdb36c5bcac2682f22c43268b947356",
+        "3f6b3e4a2cd91241bc5ef1fb4ea56a74c21317baaf571c319b6956d3da93344c",
+        "fe3c4e14bf72698777d0c6148fc86add6c8f48624e74223ac9080a7a35b586aa",
+        "7b4391a32fde207bb6d2154e5ba9a89e7c746ef83b134c6c7a9c0a6051a3f6f7"
+      ],
+      "full_record_sha256_rep2": [
+        "e4a933d9a2b444aa2f4df215efbefe84abdb36c5bcac2682f22c43268b947356",
+        "3f6b3e4a2cd91241bc5ef1fb4ea56a74c21317baaf571c319b6956d3da93344c",
+        "fe3c4e14bf72698777d0c6148fc86add6c8f48624e74223ac9080a7a35b586aa",
+        "7b4391a32fde207bb6d2154e5ba9a89e7c746ef83b134c6c7a9c0a6051a3f6f7"
+      ],
+      "whole_state_sha256": [
+        "dbe49240bd2cbe1c743aa734a84b06545bf5f97a5fee32f47ec45b7defc6bfd2",
+        "480246ac61c0e72bd4b00b95c1d59ac7abac048f6548ed4d5af198b7193738a4",
+        "ea3466361e393b1914fa28a142bb5701bf59fb038bd3456831d2ea4b5132f61a",
+        "0f8b4a2360630cb5121cbbcd9d6ee743f888182403eb88685b262b8fedad387d"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_source_scarcity.baseline.json",
+        "sha256": "2703ab6c1bf6086f47bfd001c3aee0ddca0eda76fad14a36f3607a14fb15b69b"
+      }
+    },
+    {
+      "fixture": "delivery_source_scarcity",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "baac307f2a2c727c7222a2fbd2f5b4228eb9e76a5bd4ce0c62e936e662b7f922",
+        "cdb8ff8d7d603b82ec1bf06241379d664574548218e781da8dde4664e5f9bfa5",
+        "12fe393b9cf4ece8e9ba80b997e72c7b2b6d6d2db1f805675fc94671e3751dfe",
+        "89d230d234d48b1810cb0169a8f2ce96cf593592dcbf627baf9677b6f7a1c0bf"
+      ],
+      "full_record_sha256_rep2": [
+        "baac307f2a2c727c7222a2fbd2f5b4228eb9e76a5bd4ce0c62e936e662b7f922",
+        "cdb8ff8d7d603b82ec1bf06241379d664574548218e781da8dde4664e5f9bfa5",
+        "12fe393b9cf4ece8e9ba80b997e72c7b2b6d6d2db1f805675fc94671e3751dfe",
+        "89d230d234d48b1810cb0169a8f2ce96cf593592dcbf627baf9677b6f7a1c0bf"
+      ],
+      "whole_state_sha256": [
+        "b89914fa3b9fcc42cc5cc26bafd33be5a516e45385678f5cedab01caa1608e37",
+        "5fce4aba902265d9fc6e3b739f1e01ccf34a2ea47d634e14303e971695e08a1d",
+        "d1e16e2f99cc3702d1dc4830fd8b016b46b0889ad55a19f3601fdc04521e771b",
+        "22c00123803b9cbf1bef61760cae8c071049fc89a42c9a00dd7b2863793e31f8"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_source_scarcity.baseline.json",
+        "sha256": "2703ab6c1bf6086f47bfd001c3aee0ddca0eda76fad14a36f3607a14fb15b69b"
+      }
+    },
+    {
+      "fixture": "delivery_more_competition",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "3a55fc3584c010db2b4a1dd9718f10de99bc4aed88c7f2081b457230e105e01a",
+        "cad302a99bbed88c7f7caecf8df5adae78a239bceb74ac1e3c887e7324b0f733",
+        "ac7f0f3a2639b749f62666ae237c9814271fd19153ac7cdc281381974f7883af",
+        "cc2aa7b3d4748952f6b95101082d88f5f8466d130565476ea08f94fa41100b80"
+      ],
+      "full_record_sha256_rep2": [
+        "3a55fc3584c010db2b4a1dd9718f10de99bc4aed88c7f2081b457230e105e01a",
+        "cad302a99bbed88c7f7caecf8df5adae78a239bceb74ac1e3c887e7324b0f733",
+        "ac7f0f3a2639b749f62666ae237c9814271fd19153ac7cdc281381974f7883af",
+        "cc2aa7b3d4748952f6b95101082d88f5f8466d130565476ea08f94fa41100b80"
+      ],
+      "whole_state_sha256": [
+        "58f921077442c718df7e6bbe5ca98c350fb56ca0295b89956616bc3be4732f69",
+        "014ec5b59ac8838941a51b2649697c1e177431cbbce0921fbbfb4e967a4c4508",
+        "9d81fef4e18d4b4fa6c624a1b54a7eaa36d4318d973df536d5a3bace0761a1cd",
+        "8f3b9b1f5ce642aa24f89621174f77fa87a0841671f0cdfc9cc8ab8d542616ff"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_more_competition.baseline.json",
+        "sha256": "cb81b80e3241e89d7609361b10ec8eb40f1408065872b1f212c02f4a99539f47"
+      }
+    },
+    {
+      "fixture": "delivery_more_competition",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "2f0534f1d95645c5068686b0f8d3a6a0efe261be5245101d3175196a4cda35c8",
+        "0ef6ef2b2558174cad140ff32a2155320af4a2db988f1eb76f702cf185631358",
+        "0d963d03c30ec1541f8bfb772da11dc10f41382eb2ea073720060762e849ecf7",
+        "ef2ab2ca938de6da0bcf65155fe481f6572d0706dfdc03e72f008aaad0d8ea43"
+      ],
+      "full_record_sha256_rep2": [
+        "2f0534f1d95645c5068686b0f8d3a6a0efe261be5245101d3175196a4cda35c8",
+        "0ef6ef2b2558174cad140ff32a2155320af4a2db988f1eb76f702cf185631358",
+        "0d963d03c30ec1541f8bfb772da11dc10f41382eb2ea073720060762e849ecf7",
+        "ef2ab2ca938de6da0bcf65155fe481f6572d0706dfdc03e72f008aaad0d8ea43"
+      ],
+      "whole_state_sha256": [
+        "09f8d5e274419146bc59996958cdd4299d51018dd390e863d87e8dcd92131baa",
+        "3726eab6786408fc5e1b590fd70393e757ca9543635591728348a6e3c2e26e9a",
+        "a2ec4d899988176a0c9ec7ff381b89497571e712dbb9e4170e5ccb46dc79b3d7",
+        "8a9bbb196e5b929c13fd8aa4d5c4589a438efe3a93f0284d9b9737db1162ee97"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_more_competition.baseline.json",
+        "sha256": "cb81b80e3241e89d7609361b10ec8eb40f1408065872b1f212c02f4a99539f47"
+      }
+    },
+    {
+      "fixture": "delivery_more_competition",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "da3227d65e8855eef7744d07043acc6c19cafc50a6ed49b746f69006927277eb",
+        "2a32c58e54f7bbcce3eef6dd5c68db4a99061f21041e087b2e56933fc66bfd90",
+        "6a71da6f5a030b793901f488a543a5e8ff375a430083329a3da968aa202c1f17",
+        "819e9f9a8b86dacf3e3605b6e19a0646f37c2840784c87009e947098d945a3b0"
+      ],
+      "full_record_sha256_rep2": [
+        "da3227d65e8855eef7744d07043acc6c19cafc50a6ed49b746f69006927277eb",
+        "2a32c58e54f7bbcce3eef6dd5c68db4a99061f21041e087b2e56933fc66bfd90",
+        "6a71da6f5a030b793901f488a543a5e8ff375a430083329a3da968aa202c1f17",
+        "819e9f9a8b86dacf3e3605b6e19a0646f37c2840784c87009e947098d945a3b0"
+      ],
+      "whole_state_sha256": [
+        "38383fbcfdd0d871235c249bf957e457df9e164854238076cea9725abe8c8dcc",
+        "bc8b01c1968c86ba426aa0fdbb55014fb9b1f416d7122f3ff8976e0d1a2e9eaf",
+        "c636b3be0e33555e912e99181787bdc785712ae9ac1dae550dd5bca1a7d05ddc",
+        "519ca3f35f6239ac724cb655b29033a98d8f0e3a822e7190089c94d51a2f09da"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_more_competition.baseline.json",
+        "sha256": "cb81b80e3241e89d7609361b10ec8eb40f1408065872b1f212c02f4a99539f47"
+      }
+    },
+    {
+      "fixture": "producer_death_restore_effort",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "b087555d6653fb880524b4fd677335cff90d94d024e9187c69bfa8f455e1c98f",
+        "12cf1617bcd81371de1bd87e13fafcc616ec74f91aaf92c13c08e4dd0cc7ec32",
+        "1db00c47c4d334db17a3f772b6cf49a2aff5cfb5af41c8dc9dde62fc1ecd3cb0",
+        "7ca1207f33c5a6220d899ccbf8c015c4173fe5bcbd254a98d98a7d35db8f920e"
+      ],
+      "full_record_sha256_rep2": [
+        "b087555d6653fb880524b4fd677335cff90d94d024e9187c69bfa8f455e1c98f",
+        "12cf1617bcd81371de1bd87e13fafcc616ec74f91aaf92c13c08e4dd0cc7ec32",
+        "1db00c47c4d334db17a3f772b6cf49a2aff5cfb5af41c8dc9dde62fc1ecd3cb0",
+        "7ca1207f33c5a6220d899ccbf8c015c4173fe5bcbd254a98d98a7d35db8f920e"
+      ],
+      "whole_state_sha256": [
+        "189055431266a2f030c42b5e5d5a8f796fab2e912e58d0568e1534a2d6812e52",
+        "0f47b275f2d3f27be9577f13430a663bc59c145c64e464e5d20a27a3775f3b34",
+        "9ba0b1c15c85ee3c13e6bb6d50a1870c4ab13d6681e088c349d0ce416cdae177",
+        "41ab5d58e54848d7e6673ae0febd474566013199f31ea619ce8201521f3285dc"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\producer_death_restore_effort.baseline.json",
+        "sha256": "f9493488d8f162699a9b10d62eed133afc1a3ac4edb9f1db447165c6e1f2f90b"
+      }
+    },
+    {
+      "fixture": "producer_death_restore_effort",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "d7ceacb0d14221d3e6ee6e812fe0cc621fd594ba4184b545ddbe6e75dcf2c9d0",
+        "507fcfa5a8d55545de89c4265121d2fb22dc0cabad0e226c5b790b9b219fbd3f",
+        "efd9d28ce515008e5473fbb23644c693df38b815424338e7a09d9b9b0a535bc1",
+        "b968df573f717a0b66b9dbba4b5f04f2b76f1507499249f7f75f8a3910ea4da1"
+      ],
+      "full_record_sha256_rep2": [
+        "d7ceacb0d14221d3e6ee6e812fe0cc621fd594ba4184b545ddbe6e75dcf2c9d0",
+        "507fcfa5a8d55545de89c4265121d2fb22dc0cabad0e226c5b790b9b219fbd3f",
+        "efd9d28ce515008e5473fbb23644c693df38b815424338e7a09d9b9b0a535bc1",
+        "b968df573f717a0b66b9dbba4b5f04f2b76f1507499249f7f75f8a3910ea4da1"
+      ],
+      "whole_state_sha256": [
+        "5f4dfa187d861aaa08470b8a4ec5cad536b667f75bd056488380262f391f837a",
+        "eb6594264678e91a30791b073f850fa8496e2c798a9422fa8223922001ca20b6",
+        "fdefa708dc3b9b10cffe659a6682972da319a2230a3ea9c149f92087cbf8a9d2",
+        "977d9c5a3c838d66c044591a7e854ca0be0e51c40d059db30b84239e1edb5c22"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\producer_death_restore_effort.baseline.json",
+        "sha256": "f9493488d8f162699a9b10d62eed133afc1a3ac4edb9f1db447165c6e1f2f90b"
+      }
+    },
+    {
+      "fixture": "producer_death_restore_effort",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "de04f0942af72a811436ea029429b37456c6f1200a2324bb9deaefca85996bc9",
+        "380c0b291d1cdb0b563e789b9fbd3ba579080c9517d4b10d6c40d3fef9838702",
+        "599fc549d147f19d786824d17c7aa820bb0ecce5ef32efe938539d25ea677548",
+        "5afec1b166ac45c9a1d517171d2f27051081e820740c67e116d379aa09566752"
+      ],
+      "full_record_sha256_rep2": [
+        "de04f0942af72a811436ea029429b37456c6f1200a2324bb9deaefca85996bc9",
+        "380c0b291d1cdb0b563e789b9fbd3ba579080c9517d4b10d6c40d3fef9838702",
+        "599fc549d147f19d786824d17c7aa820bb0ecce5ef32efe938539d25ea677548",
+        "5afec1b166ac45c9a1d517171d2f27051081e820740c67e116d379aa09566752"
+      ],
+      "whole_state_sha256": [
+        "517c4007d046ba72eb1cec28350f60ab80e6544ace676e989b1c605f650dfa27",
+        "fec1e8bf6391ae1e1fae53042dd75ad373230c729757718fec47275293b07ba2",
+        "56f51d1415f75de84c47a50d736952b2e3445c74794047353019abc725681cef",
+        "b2e3b7f35fda2d48b9b134c044bad6e8a3932bc4a9365ff17495a112b26eb417"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\producer_death_restore_effort.baseline.json",
+        "sha256": "f9493488d8f162699a9b10d62eed133afc1a3ac4edb9f1db447165c6e1f2f90b"
+      }
+    },
+    {
+      "fixture": "producer_travel_restore_effort",
+      "effort": 1.0,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "b087555d6653fb880524b4fd677335cff90d94d024e9187c69bfa8f455e1c98f",
+        "3f62e7bbe41486a1252257e5e5c6a3aea6c27708ecad419ff4a24a8e2fd03ba1",
+        "2b2c575ac10cda4bc560a21709b23c809d96f1680ace429420c92a1bffa01606",
+        "080041ea41553a6429443c3a4c3d9fc2dc04d35517f0f554feb2770d4ca7f54b"
+      ],
+      "full_record_sha256_rep2": [
+        "b087555d6653fb880524b4fd677335cff90d94d024e9187c69bfa8f455e1c98f",
+        "3f62e7bbe41486a1252257e5e5c6a3aea6c27708ecad419ff4a24a8e2fd03ba1",
+        "2b2c575ac10cda4bc560a21709b23c809d96f1680ace429420c92a1bffa01606",
+        "080041ea41553a6429443c3a4c3d9fc2dc04d35517f0f554feb2770d4ca7f54b"
+      ],
+      "whole_state_sha256": [
+        "189055431266a2f030c42b5e5d5a8f796fab2e912e58d0568e1534a2d6812e52",
+        "9ea570741fd858ac55195eea3e96b3f884380b4c40ce0b5f943f5ee1a40204e9",
+        "034f556a2128ccbb44b9255a37244a73d92a8a41e7cc10348aee5b64f0c908b4",
+        "5175e6cbb319cb3596fc9685559f59d23918dc4b185b034e79746fc13193b280"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": true,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\producer_travel_restore_effort.baseline.json",
+        "sha256": "4a10c80097ba5ab48a46ff774b446601ea38976a6513f2ef849725dffc1c47a5"
+      }
+    },
+    {
+      "fixture": "producer_travel_restore_effort",
+      "effort": 0.75,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "d7ceacb0d14221d3e6ee6e812fe0cc621fd594ba4184b545ddbe6e75dcf2c9d0",
+        "5a82b366c7b655c5e9e4a5cd986ab5b39b7ede017e0fcff1fe79deb43824f9e1",
+        "6bb61ab8081fe035a13e8263a7edee2485dcb118d814e2e7321cc6c8fc44a1ea",
+        "31f9e8a18cec7962d505a33325b6d2cfb0518d152c1b93ccd0f12c699b4bb9e9"
+      ],
+      "full_record_sha256_rep2": [
+        "d7ceacb0d14221d3e6ee6e812fe0cc621fd594ba4184b545ddbe6e75dcf2c9d0",
+        "5a82b366c7b655c5e9e4a5cd986ab5b39b7ede017e0fcff1fe79deb43824f9e1",
+        "6bb61ab8081fe035a13e8263a7edee2485dcb118d814e2e7321cc6c8fc44a1ea",
+        "31f9e8a18cec7962d505a33325b6d2cfb0518d152c1b93ccd0f12c699b4bb9e9"
+      ],
+      "whole_state_sha256": [
+        "5f4dfa187d861aaa08470b8a4ec5cad536b667f75bd056488380262f391f837a",
+        "e8e3f90c0851949f7c5d6cad6360c9a1e48a9ae367d9331750d084b875eff2b0",
+        "d2b842e801d2e1f4653aad12976017ef2c2ea79c81de72e446b5f13869b3b264",
+        "6bd8019d19ff80663473475a2527eca9b6a9e5283ee32f65063d975eab25985f"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\producer_travel_restore_effort.baseline.json",
+        "sha256": "4a10c80097ba5ab48a46ff774b446601ea38976a6513f2ef849725dffc1c47a5"
+      }
+    },
+    {
+      "fixture": "producer_travel_restore_effort",
+      "effort": 0.5,
+      "repetitions_equal": true,
+      "full_record_sha256_rep1": [
+        "de04f0942af72a811436ea029429b37456c6f1200a2324bb9deaefca85996bc9",
+        "e6aea16a2f4b46a71eafa13eda9b88b2f36ec6fbbb2e6b0fa1f71284ac1fd2cb",
+        "32d9c763a4a326e6fe894bf68d19d59f1b84f214f0ed3f1f9c061f81785fbeda",
+        "99bd424e492c7d5475861fc030c55acf4067770fd53927b9e5240adc9cc48892"
+      ],
+      "full_record_sha256_rep2": [
+        "de04f0942af72a811436ea029429b37456c6f1200a2324bb9deaefca85996bc9",
+        "e6aea16a2f4b46a71eafa13eda9b88b2f36ec6fbbb2e6b0fa1f71284ac1fd2cb",
+        "32d9c763a4a326e6fe894bf68d19d59f1b84f214f0ed3f1f9c061f81785fbeda",
+        "99bd424e492c7d5475861fc030c55acf4067770fd53927b9e5240adc9cc48892"
+      ],
+      "whole_state_sha256": [
+        "517c4007d046ba72eb1cec28350f60ab80e6544ace676e989b1c605f650dfa27",
+        "beae6f2220c147f675f081905af778412e434c2ad5bd7b82704f5a8b633f74d7",
+        "cb4837a6e3861b127b0792e9573e0fcbb543d3950fa421c8fd969b500a36082e",
+        "455e2d57d6bfad573d60a291f7794262e0b9f2bf2033436d757341bb400b9d3d"
+      ],
+      "rng_sha256": [
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c"
+      ],
+      "effort1_exact_baseline": null,
+      "baseline_file": {
+        "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\producer_travel_restore_effort.baseline.json",
+        "sha256": "4a10c80097ba5ab48a46ff774b446601ea38976a6513f2ef849725dffc1c47a5"
+      }
+    }
+  ]
+}

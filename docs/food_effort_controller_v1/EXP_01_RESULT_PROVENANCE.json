@@ -1,0 +1,14 @@
+{
+  "status": "INCOMPLETE",
+  "output": "D:\\Sim Dao\\out\\effort-controller-EXP-01-20261002",
+  "closeout_sha256": "d56be7f398787b0454ef12c47cb492f848c329e41f1036fc410a1e6ff0c301f4",
+  "manifest_sha256": "776ae09ff309391fe1e2cfc2cb915a7c6b09c0e88dabc2b0a4bc977ed8578a63",
+  "report_sha256": "d132da593d3acd3a3857872e010589eef32793ae5f0ae82c002f06a636f5df2c",
+  "instrumentation": {
+    "controller.py": "e338cca689ccd192c453e0b88ee374f9accb008db025af5039cfca7fd4bba1f1",
+    "run.py": "6c61fbc32e896f555c9998d3fc24b728a0626e5effbe6c7ad7c667482618be4d"
+  },
+  "completed_runs": 2,
+  "completed_ticks": 18,
+  "elapsed_total_seconds": 523.7299559116364
+}

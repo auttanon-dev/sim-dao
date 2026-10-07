@@ -1,0 +1,9 @@
+{
+  "overrides": {
+    "NEED_PER_REALM": 4.8,
+    "BREAK_COST": 3.38,
+    "ORG_FOUND_P": 0.42,
+    "CHAOS_EDGE": 1.138
+  },
+  "history": []
+}

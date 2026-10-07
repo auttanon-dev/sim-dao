@@ -1,0 +1,254 @@
+{
+  "revision": "95b07ea260d19771810e7748eb61fbbb50db2174",
+  "source": "D:\\Sim Dao\\out\\volunteer-schema2-95b07ea-18seeds-20261001\\source",
+  "seed": 18,
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "efforts": [
+    1.0,
+    0.75,
+    0.5
+  ],
+  "fixtures": [
+    {
+      "group": 1,
+      "name": "single_low_demand_overflow",
+      "normal": 1,
+      "volunteers": 0,
+      "eaters": 0,
+      "stock": 0,
+      "days": 30,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 2,
+      "name": "normal_volunteer_child",
+      "normal": 1,
+      "volunteers": 1,
+      "eaters": 2,
+      "child": true,
+      "stock": 80,
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 3,
+      "name": "no_normal_producer_affordability",
+      "normal": 0,
+      "volunteers": 2,
+      "eaters": 5,
+      "poor_hidden": true,
+      "stock": 0,
+      "ticks": 3,
+      "days": 10,
+      "start": 10950,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 4,
+      "name": "shared_source_competing_destinations",
+      "network": true,
+      "focal": 4,
+      "competitors": 8,
+      "stock": 40,
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 5,
+      "name": "winter_entry",
+      "normal": 2,
+      "volunteers": 0,
+      "eaters": 6,
+      "stock": 300,
+      "days": 30,
+      "start": 11220,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 6,
+      "name": "empty_stock_import_dependence",
+      "network": true,
+      "focal": 6,
+      "competitors": 2,
+      "stock": 0,
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 7,
+      "name": "delivery_reference",
+      "network": true,
+      "focal": 4,
+      "competitors": 1,
+      "stock": 80,
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 7,
+      "name": "delivery_source_scarcity",
+      "network": true,
+      "focal": 4,
+      "competitors": 1,
+      "stock": 0,
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 7,
+      "name": "delivery_more_competition",
+      "network": true,
+      "focal": 4,
+      "competitors": 15,
+      "stock": 80,
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 8,
+      "name": "producer_death_restore_effort",
+      "normal": 1,
+      "volunteers": 1,
+      "eaters": 5,
+      "stock": 40,
+      "shock": "death",
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    },
+    {
+      "group": 8,
+      "name": "producer_travel_restore_effort",
+      "normal": 1,
+      "volunteers": 1,
+      "eaters": 5,
+      "stock": 40,
+      "shock": "travel",
+      "days": 10,
+      "start": 10950,
+      "ticks": 4,
+      "schedule": [
+        "diagnostic",
+        "diagnostic",
+        "restore_1.0",
+        "restore_1.0"
+      ]
+    }
+  ],
+  "fixture_groups": 8,
+  "subcases": 11,
+  "variants": 33,
+  "repetitions_per_variant": 2,
+  "original_kernel_baselines": 11,
+  "config": {
+    "CHILD_LABOUR_SHARE": 0.25,
+    "FOOD_ENABLED": true,
+    "FOOD_RATION_ADULT": 1.0,
+    "FOOD_RATION_CHILD": 0.5,
+    "FOOD_BIGU_REALM": 3,
+    "FOOD_STARVE_DAYS": 40,
+    "FOOD_PRODUCERS": [
+      "ชาวนา",
+      "คนสับฟืน",
+      "คนเลี้ยงสัตว์อสูร"
+    ],
+    "FOOD_PER_WORKER_DAY": 5.0,
+    "FOOD_LAND_CAP_DAY": 60.0,
+    "FOOD_SPOIL_PER_YEAR": 0.1,
+    "FOOD_PACK_DAYS": 30,
+    "FOOD_GRANARY_KEEP_DAYS": 60,
+    "FOOD_SECLUDE_KEEP_DAYS": 90,
+    "FOOD_STORE_MONTHS": 3,
+    "FOOD_DEST_STOCK_DAYS": 90,
+    "FOOD_TRIP_MARGIN_DAYS": 10,
+    "FOOD_START_DAYS": 90,
+    "FOOD_REACH_HOPS": 2,
+    "FOOD_CARRY_LOSS_PER_HOP": 0.05,
+    "FOOD_PRICE_ELASTICITY": 0.0,
+    "FOOD_PRICE_BOUNDS": [
+      0.25,
+      1.0
+    ],
+    "FOOD_PRICE": 0.1,
+    "WAGES_ENABLED": true
+  },
+  "transformation": "Single AST edit: production adults=sum(BODY.work_capacity(...))*effort; child helpers untouched; nonlinear F applied afterwards",
+  "pay_rule": "Original raw BODY.work_capacity weights; no new occupational wages or extra activity credit",
+  "fixture_assumptions": [
+    "Synthetic 3-node star graph or isolated site; actual allocation/feeding/pricing/cap/spoil/pay/ledgers",
+    "Freeze adaptive recruit/release and hunger-driven relocation/process interruption identically in baseline/variants",
+    "No households/clans/community charity balances; supplied character capital is declared initial gold",
+    "Initial stocks declared once as endowed; no later free food or cap/starvation-threshold override",
+    "Scripted death/travel identical across variants; simplified death shell retains gold on corpse and uses real food.on_death",
+    "No body/age/market scheduler/kin/estate simulation; real starvation threshold still applied"
+  ],
+  "no_parameter_search": true,
+  "no_production_edits": true,
+  "no_controller": true,
+  "no_world_replay": true
+}

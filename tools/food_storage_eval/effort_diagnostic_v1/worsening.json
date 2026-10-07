@@ -1,0 +1,68 @@
+[
+  {
+    "fixture": "no_normal_producer_affordability",
+    "effort": 0.5,
+    "delta_physical": 27.48913487337736,
+    "delta_unmet": 24.052993014205185
+  },
+  {
+    "fixture": "shared_source_competing_destinations",
+    "effort": 0.75,
+    "delta_physical": 28.704336608914048,
+    "delta_unmet": 28.704336608914048
+  },
+  {
+    "fixture": "shared_source_competing_destinations",
+    "effort": 0.5,
+    "delta_physical": 58.01295295508561,
+    "delta_unmet": 58.01295295508538
+  },
+  {
+    "fixture": "winter_entry",
+    "effort": 0.75,
+    "delta_physical": 51.09150197569181,
+    "delta_unmet": 51.09150197569184
+  },
+  {
+    "fixture": "winter_entry",
+    "effort": 0.5,
+    "delta_physical": 125.16267302466633,
+    "delta_unmet": 125.1626730246663
+  },
+  {
+    "fixture": "empty_stock_import_dependence",
+    "effort": 0.75,
+    "delta_physical": 28.704336608914048,
+    "delta_unmet": 28.70433660891399
+  },
+  {
+    "fixture": "empty_stock_import_dependence",
+    "effort": 0.5,
+    "delta_physical": 58.01295295508564,
+    "delta_unmet": 58.012952955085666
+  },
+  {
+    "fixture": "delivery_source_scarcity",
+    "effort": 0.75,
+    "delta_physical": 28.704336608914037,
+    "delta_unmet": 28.704336608914044
+  },
+  {
+    "fixture": "delivery_source_scarcity",
+    "effort": 0.5,
+    "delta_physical": 58.01295295508564,
+    "delta_unmet": 58.01295295508562
+  },
+  {
+    "fixture": "delivery_more_competition",
+    "effort": 0.75,
+    "delta_physical": 28.704336608914105,
+    "delta_unmet": 28.70433660891399
+  },
+  {
+    "fixture": "delivery_more_competition",
+    "effort": 0.5,
+    "delta_physical": 58.012952955085666,
+    "delta_unmet": 58.012952955085325
+  }
+]

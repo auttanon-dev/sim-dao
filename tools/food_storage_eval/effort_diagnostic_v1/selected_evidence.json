@@ -1,0 +1,4371 @@
+{
+  "selection": "Predefined structural witnesses: group1 e1/e.5 steps1/3; group5 all levels steps2/3; group2 all levels step1; group7 all subcases e.5 step1; group8 both shocks e.5 steps2/3. All variants retained in metrics and summary; no favorable-outcome selection.",
+  "records": [
+    {
+      "fixture": "single_low_demand_overflow",
+      "group": 1,
+      "effort": 1.0,
+      "record_sha256": "0b4fc9c805068f5043505680d9310354b0f6bd0125a411373dc5f0badeaec6fe",
+      "record": {
+        "step": 1,
+        "day": 10980,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 187.0960697673835,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 35.84606976738351,
+        "natural_spoil": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 6.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 0.0
+        },
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 0.0
+          },
+          "after_production": {
+            "(0, 0)": 187.0960697673835
+          },
+          "after_local_reservation": {
+            "(0, 0)": 157.0960697673835
+          },
+          "after_transport": {
+            "(0, 0)": 157.0960697673835
+          },
+          "before_farm_pay": {
+            "(0, 0)": 127.09606976738351
+          },
+          "after_farm_pay": {
+            "(0, 0)": 127.09606976738351
+          },
+          "before_cap": {
+            "(0, 0)": 127.09606976738351
+          },
+          "after_cap": {
+            "(0, 0)": 91.25
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "15c9bef8ff13d184083d00406f647550ae49b3822b4b45ccf6c555fc90bdda86",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "single_low_demand_overflow",
+      "group": 1,
+      "effort": 1.0,
+      "record_sha256": "bba264b43e4184ace50eca9b2e10f3e1e8645bcefac58f58068ebdd6b0814325",
+      "record": {
+        "step": 3,
+        "day": 11040,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 187.09606976738354,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 156.55224222865635,
+        "natural_spoil": 0.5438275387271574,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 3.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 91.25
+        },
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 90.70617246127284
+          },
+          "after_production": {
+            "(0, 0)": 277.8022422286564
+          },
+          "after_local_reservation": {
+            "(0, 0)": 247.80224222865638
+          },
+          "after_transport": {
+            "(0, 0)": 247.80224222865638
+          },
+          "before_farm_pay": {
+            "(0, 0)": 247.80224222865638
+          },
+          "after_farm_pay": {
+            "(0, 0)": 247.80224222865638
+          },
+          "before_cap": {
+            "(0, 0)": 247.80224222865638
+          },
+          "after_cap": {
+            "(0, 0)": 91.25
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "da96744a8402fab892bfef785017ca1a27e115734a84086a030b357acff5b2ef",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "single_low_demand_overflow",
+      "group": 1,
+      "effort": 0.5,
+      "record_sha256": "84ff80c5ac4dbe856930f1c400529b3476c1ca65274872670e6feb48342ed170",
+      "record": {
+        "step": 1,
+        "day": 10980,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 30,
+        "produced": 95.49667036461669,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.549667036461669,
+        "farm_pay": 3.549667036461669,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 3.549667036461669,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 95.49667036461669,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 0.0
+        },
+        "closing_stock": {
+          "(0, 0)": 60.0
+        },
+        "pack_food": 5.49667036461669,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 0.0
+          },
+          "after_production": {
+            "(0, 0)": 95.49667036461669
+          },
+          "after_local_reservation": {
+            "(0, 0)": 65.49667036461669
+          },
+          "after_transport": {
+            "(0, 0)": 65.49667036461669
+          },
+          "before_farm_pay": {
+            "(0, 0)": 60.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 60.0
+          },
+          "before_cap": {
+            "(0, 0)": 60.0
+          },
+          "after_cap": {
+            "(0, 0)": 60.0
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "88e04ca9384998c5c5136aea63e598b60fb0c3f38e9bc75b433b5a6e1635dec1",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "single_low_demand_overflow",
+      "group": 1,
+      "effort": 0.5,
+      "record_sha256": "1ec7b4c62d5287da93493efbba71cde35134c9f69951bc8e8339baabf3c1e497",
+      "record": {
+        "step": 3,
+        "day": 11040,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 187.0960697673835,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 156.55224222865638,
+        "natural_spoil": 0.5438275387271574,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 3.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 91.25
+        },
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.000000000000004,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 90.70617246127284
+          },
+          "after_production": {
+            "(0, 0)": 277.8022422286564
+          },
+          "after_local_reservation": {
+            "(0, 0)": 247.80224222865638
+          },
+          "after_transport": {
+            "(0, 0)": 247.80224222865638
+          },
+          "before_farm_pay": {
+            "(0, 0)": 247.80224222865638
+          },
+          "after_farm_pay": {
+            "(0, 0)": 247.80224222865638
+          },
+          "before_cap": {
+            "(0, 0)": 247.80224222865638
+          },
+          "after_cap": {
+            "(0, 0)": 91.25
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "38f7a82200c0e28cdfd29b0aa742708c10fb1e33abd372b4f851a098aa93c2bf",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "normal_volunteer_child",
+      "group": 2,
+      "effort": 1.0,
+      "record_sha256": "246a0286e3fe6553691710478c548cf7bff48222caa2a145f0852fd4d92f93ed",
+      "record": {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "days": 10,
+        "produced": 133.35728781928773,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.15924354030070198,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 2.25,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 2.25,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 80.0
+        },
+        "closing_stock": {
+          "(0, 0)": 168.19804427898703
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 79.84075645969929
+          },
+          "after_production": {
+            "(0, 0)": 213.19804427898703
+          },
+          "after_local_reservation": {
+            "(0, 0)": 168.19804427898703
+          },
+          "after_transport": {
+            "(0, 0)": 168.19804427898703
+          },
+          "before_farm_pay": {
+            "(0, 0)": 168.19804427898703
+          },
+          "after_farm_pay": {
+            "(0, 0)": 168.19804427898703
+          },
+          "before_cap": {
+            "(0, 0)": 168.19804427898703
+          },
+          "after_cap": {
+            "(0, 0)": 168.19804427898703
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "c411a2f980ed3dc4ea28655ce953d1c019027c95541e8131bcbd3ad2dc5c227d",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 13.61303323396676,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "normal_volunteer_child",
+      "group": 2,
+      "effort": 0.75,
+      "record_sha256": "85b561f87e749bc95140113b20a936e1cedcd9c81cca735f8460bac3481a0e0a",
+      "record": {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "days": 10,
+        "produced": 105.84464165233612,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.15924354030070198,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 2.25,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 2.25,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0.25,
+            "labour": 1.75,
+            "made": 105.84464165233612,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 80.0
+        },
+        "closing_stock": {
+          "(0, 0)": 140.68539811203541
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 79.84075645969929
+          },
+          "after_production": {
+            "(0, 0)": 185.68539811203541
+          },
+          "after_local_reservation": {
+            "(0, 0)": 140.68539811203541
+          },
+          "after_transport": {
+            "(0, 0)": 140.68539811203541
+          },
+          "before_farm_pay": {
+            "(0, 0)": 140.68539811203541
+          },
+          "after_farm_pay": {
+            "(0, 0)": 140.68539811203541
+          },
+          "before_cap": {
+            "(0, 0)": 140.68539811203541
+          },
+          "after_cap": {
+            "(0, 0)": 140.68539811203541
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "e7379ea1751709aa38ac1048a3a3f2388ade0c6b2988b988b43955d5dae53d21",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 14.19222566832056,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "normal_volunteer_child",
+      "group": 2,
+      "effort": 0.5,
+      "record_sha256": "8558cc6c57ed6fb2778fc9c04832822f23250ff710d15c14c6efbb5e148bbcdb",
+      "record": {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 10,
+        "produced": 77.16141753739335,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.15924354030070198,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 2.25,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 2.25,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0.25,
+            "labour": 1.25,
+            "made": 77.16141753739335,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 80.0
+        },
+        "closing_stock": {
+          "(0, 0)": 112.00217399709265
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 79.84075645969929
+          },
+          "after_production": {
+            "(0, 0)": 157.00217399709265
+          },
+          "after_local_reservation": {
+            "(0, 0)": 112.00217399709265
+          },
+          "after_transport": {
+            "(0, 0)": 112.00217399709265
+          },
+          "before_farm_pay": {
+            "(0, 0)": 112.00217399709265
+          },
+          "after_farm_pay": {
+            "(0, 0)": 112.00217399709265
+          },
+          "before_cap": {
+            "(0, 0)": 112.00217399709265
+          },
+          "after_cap": {
+            "(0, 0)": 112.00217399709265
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "15d01538bdd26f1efb119982c4c034db28c7ec7e33198135014e908c6c13835e",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 14.796060948265513,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "group": 5,
+      "effort": 1.0,
+      "record_sha256": "33e3ce07525e3331de4175f8d0d0a4d136649c1f422323a6ef957ab001f2a223",
+      "record": {
+        "step": 2,
+        "day": 11280,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 138.16644759844732,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.6702558014995699,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 12.0,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 12.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 224.59171509039265
+        },
+        "closing_stock": {
+          "(0, 0)": 122.08790688734041
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 223.9214592888931
+          },
+          "after_production": {
+            "(0, 0)": 362.0879068873404
+          },
+          "after_local_reservation": {
+            "(0, 0)": 122.08790688734041
+          },
+          "after_transport": {
+            "(0, 0)": 122.08790688734041
+          },
+          "before_farm_pay": {
+            "(0, 0)": 122.08790688734041
+          },
+          "after_farm_pay": {
+            "(0, 0)": 122.08790688734041
+          },
+          "before_cap": {
+            "(0, 0)": 122.08790688734041
+          },
+          "after_cap": {
+            "(0, 0)": 122.08790688734041
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "f64ccf03f732bf3b9772f2f1ef72aac440306fb43020ccb4ca4abc185259a70f",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "group": 5,
+      "effort": 1.0,
+      "record_sha256": "89568530341b14b221b1d368fcd69f9b17561a7910db879fde17ba14eb7a6bcf",
+      "record": {
+        "step": 3,
+        "day": 11310,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 138.1664475984473,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.3643506077294285,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 12.0,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 12.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 3.907985046680551e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 122.08790688734041
+        },
+        "closing_stock": {
+          "(0, 0)": 19.89000387805828
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 121.72355627961097
+          },
+          "after_production": {
+            "(0, 0)": 259.8900038780583
+          },
+          "after_local_reservation": {
+            "(0, 0)": 19.89000387805828
+          },
+          "after_transport": {
+            "(0, 0)": 19.89000387805828
+          },
+          "before_farm_pay": {
+            "(0, 0)": 19.89000387805828
+          },
+          "after_farm_pay": {
+            "(0, 0)": 19.89000387805828
+          },
+          "before_cap": {
+            "(0, 0)": 19.89000387805828
+          },
+          "after_cap": {
+            "(0, 0)": 19.89000387805828
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "a38508711471b663041201a05ea0839a1d3d966dfc21ea0fc048d45196414cc4",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "group": 5,
+      "effort": 0.75,
+      "record_sha256": "45c115b9dd6560521202d73e096c7260a74f44a5a19475f2447d7b4a8aa68c85",
+      "record": {
+        "step": 2,
+        "day": 11280,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "days": 30,
+        "produced": 105.75278767386409,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.5541761307768525,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 12.0,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 12.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 105.75278767386409,
+            "season": 0.5
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 185.69532318089284
+        },
+        "closing_stock": {
+          "(0, 0)": 50.89393472398007
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 185.141147050116
+          },
+          "after_production": {
+            "(0, 0)": 290.89393472398007
+          },
+          "after_local_reservation": {
+            "(0, 0)": 50.89393472398007
+          },
+          "after_transport": {
+            "(0, 0)": 50.89393472398007
+          },
+          "before_farm_pay": {
+            "(0, 0)": 50.89393472398007
+          },
+          "after_farm_pay": {
+            "(0, 0)": 50.89393472398007
+          },
+          "before_cap": {
+            "(0, 0)": 50.89393472398007
+          },
+          "after_cap": {
+            "(0, 0)": 50.89393472398007
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "045b73e501289f18941604ffde7e3242c693b018424bc2ca0528d1b10d053070",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "group": 5,
+      "effort": 0.75,
+      "record_sha256": "b9ac9586510b9ab8d9be5fe0f9ab209691723e2a512efc229231f04bc0d1e986",
+      "record": {
+        "step": 3,
+        "day": 11310,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 138.16644759844732,
+        "eaten": 188.90849802430796,
+        "required": 240.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.15188429811918414,
+        "transport_loss": 0.0,
+        "physical_shortfall": 51.09150197569181,
+        "physical_by_spot": {
+          "(0, 0)": 51.09150197569181
+        },
+        "unpaid": 2.842170943040401e-14,
+        "unmet": 51.09150197569184,
+        "farm_revenue": 18.89084980243082,
+        "farm_pay": 18.89084980243082,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 9.445424901215409,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 9.445424901215409,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.724487302430134e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.9895196601282805e-13,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 50.89393472398007
+        },
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 50.74205042586088
+          },
+          "after_production": {
+            "(0, 0)": 188.9084980243082
+          },
+          "after_local_reservation": {
+            "(0, 0)": 0.0
+          },
+          "after_transport": {
+            "(0, 0)": 0.0
+          },
+          "before_farm_pay": {
+            "(0, 0)": 0.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 0.0
+          },
+          "before_cap": {
+            "(0, 0)": 0.0
+          },
+          "after_cap": {
+            "(0, 0)": 0.0
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "58ac40557209155c1560caef2f3a3f7a9eaf7c51a2ace096e482c37d9d620ef8",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "group": 5,
+      "effort": 0.5,
+      "record_sha256": "205e2328a2b169e90cf7d8fb833248581cd8908a1a03fa2cf59ca68e847eac1e",
+      "record": {
+        "step": 2,
+        "day": 11280,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 30,
+        "produced": 71.96002683360904,
+        "eaten": 216.6708793768862,
+        "required": 240.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.43315762930940993,
+        "transport_loss": 0.0,
+        "physical_shortfall": 23.329120623113624,
+        "physical_by_spot": {
+          "(0, 0)": 23.329120623113624
+        },
+        "unpaid": 0.0,
+        "unmet": 23.329120623113624,
+        "farm_revenue": 21.667087937688642,
+        "farm_pay": 21.667087937688642,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 10.833543968844321,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 10.833543968844321,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.1049828546892968e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.7053025658242404e-13,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 71.96002683360904,
+            "season": 0.5
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 145.14401017258677
+        },
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 144.71085254327735
+          },
+          "after_production": {
+            "(0, 0)": 216.67087937688638
+          },
+          "after_local_reservation": {
+            "(0, 0)": 0.0
+          },
+          "after_transport": {
+            "(0, 0)": 0.0
+          },
+          "before_farm_pay": {
+            "(0, 0)": 0.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 0.0
+          },
+          "before_cap": {
+            "(0, 0)": 0.0
+          },
+          "after_cap": {
+            "(0, 0)": 0.0
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "211da027d35f4d338396c0a887b6998431ab5ab87a7fa781ee71645fb4aa7e48",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "winter_entry",
+      "group": 5,
+      "effort": 0.5,
+      "record_sha256": "ae9223e51aa86dd9954319b2e6b34a6c2233c1f88109b64f41bfc616721fa14b",
+      "record": {
+        "step": 3,
+        "day": 11310,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 30,
+        "produced": 138.1664475984473,
+        "eaten": 138.16644759844712,
+        "required": 240.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 101.83355240155271,
+        "physical_by_spot": {
+          "(0, 0)": 101.83355240155271
+        },
+        "unpaid": 0.0,
+        "unmet": 101.83355240155268,
+        "farm_revenue": 13.816644759844728,
+        "farm_pay": 13.816644759844728,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 6.908322379922366,
+            "weight": 1.0
+          },
+          {
+            "cid": 1,
+            "amount": 6.908322379922366,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 3.810285420513537e-13,
+        "gold_gap": 9.094947017729282e-13,
+        "demand_gap": 3.694822225952521e-13,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 0.0
+        },
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 0.0
+          },
+          "after_production": {
+            "(0, 0)": 138.1664475984473
+          },
+          "after_local_reservation": {
+            "(0, 0)": 0.0
+          },
+          "after_transport": {
+            "(0, 0)": 0.0
+          },
+          "before_farm_pay": {
+            "(0, 0)": 0.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 0.0
+          },
+          "before_cap": {
+            "(0, 0)": 0.0
+          },
+          "after_cap": {
+            "(0, 0)": 0.0
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "34c6d63ceda9962fa922e1e67f70bd9d277d7af6ea32cf634197b26d8e596773",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "delivery_reference",
+      "group": 7,
+      "effort": 0.5,
+      "record_sha256": "079c854124d9751cfe59f8c877f86624f837bd183d1afb98f84b612fbceace7a",
+      "record": {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 10,
+        "produced": 31.832223454872235,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.15924354030070198,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "physical_by_spot": {
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 6.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 7.105427357601002e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 80.0
+        },
+        "closing_stock": {
+          "(0, 0)": 49.0414009672031,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 79.84075645969929
+          },
+          "after_production": {
+            "(0, 0)": 111.67297991457153
+          },
+          "after_local_reservation": {
+            "(0, 0)": 101.67297991457153,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_transport": {
+            "(0, 0)": 49.0414009672031,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "before_farm_pay": {
+            "(0, 0)": 49.0414009672031,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 49.0414009672031,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "before_cap": {
+            "(0, 0)": 49.0414009672031,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_cap": {
+            "(0, 0)": 49.0414009672031,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          }
+        },
+        "asks": {
+          "(0, 0)": {
+            "(0, 1)": {
+              "request": 42.10526315789474,
+              "hops": 1
+            },
+            "(0, 2)": {
+              "request": 10.526315789473685,
+              "hops": 1
+            }
+          }
+        },
+        "allocation": {
+          "(0, 0)": {
+            "available": 101.67297991457153,
+            "wanted": 52.631578947368425,
+            "scale": 1.0
+          }
+        },
+        "edges": [
+          {
+            "source": [
+              0,
+              0
+            ],
+            "dest": [
+              0,
+              1
+            ],
+            "sent": 42.10526315789474,
+            "arrived": 40.0,
+            "loss": 2.10526315789474,
+            "hops": 1
+          },
+          {
+            "source": [
+              0,
+              0
+            ],
+            "dest": [
+              0,
+              2
+            ],
+            "sent": 10.526315789473685,
+            "arrived": 10.0,
+            "loss": 0.526315789473685,
+            "hops": 1
+          }
+        ],
+        "full_state_sha256": "c47965ce07fff6c3c30cfc59df380cf9baeb4479ba3683e1c82c3697f7f79277",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "delivery_source_scarcity",
+      "group": 7,
+      "effort": 0.5,
+      "record_sha256": "baac307f2a2c727c7222a2fbd2f5b4228eb9e76a5bd4ce0c62e936e662b7f922",
+      "record": {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 10,
+        "produced": 31.832223454872235,
+        "eaten": 30.740612282128623,
+        "required": 60.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.0,
+        "transport_loss": 1.0916111727436117,
+        "physical_shortfall": 29.259387717871377,
+        "physical_by_spot": {
+          "(0, 1)": 23.4075101742971,
+          "(0, 2)": 5.851877543574275
+        },
+        "unpaid": 0.0,
+        "unmet": 29.259387717871377,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.0740612282128623,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 3.0740612282128623,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 0.0
+        },
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 0.0
+          },
+          "after_production": {
+            "(0, 0)": 31.832223454872235
+          },
+          "after_local_reservation": {
+            "(0, 0)": 21.832223454872235,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_transport": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "before_farm_pay": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "before_cap": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_cap": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          }
+        },
+        "asks": {
+          "(0, 0)": {
+            "(0, 1)": {
+              "request": 42.10526315789474,
+              "hops": 1
+            },
+            "(0, 2)": {
+              "request": 10.526315789473685,
+              "hops": 1
+            }
+          }
+        },
+        "allocation": {
+          "(0, 0)": {
+            "available": 21.832223454872235,
+            "wanted": 52.631578947368425,
+            "scale": 0.4148122456425724
+          }
+        },
+        "edges": [
+          {
+            "source": [
+              0,
+              0
+            ],
+            "dest": [
+              0,
+              1
+            ],
+            "sent": 17.465778763897788,
+            "arrived": 16.5924898257029,
+            "loss": 0.8732889381948894,
+            "hops": 1
+          },
+          {
+            "source": [
+              0,
+              0
+            ],
+            "dest": [
+              0,
+              2
+            ],
+            "sent": 4.366444690974447,
+            "arrived": 4.148122456425725,
+            "loss": 0.21832223454872235,
+            "hops": 1
+          }
+        ],
+        "full_state_sha256": "b89914fa3b9fcc42cc5cc26bafd33be5a516e45385678f5cedab01caa1608e37",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "delivery_more_competition",
+      "group": 7,
+      "effort": 0.5,
+      "record_sha256": "da3227d65e8855eef7744d07043acc6c19cafc50a6ed49b746f69006927277eb",
+      "record": {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 10,
+        "produced": 31.832223454872235,
+        "eaten": 106.58933091884298,
+        "required": 200.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.15924354030070198,
+        "transport_loss": 5.083648995728588,
+        "physical_shortfall": 93.41066908115707,
+        "physical_by_spot": {
+          "(0, 1)": 19.66540401708569,
+          "(0, 2)": 73.74526506407138
+        },
+        "unpaid": 3.552713678800501e-15,
+        "unmet": 93.41066908115705,
+        "farm_revenue": 10.658933091884291,
+        "farm_pay": 10.658933091884291,
+        "pay_by_cid": [
+          {
+            "cid": 0,
+            "amount": 10.658933091884291,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 3.019806626980426e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 8,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 9,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 10,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 11,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 12,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 13,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 14,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 15,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 16,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 17,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 18,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 19,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 1,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 7,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 8,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 9,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 10,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 11,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 12,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 13,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 14,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 15,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 16,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 17,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 18,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 19,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 2,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 80.0
+        },
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 79.84075645969929
+          },
+          "after_production": {
+            "(0, 0)": 111.67297991457153
+          },
+          "after_local_reservation": {
+            "(0, 0)": 101.67297991457153,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_transport": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "before_farm_pay": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_farm_pay": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "before_cap": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          },
+          "after_cap": {
+            "(0, 0)": 0.0,
+            "(0, 1)": 0.0,
+            "(0, 2)": 0.0
+          }
+        },
+        "asks": {
+          "(0, 0)": {
+            "(0, 1)": {
+              "request": 42.10526315789474,
+              "hops": 1
+            },
+            "(0, 2)": {
+              "request": 157.89473684210526,
+              "hops": 1
+            }
+          }
+        },
+        "allocation": {
+          "(0, 0)": {
+            "available": 101.67297991457153,
+            "wanted": 200.0,
+            "scale": 0.5083648995728577
+          }
+        },
+        "edges": [
+          {
+            "source": [
+              0,
+              0
+            ],
+            "dest": [
+              0,
+              1
+            ],
+            "sent": 21.404837876751905,
+            "arrived": 20.33459598291431,
+            "loss": 1.070241893837597,
+            "hops": 1
+          },
+          {
+            "source": [
+              0,
+              0
+            ],
+            "dest": [
+              0,
+              2
+            ],
+            "sent": 80.26814203781962,
+            "arrived": 76.25473493592862,
+            "loss": 4.013407101890991,
+            "hops": 1
+          }
+        ],
+        "full_state_sha256": "38383fbcfdd0d871235c249bf957e457df9e164854238076cea9725abe8c8dcc",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "producer_death_restore_effort",
+      "group": 8,
+      "effort": 0.5,
+      "record_sha256": "380c0b291d1cdb0b563e789b9fbd3ba579080c9517d4b10d6c40d3fef9838702",
+      "record": {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 10,
+        "produced": 31.832223454872228,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.06426618392229522,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "pay_by_cid": [
+          {
+            "cid": 1,
+            "amount": 6.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": false,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": false,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 32.28573481897749
+        },
+        "closing_stock": {
+          "(0, 0)": 4.053692089927438
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 32.221468635055196
+          },
+          "after_production": {
+            "(0, 0)": 64.05369208992744
+          },
+          "after_local_reservation": {
+            "(0, 0)": 4.053692089927438
+          },
+          "after_transport": {
+            "(0, 0)": 4.053692089927438
+          },
+          "before_farm_pay": {
+            "(0, 0)": 4.053692089927438
+          },
+          "after_farm_pay": {
+            "(0, 0)": 4.053692089927438
+          },
+          "before_cap": {
+            "(0, 0)": 4.053692089927438
+          },
+          "after_cap": {
+            "(0, 0)": 4.053692089927438
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "fec1e8bf6391ae1e1fae53042dd75ad373230c729757718fec47275293b07ba2",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "producer_death_restore_effort",
+      "group": 8,
+      "effort": 0.5,
+      "record_sha256": "599fc549d147f19d786824d17c7aa820bb0ecce5ef32efe938539d25ea677548",
+      "record": {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 10,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.00806905349611245,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "pay_by_cid": [
+          {
+            "cid": 1,
+            "amount": 6.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 3.2862601528904634e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": false,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": false,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 4.053692089927438
+        },
+        "closing_stock": {
+          "(0, 0)": 6.410979625559165
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 4.0456230364313255
+          },
+          "after_production": {
+            "(0, 0)": 66.41097962555916
+          },
+          "after_local_reservation": {
+            "(0, 0)": 6.410979625559165
+          },
+          "after_transport": {
+            "(0, 0)": 6.410979625559165
+          },
+          "before_farm_pay": {
+            "(0, 0)": 6.410979625559165
+          },
+          "after_farm_pay": {
+            "(0, 0)": 6.410979625559165
+          },
+          "before_cap": {
+            "(0, 0)": 6.410979625559165
+          },
+          "after_cap": {
+            "(0, 0)": 6.410979625559165
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "56f51d1415f75de84c47a50d736952b2e3445c74794047353019abc725681cef",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "producer_travel_restore_effort",
+      "group": 8,
+      "effort": 0.5,
+      "record_sha256": "e6aea16a2f4b46a71eafa13eda9b88b2f36ec6fbbb2e6b0fa1f71284ac1fd2cb",
+      "record": {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "days": 10,
+        "produced": 31.832223454872228,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.06426618392229522,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "pay_by_cid": [
+          {
+            "cid": 1,
+            "amount": 6.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": 2,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": 2,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 32.28573481897749
+        },
+        "closing_stock": {
+          "(0, 0)": 4.053692089927438
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 32.221468635055196
+          },
+          "after_production": {
+            "(0, 0)": 64.05369208992744
+          },
+          "after_local_reservation": {
+            "(0, 0)": 4.053692089927438
+          },
+          "after_transport": {
+            "(0, 0)": 4.053692089927438
+          },
+          "before_farm_pay": {
+            "(0, 0)": 4.053692089927438
+          },
+          "after_farm_pay": {
+            "(0, 0)": 4.053692089927438
+          },
+          "before_cap": {
+            "(0, 0)": 4.053692089927438
+          },
+          "after_cap": {
+            "(0, 0)": 4.053692089927438
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "beae6f2220c147f675f081905af778412e434c2ad5bd7b82704f5a8b633f74d7",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    },
+    {
+      "fixture": "producer_travel_restore_effort",
+      "group": 8,
+      "effort": 0.5,
+      "record_sha256": "32d9c763a4a326e6fe894bf68d19d59f1b84f214f0ed3f1f9c061f81785fbeda",
+      "record": {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "days": 10,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "natural_spoil": 0.00806905349611245,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "physical_by_spot": {},
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "pay_by_cid": [
+          {
+            "cid": 1,
+            "amount": 6.0,
+            "weight": 1.0
+          }
+        ],
+        "food_gap": 3.2862601528904634e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "roster": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": 2,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "roster_after": [
+          {
+            "cid": 0,
+            "alive": true,
+            "profession": "ชาวนา",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": 2,
+            "working": false
+          },
+          {
+            "cid": 1,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": true,
+            "place": 0,
+            "travel_dest": -1,
+            "working": true
+          },
+          {
+            "cid": 2,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 3,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 4,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 5,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          },
+          {
+            "cid": 6,
+            "alive": true,
+            "profession": "บัณฑิต",
+            "fieldwork": false,
+            "place": 0,
+            "travel_dest": -1,
+            "working": false
+          }
+        ],
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        },
+        "opening_stock": {
+          "(0, 0)": 4.053692089927438
+        },
+        "closing_stock": {
+          "(0, 0)": 6.410979625559165
+        },
+        "pack_food": 0.0,
+        "stages": {
+          "before_production": {
+            "(0, 0)": 4.0456230364313255
+          },
+          "after_production": {
+            "(0, 0)": 66.41097962555916
+          },
+          "after_local_reservation": {
+            "(0, 0)": 6.410979625559165
+          },
+          "after_transport": {
+            "(0, 0)": 6.410979625559165
+          },
+          "before_farm_pay": {
+            "(0, 0)": 6.410979625559165
+          },
+          "after_farm_pay": {
+            "(0, 0)": 6.410979625559165
+          },
+          "before_cap": {
+            "(0, 0)": 6.410979625559165
+          },
+          "after_cap": {
+            "(0, 0)": 6.410979625559165
+          }
+        },
+        "asks": {},
+        "allocation": {},
+        "edges": [],
+        "full_state_sha256": "cb4837a6e3861b127b0792e9573e0fcbb543d3950fa421c8fd969b500a36082e",
+        "rng_sha256": "419b9baa97bbd739de90b35fc4be4429a7bea1aa7e35e8f0a1400b9b3bfe7d2c",
+        "child_produced": 0,
+        "worked_for_food": 0.0,
+        "ledger_endowed_delta": 0.0,
+        "starved": 0
+      }
+    }
+  ]
+}

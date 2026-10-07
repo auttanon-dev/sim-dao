@@ -1,0 +1,7106 @@
+[
+  {
+    "fixture": "single_low_demand_overflow",
+    "group": 1,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 664.9106479425476,
+      "eaten": 120.0,
+      "overflow": 421.6369181568527,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 15.0,
+      "farm_pay": 15.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 11040,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 91.25
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 11070,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 91.25
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10980,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 187.0960697673835,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 35.84606976738351,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 11010,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 187.0960697673835,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 156.55224222865638,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 11040,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 187.09606976738354,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 156.55224222865635,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 11070,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 103.62243864039704,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 72.68636393215644,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 103.62243864039701,
+            "season": 0.72
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "single_low_demand_overflow",
+    "group": 1,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 574.2653744407138,
+      "eaten": 120.0,
+      "overflow": 331.04812266157495,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 15.0,
+      "farm_pay": 15.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -90.6452735018338,
+      "eaten": 0.0,
+      "overflow": -90.58879549527774,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 11040,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 91.25
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 11070,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 91.25
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10980,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 141.7734330164666,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 81.77343301646661
+        },
+        "pack_food": 30.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 141.7734330164666,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 11010,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 141.7734330164666,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 101.8095165007621,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 141.7734330164666,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 11040,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 187.09606976738354,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 156.5522422286564,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 11070,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 103.62243864039704,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 72.68636393215644,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.0,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 103.62243864039701,
+            "season": 0.72
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "single_low_demand_overflow",
+    "group": 1,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 481.7118491370139,
+      "eaten": 120.0,
+      "overflow": 238.6243616591023,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 15.0,
+      "farm_pay": 15.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -183.19879880553367,
+      "eaten": 0.0,
+      "overflow": -183.01255649775038,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 11040,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 91.25
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 11070,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 91.25
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10980,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 95.49667036461669,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.549667036461669,
+        "farm_pay": 3.549667036461669,
+        "closing_stock": {
+          "(0, 0)": 60.0
+        },
+        "pack_food": 5.49667036461669,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 95.49667036461669,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 11010,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 95.49667036461669,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 9.385755498289498,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 5.450332963538331,
+        "farm_pay": 5.450332963538331,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.000000000000004,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 95.49667036461669,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 11040,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 187.0960697673835,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 156.55224222865638,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.000000000000004,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 187.0960697673835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 11070,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 103.62243864039704,
+        "eaten": 30.0,
+        "required": 30.0,
+        "overflow": 72.68636393215644,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 3.0,
+        "farm_pay": 3.0,
+        "closing_stock": {
+          "(0, 0)": 91.25
+        },
+        "pack_food": 30.000000000000004,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 103.62243864039701,
+            "season": 0.72
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "normal_volunteer_child",
+    "group": 2,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 533.4291512771509,
+      "eaten": 180.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 31.5,
+      "farm_pay": 31.5,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 270.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 270.0
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 296.8876368411867
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 296.8876368411867
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928773,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 168.19804427898703
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928773,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 256.22052644774175
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 133.3572878192877,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 11.906779597041385,
+        "farm_pay": 11.906779597041385,
+        "closing_stock": {
+          "(0, 0)": 270.0
+        },
+        "pack_food": 74.06779597041384,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928776,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 10.593220402958615,
+        "farm_pay": 10.593220402958615,
+        "closing_stock": {
+          "(0, 0)": 296.8876368411867
+        },
+        "pack_food": 135.0,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "normal_volunteer_child",
+    "group": 2,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 478.40385894324777,
+      "eaten": 180.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 28.702653091404944,
+      "farm_pay": 28.702653091404944,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -55.02529233390317,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": -2.797346908595056,
+      "farm_pay": -2.797346908595056
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 270.00000000000006
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 270.0
+        },
+        "stock_difference": {
+          "(0, 0)": 5.684341886080802e-14
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 270.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 296.8876368411867
+        },
+        "stock_difference": {
+          "(0, 0)": -26.88763684118669
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 105.84464165233612,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 140.68539811203541
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0.25,
+            "labour": 1.75,
+            "made": 105.84464165233612,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 105.84464165233612,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 201.24999925357187
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0.25,
+            "labour": 1.75,
+            "made": 105.84464165233612,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928776,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.420669004327644,
+        "farm_pay": 6.420669004327648,
+        "closing_stock": {
+          "(0, 0)": 270.00000000000006
+        },
+        "pack_food": 19.206690043276467,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928776,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 13.2819840870773,
+        "farm_pay": 13.281984087077296,
+        "closing_stock": {
+          "(0, 0)": 270.0
+        },
+        "pack_food": 107.02653091404945,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "normal_volunteer_child",
+    "group": 2,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 421.0374107133622,
+      "eaten": 180.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 22.990687267629365,
+      "farm_pay": 22.99068726762937,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -112.39174056378874,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": -8.509312732370635,
+      "farm_pay": -8.509312732370631
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 232.01141384363882
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 270.0
+        },
+        "stock_difference": {
+          "(0, 0)": -37.98858615636118
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 270.00000000000006
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 296.8876368411867
+        },
+        "stock_difference": {
+          "(0, 0)": -26.887636841186634
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 77.16141753739335,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 112.00217399709265
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0.25,
+            "labour": 1.25,
+            "made": 77.16141753739335,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 77.16141753739335,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 143.9406462506276
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0.25,
+            "labour": 1.25,
+            "made": 77.16141753739335,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928773,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 4.5,
+        "farm_pay": 4.5,
+        "closing_stock": {
+          "(0, 0)": 232.01141384363882
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 133.35728781928776,
+        "eaten": 45.0,
+        "required": 45.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 9.490687267629365,
+        "farm_pay": 9.490687267629369,
+        "closing_stock": {
+          "(0, 0)": 270.00000000000006
+        },
+        "pack_food": 49.90687267629369,
+        "food_gap": 5.684341886080802e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0.25,
+            "labour": 2.25,
+            "made": 133.35728781928773,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "no_normal_producer_affordability",
+    "group": 3,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 359.23276375596294,
+      "eaten": 210.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 30.0,
+      "unmet": 30.0,
+      "farm_revenue": 21.0,
+      "farm_pay": 21.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 10.0,
+        "closing_stock": {
+          "(0, 0)": 148.9359064355858
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 10.0,
+        "baseline_stock": {
+          "(0, 0)": 148.9359064355858
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532097,
+        "eaten": 70.0,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 49.744254585320974
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532097,
+        "eaten": 70.0,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 99.38949103051962
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532099,
+        "eaten": 70.0,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 148.9359064355858
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "no_normal_producer_affordability",
+    "group": 3,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 303.0490865533521,
+      "eaten": 210.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 30.0,
+      "unmet": 30.0,
+      "farm_revenue": 21.0,
+      "farm_pay": 21.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -56.18367720261085,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 10.0,
+        "closing_stock": {
+          "(0, 0)": 92.91987206934206
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 10.0,
+        "baseline_stock": {
+          "(0, 0)": 148.9359064355858
+        },
+        "stock_difference": {
+          "(0, 0)": -56.01603436624373
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 91.65241598401556,
+        "eaten": 70.0,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 21.652415984015562
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 91.65241598401556,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 91.65241598401556,
+        "eaten": 70.0,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 43.26173187581415
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 91.65241598401556,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532096,
+        "eaten": 70.0,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 92.91987206934206
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "no_normal_producer_affordability",
+    "group": 3,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 244.47496776357664,
+      "eaten": 185.94700698579481,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 27.48913487337736,
+      "unpaid": 26.563858140827833,
+      "unmet": 54.052993014205185,
+      "farm_revenue": 18.594700698579484,
+      "farm_pay": 18.594700698579484,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -114.75779599238629,
+      "eaten": -24.052993014205185,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 27.48913487337736,
+      "unpaid": -3.4361418591721673,
+      "unmet": 24.052993014205185,
+      "farm_revenue": -2.4052993014205164,
+      "farm_pay": -2.4052993014205164
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 10.0,
+        "closing_stock": {
+          "(0, 0)": 58.49498968513953
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 10.0,
+        "baseline_stock": {
+          "(0, 0)": 148.9359064355858
+        },
+        "stock_difference": {
+          "(0, 0)": -90.44091675044626
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 62.365356589127835,
+        "eaten": 54.569687015486856,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 17.634643410872165,
+        "unpaid": 7.79566957364098,
+        "unmet": 25.430312984513137,
+        "farm_revenue": 5.4569687015486865,
+        "farm_pay": 5.4569687015486865,
+        "closing_stock": {
+          "(0, 0)": 7.7956695736409785
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 7.105427357601002e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 62.365356589127835,
+        "eaten": 61.37731997030797,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 9.854491462505194,
+        "unpaid": 8.76818856718685,
+        "unmet": 18.62268002969205,
+        "farm_revenue": 6.137731997030797,
+        "farm_pay": 6.137731997030797,
+        "closing_stock": {
+          "(0, 0)": 8.76818856718684
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.2434497875801753e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 1.4210854715202004e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532097,
+        "eaten": 69.99999999999999,
+        "required": 80.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 10.0,
+        "unmet": 10.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 58.49498968513953
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "shared_source_competing_destinations",
+    "group": 4,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 249.46142635651134,
+      "eaten": 276.91271435704283,
+      "overflow": 0.0,
+      "transport_loss": 12.469090229318063,
+      "physical_shortfall": 243.08728564295706,
+      "unpaid": 0.0,
+      "unmet": 243.08728564295723,
+      "farm_revenue": 27.691271435704298,
+      "farm_pay": 27.691271435704294,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0.0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 70.25291124032856,
+        "unmet": 70.25291124032861,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 70.25291124032856,
+        "baseline_unmet": 70.25291124032861,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 70.25291124032856,
+        "unmet": 70.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 70.25291124032856,
+        "baseline_unmet": 70.25291124032867,
+        "baseline_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 97.67144807802863,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 4.614286740948874,
+        "physical_shortfall": 32.32855192197138,
+        "unpaid": 0.0,
+        "unmet": 32.328551921971396,
+        "farm_revenue": 9.767144807802861,
+        "farm_pay": 9.767144807802861,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.930988785010413e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 59.7470887596714,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563964,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032854,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 4.440892098500626e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967133,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563964,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032861,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.3322676295501878e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 8.526512829121202e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967147,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563964,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032867,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 5.861977570020827e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 5.684341886080802e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "shared_source_competing_destinations",
+    "group": 4,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 219.2463351892334,
+      "eaten": 248.2083777481286,
+      "overflow": 0.0,
+      "transport_loss": 10.958335670954174,
+      "physical_shortfall": 271.7916222518711,
+      "unpaid": 5.329070518200751e-15,
+      "unmet": 271.7916222518713,
+      "farm_revenue": 24.82083777481289,
+      "farm_pay": 24.82083777481289,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -30.215091167277933,
+      "eaten": -28.70433660891422,
+      "overflow": 0.0,
+      "transport_loss": -1.5107545583638888,
+      "physical_shortfall": 28.704336608914048,
+      "unpaid": 5.329070518200751e-15,
+      "unmet": 28.704336608914048,
+      "farm_revenue": -2.8704336608914076,
+      "farm_pay": -2.870433660891404
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 70.25291124032856,
+        "unmet": 70.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 70.25291124032856,
+        "baseline_unmet": 70.25291124032861,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 7.105427357601002e-15
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 70.25291124032856,
+        "unmet": 70.25291124032859,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 70.25291124032856,
+        "baseline_unmet": 70.25291124032867,
+        "baseline_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -7.105427357601002e-15
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 83.31927977357157,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 3.8589094617669346,
+        "physical_shortfall": 46.68072022642841,
+        "unpaid": 0.0,
+        "unmet": 46.68072022642843,
+        "farm_revenue": 8.331927977357159,
+        "farm_pay": 8.331927977357159,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 9.769962616701378e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 7.105427357601002e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 45.39492045521439,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 1.8628905502744466,
+        "physical_shortfall": 84.60507954478558,
+        "unpaid": 5.329070518200751e-15,
+        "unmet": 84.60507954478558,
+        "farm_revenue": 4.539492045521442,
+        "farm_pay": 4.539492045521442,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.4638958368304884e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967133,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563964,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032867,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.5987211554602254e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967133,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563964,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032859,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.398081733190338e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.1368683772161603e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "shared_source_competing_destinations",
+    "group": 4,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 188.39516008800013,
+      "eaten": 218.89976140195708,
+      "overflow": 0.0,
+      "transport_loss": 9.415776915892497,
+      "physical_shortfall": 301.10023859804267,
+      "unpaid": 0.0,
+      "unmet": 301.1002385980426,
+      "farm_revenue": 21.88997614019573,
+      "farm_pay": 21.889976140195735,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -61.066266268511214,
+      "eaten": -58.01295295508575,
+      "overflow": 0.0,
+      "transport_loss": -3.0533133134255657,
+      "physical_shortfall": 58.01295295508561,
+      "unpaid": 0.0,
+      "unmet": 58.01295295508538,
+      "farm_revenue": -5.801295295508567,
+      "farm_pay": -5.8012952955085595
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 70.25291124032856,
+        "unmet": 70.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 70.25291124032856,
+        "baseline_unmet": 70.25291124032861,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 7.105427357601002e-15
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 70.25291124032856,
+        "unmet": 70.25291124032844,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 70.25291124032856,
+        "baseline_unmet": 70.25291124032867,
+        "baseline_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -7.105427357601002e-15
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 68.6649716004858,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 3.0876300842360926,
+        "physical_shortfall": 61.335028399514215,
+        "unpaid": 0.0,
+        "unmet": 61.33502839951421,
+        "farm_revenue": 6.86649716004858,
+        "farm_pay": 6.86649716004858,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.509903313490213e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 7.105427357601002e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 30.740612282128552,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 1.0916111727436126,
+        "physical_shortfall": 99.25938771787136,
+        "unpaid": 0.0,
+        "unmet": 99.25938771787128,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.074061228212864,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 6.217248937900877e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 1.7053025658242404e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.7470887596714,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563964,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032867,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 8.704148513061227e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 8.526512829121202e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967133,
+        "required": 130.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563955,
+        "physical_shortfall": 70.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 70.25291124032844,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967147,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.971756091734278e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 2.8421709430404007e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "winter_entry",
+    "group": 5,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 764.5210100447417,
+      "eaten": 960.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 96.0,
+      "farm_pay": 96.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 11310,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 19.89000387805828
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 19.89000387805828
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 11340,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 102.16969333318542
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 102.16969333318542
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 11250,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 165.79973711813673,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 224.59171509039265
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 165.79973711813673,
+            "season": 0.6
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 11280,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 138.16644759844732,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 122.08790688734041
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 11310,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 138.1664475984473,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 19.89000387805828
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.907985046680551e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 11340,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 322.3883777297104,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 102.16969333318542
+        },
+        "pack_food": 0.0,
+        "food_gap": 9.947598300641403e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 322.3883777297104,
+            "season": 1.1666666666666667
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "winter_entry",
+    "group": 5,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 693.2109582106586,
+      "eaten": 908.908498024308,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 51.09150197569181,
+      "unpaid": 2.842170943040401e-14,
+      "unmet": 51.09150197569184,
+      "farm_revenue": 90.89084980243082,
+      "farm_pay": 90.89084980243082,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -71.31005183408308,
+      "eaten": -51.09150197569204,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 51.09150197569181,
+      "unpaid": 2.842170943040401e-14,
+      "unmet": 51.09150197569184,
+      "farm_revenue": -5.109150197569178,
+      "farm_pay": -5.109150197569178
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 11310,
+        "applied_effort": 1.0,
+        "physical_shortfall": 51.09150197569181,
+        "unmet": 51.09150197569184,
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 19.89000387805828
+        },
+        "stock_difference": {
+          "(0, 0)": -19.89000387805828
+        }
+      },
+      {
+        "step": 4,
+        "day": 11340,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 82.38837772971038
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 102.16969333318542
+        },
+        "stock_difference": {
+          "(0, 0)": -19.781315603475036
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 11250,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 126.9033452086369,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 185.69532318089284
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 126.9033452086369,
+            "season": 0.6
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 11280,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 105.75278767386409,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 50.89393472398007
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 105.75278767386409,
+            "season": 0.5
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 11310,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 138.16644759844732,
+        "eaten": 188.90849802430796,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 51.09150197569181,
+        "unpaid": 2.842170943040401e-14,
+        "unmet": 51.09150197569184,
+        "farm_revenue": 18.89084980243082,
+        "farm_pay": 18.89084980243082,
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.724487302430134e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.9895196601282805e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 11340,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 322.3883777297103,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 82.38837772971038
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1316282072803006e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.9895196601282805e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 322.3883777297104,
+            "season": 1.1666666666666667
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "winter_entry",
+    "group": 5,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 618.8668843620976,
+      "eaten": 834.8373269753333,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 125.16267302466633,
+      "unpaid": 0.0,
+      "unmet": 125.1626730246663,
+      "farm_revenue": 83.48373269753337,
+      "farm_pay": 83.48373269753337,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -145.65412568264412,
+      "eaten": -125.16267302466667,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 125.16267302466633,
+      "unpaid": 0.0,
+      "unmet": 125.1626730246663,
+      "farm_revenue": -12.51626730246663,
+      "farm_pay": -12.51626730246663
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 11310,
+        "applied_effort": 1.0,
+        "physical_shortfall": 101.83355240155271,
+        "unmet": 101.83355240155268,
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 19.89000387805828
+        },
+        "stock_difference": {
+          "(0, 0)": -19.89000387805828
+        }
+      },
+      {
+        "step": 4,
+        "day": 11340,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 82.38837772971038
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 102.16969333318542
+        },
+        "stock_difference": {
+          "(0, 0)": -19.781315603475036
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 11250,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 86.35203220033084,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 145.14401017258677
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 86.35203220033084,
+            "season": 0.6
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 11280,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 71.96002683360904,
+        "eaten": 216.6708793768862,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 23.329120623113624,
+        "unpaid": 0.0,
+        "unmet": 23.329120623113624,
+        "farm_revenue": 21.667087937688642,
+        "farm_pay": 21.667087937688642,
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1049828546892968e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.7053025658242404e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 71.96002683360904,
+            "season": 0.5
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 11310,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 138.1664475984473,
+        "eaten": 138.16644759844712,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 101.83355240155271,
+        "unpaid": 0.0,
+        "unmet": 101.83355240155268,
+        "farm_revenue": 13.816644759844728,
+        "farm_pay": 13.816644759844728,
+        "closing_stock": {
+          "(0, 0)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.810285420513537e-13,
+        "gold_gap": 9.094947017729282e-13,
+        "demand_gap": 3.694822225952521e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 138.1664475984473,
+            "season": 0.5
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 11340,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 322.38837772971044,
+        "eaten": 240.0,
+        "required": 240.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 24.0,
+        "farm_pay": 24.0,
+        "closing_stock": {
+          "(0, 0)": 82.38837772971038
+        },
+        "pack_food": 0.0,
+        "food_gap": 4.405364961712621e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 3.694822225952521e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 322.3883777297104,
+            "season": 1.1666666666666667
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "empty_stock_import_dependence",
+    "group": 6,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 249.46142635651134,
+      "eaten": 238.98835503868577,
+      "overflow": 0.0,
+      "transport_loss": 10.473071317825578,
+      "physical_shortfall": 121.01164496131423,
+      "unpaid": 0.0,
+      "unmet": 121.01164496131423,
+      "farm_revenue": 23.898835503868575,
+      "farm_pay": 23.898835503868582,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0.0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 30.252911240328558,
+        "unmet": 30.252911240328558,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 30.252911240328558,
+        "baseline_unmet": 30.252911240328558,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 30.252911240328558,
+        "unmet": 30.252911240328558,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 30.252911240328558,
+        "baseline_unmet": 30.252911240328558,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 59.74708875967144,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328558,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.7763568394002505e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 59.74708875967144,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328558,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.552713678800501e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967144,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328558,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.7763568394002505e-15,
+        "gold_gap": 1.8189894035458565e-12,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967144,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328558,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.105427357601002e-15,
+        "gold_gap": 1.8189894035458565e-12,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "empty_stock_import_dependence",
+    "group": 6,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 219.2463351892334,
+      "eaten": 210.28401842977178,
+      "overflow": 0.0,
+      "transport_loss": 8.962316759461675,
+      "physical_shortfall": 149.71598157022828,
+      "unpaid": 0.0,
+      "unmet": 149.71598157022822,
+      "farm_revenue": 21.02840184297717,
+      "farm_pay": 21.028401842977175,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -30.215091167277933,
+      "eaten": -28.70433660891399,
+      "overflow": 0.0,
+      "transport_loss": -1.510754558363903,
+      "physical_shortfall": 28.704336608914048,
+      "unpaid": 0.0,
+      "unmet": 28.70433660891399,
+      "farm_revenue": -2.870433660891404,
+      "farm_pay": -2.8704336608914076
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 30.252911240328558,
+        "unmet": 30.252911240328558,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 30.252911240328558,
+        "baseline_unmet": 30.252911240328558,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 30.252911240328558,
+        "unmet": 30.252911240328544,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 30.252911240328558,
+        "baseline_unmet": 30.252911240328558,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 45.39492045521443,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 1.862890550274443,
+        "physical_shortfall": 44.605079544785575,
+        "unpaid": 0.0,
+        "unmet": 44.60507954478557,
+        "farm_revenue": 4.539492045521442,
+        "farm_pay": 4.539492045521443,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.105427357601002e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 45.39492045521445,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 1.862890550274443,
+        "physical_shortfall": 44.605079544785575,
+        "unpaid": 0.0,
+        "unmet": 44.60507954478555,
+        "farm_revenue": 4.539492045521442,
+        "farm_pay": 4.539492045521443,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.747088759671456,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328558,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.730349362740526e-14,
+        "gold_gap": 1.8189894035458565e-12,
+        "demand_gap": 1.4210854715202004e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967144,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328544,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 4.618527782440651e-14,
+        "gold_gap": 1.8189894035458565e-12,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "empty_stock_import_dependence",
+    "group": 6,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 188.39516008800013,
+      "eaten": 180.9754020836001,
+      "overflow": 0.0,
+      "transport_loss": 7.419758004400013,
+      "physical_shortfall": 179.02459791639987,
+      "unpaid": 0.0,
+      "unmet": 179.0245979163999,
+      "farm_revenue": 18.097540208360012,
+      "farm_pay": 18.097540208360016,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -61.066266268511214,
+      "eaten": -58.012952955085666,
+      "overflow": 0.0,
+      "transport_loss": -3.0533133134255657,
+      "physical_shortfall": 58.01295295508564,
+      "unpaid": 0.0,
+      "unmet": 58.012952955085666,
+      "farm_revenue": -5.801295295508563,
+      "farm_pay": -5.801295295508567
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 30.252911240328558,
+        "unmet": 30.252911240328572,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 30.252911240328558,
+        "baseline_unmet": 30.252911240328558,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 30.252911240328558,
+        "unmet": 30.252911240328558,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 30.252911240328558,
+        "baseline_unmet": 30.252911240328558,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 30.740612282128616,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 1.0916111727436117,
+        "physical_shortfall": 59.25938771787138,
+        "unpaid": 0.0,
+        "unmet": 59.259387717871384,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.0740612282128623,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.105427357601002e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 30.74061228212861,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 1.0916111727436117,
+        "physical_shortfall": 59.25938771787138,
+        "unpaid": 0.0,
+        "unmet": 59.259387717871384,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.0740612282128623,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 1.4210854715202004e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.747088759671435,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328572,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.9539925233402755e-14,
+        "gold_gap": 1.8189894035458565e-12,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967144,
+        "required": 90.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563946,
+        "physical_shortfall": 30.252911240328558,
+        "unpaid": 0.0,
+        "unmet": 30.252911240328558,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.0658141036401503e-14,
+        "gold_gap": 1.8189894035458565e-12,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_reference",
+    "group": 7,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 249.46142635651134,
+      "eaten": 240.0,
+      "overflow": 0.0,
+      "transport_loss": 10.5263157894737,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 25.95745341014587,
+      "farm_pay": 25.95745341014587,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 59.22945763643875,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 59.22945763643875,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 58.84533642164671,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 58.84533642164671,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.957453410145869,
+        "farm_pay": 7.957453410145869,
+        "closing_stock": {
+          "(0, 0)": 60.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 19.574534101458696,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.000000000000001,
+        "farm_pay": 6.000000000000001,
+        "closing_stock": {
+          "(0, 0)": 59.61434498653388,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 19.574534101458696,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 59.22945763643875,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 19.574534101458696,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 58.84533642164671,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 19.574534101458696,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_reference",
+    "group": 7,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 219.2463351892334,
+      "eaten": 240.0,
+      "overflow": 0.0,
+      "transport_loss": 10.5263157894737,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 24.446698851781974,
+      "farm_pay": 24.446698851781974,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -30.215091167277933,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": -1.510754558363896,
+      "farm_pay": -1.510754558363896
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 44.1519842908497,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 59.22945763643875,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -15.077473345589055
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 43.79787545398692,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 58.84533642164671,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -15.047460967659788
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.4466988517819726,
+        "farm_pay": 6.4466988517819726,
+        "closing_stock": {
+          "(0, 0)": 60.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 4.466988517819729,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 44.50679940289491,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 4.466988517819729,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.000000000000002,
+        "farm_pay": 6.000000000000002,
+        "closing_stock": {
+          "(0, 0)": 44.1519842908497,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 4.466988517819729,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 43.79787545398692,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 4.466988517819729,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_reference",
+    "group": 7,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 188.39516008800013,
+      "eaten": 240.0,
+      "overflow": 0.0,
+      "transport_loss": 10.5263157894737,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 24.0,
+      "farm_pay": 24.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -61.066266268511214,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": -1.9574534101458703,
+      "farm_pay": -1.9574534101458703
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 17.842086753874824,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 59.22945763643875,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -41.38737088256393
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 17.540348932371245,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 58.84533642164671,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -41.30498748927546
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 49.0414009672031,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.105427357601002e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 18.14442639581536,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 17.842086753874824,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.0658141036401503e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.631578947368425,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 17.540348932371245,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.552713678800501e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_source_scarcity",
+    "group": 7,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 249.46142635651134,
+      "eaten": 238.98835503868565,
+      "overflow": 0.0,
+      "transport_loss": 10.473071317825564,
+      "physical_shortfall": 1.0116449613142215,
+      "unpaid": 0.0,
+      "unmet": 1.0116449613142215,
+      "farm_revenue": 23.89883550386858,
+      "farm_pay": 23.89883550386858,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0.0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0.2529112403285616,
+        "unmet": 0.2529112403285616,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0.2529112403285616,
+        "baseline_unmet": 0.2529112403285616,
+        "baseline_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0.25291124032854917,
+        "unmet": 0.25291124032854917,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0.25291124032854917,
+        "baseline_unmet": 0.25291124032854917,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 59.74708875967144,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.2529112403285616,
+        "unpaid": 0.0,
+        "unmet": 0.2529112403285616,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.552713678800501e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 3.552713678800501e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 59.747088759671456,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.25291124032854917,
+        "unpaid": 0.0,
+        "unmet": 0.25291124032854917,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.0658141036401503e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 8.881784197001252e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967137,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.2529112403285616,
+        "unpaid": 0.0,
+        "unmet": 0.2529112403285616,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 6.394884621840902e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 5.861977570020827e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.747088759671385,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.25291124032854917,
+        "unpaid": 0.0,
+        "unmet": 0.25291124032854917,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.2079226507921703e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 1.2434497875801753e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_source_scarcity",
+    "group": 7,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 219.2463351892334,
+      "eaten": 210.28401842977166,
+      "overflow": 0.0,
+      "transport_loss": 8.962316759461668,
+      "physical_shortfall": 29.71598157022826,
+      "unpaid": 0.0,
+      "unmet": 29.715981570228266,
+      "farm_revenue": 21.028401842977175,
+      "farm_pay": 21.028401842977175,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -30.215091167277933,
+      "eaten": -28.70433660891399,
+      "overflow": 0.0,
+      "transport_loss": -1.510754558363896,
+      "physical_shortfall": 28.704336608914037,
+      "unpaid": 0.0,
+      "unmet": 28.704336608914044,
+      "farm_revenue": -2.870433660891404,
+      "farm_pay": -2.870433660891404
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0.2529112403285616,
+        "unmet": 0.2529112403285616,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0.2529112403285616,
+        "baseline_unmet": 0.2529112403285616,
+        "baseline_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0.25291124032854917,
+        "unmet": 0.2529112403285474,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0.25291124032854917,
+        "baseline_unmet": 0.25291124032854917,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 45.39492045521442,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 1.862890550274443,
+        "physical_shortfall": 14.605079544785575,
+        "unpaid": 0.0,
+        "unmet": 14.605079544785575,
+        "farm_revenue": 4.539492045521443,
+        "farm_pay": 4.539492045521443,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.105427357601002e-15,
+        "gold_gap": 0.0,
+        "demand_gap": 7.105427357601002e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 45.39492045521442,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 1.862890550274443,
+        "physical_shortfall": 14.605079544785575,
+        "unpaid": 0.0,
+        "unmet": 14.605079544785582,
+        "farm_revenue": 4.539492045521443,
+        "farm_pay": 4.539492045521443,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 7.105427357601002e-15,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967141,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.2529112403285616,
+        "unpaid": 0.0,
+        "unmet": 0.2529112403285616,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 4.618527782440651e-14,
+        "gold_gap": 9.094947017729282e-13,
+        "demand_gap": 3.197442310920451e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967141,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.25291124032854917,
+        "unpaid": 0.0,
+        "unmet": 0.2529112403285474,
+        "farm_revenue": 5.974708875967146,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.460698725481052e-14,
+        "gold_gap": 9.094947017729282e-13,
+        "demand_gap": 7.105427357601002e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_source_scarcity",
+    "group": 7,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 188.39516008800013,
+      "eaten": 180.9754020836001,
+      "overflow": 0.0,
+      "transport_loss": 7.4197580044000055,
+      "physical_shortfall": 59.02459791639986,
+      "unpaid": 0.0,
+      "unmet": 59.02459791639985,
+      "farm_revenue": 18.097540208360012,
+      "farm_pay": 18.097540208360016,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -61.066266268511214,
+      "eaten": -58.01295295508555,
+      "overflow": 0.0,
+      "transport_loss": -3.0533133134255586,
+      "physical_shortfall": 58.01295295508564,
+      "unpaid": 0.0,
+      "unmet": 58.01295295508562,
+      "farm_revenue": -5.801295295508567,
+      "farm_pay": -5.801295295508563
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0.2529112403285616,
+        "unmet": 0.25291124032854384,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0.2529112403285616,
+        "baseline_unmet": 0.2529112403285616,
+        "baseline_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0.25291124032854917,
+        "unmet": 0.25291124032855095,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 0.25291124032854917,
+        "baseline_unmet": 0.25291124032854917,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 30.740612282128623,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 1.0916111727436117,
+        "physical_shortfall": 29.259387717871377,
+        "unpaid": 0.0,
+        "unmet": 29.259387717871377,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.0740612282128623,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 30.740612282128623,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 1.0916111727436117,
+        "physical_shortfall": 29.259387717871377,
+        "unpaid": 0.0,
+        "unmet": 29.259387717871377,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.0740612282128623,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 0.0,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.747088759671456,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.2529112403285616,
+        "unpaid": 0.0,
+        "unmet": 0.25291124032854384,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 5.329070518200751e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.4868995751603507e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.7470887596714,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456391,
+        "physical_shortfall": 0.25291124032854917,
+        "unpaid": 0.0,
+        "unmet": 0.25291124032855095,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967147,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.7763568394002505e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 4.973799150320701e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_more_competition",
+    "group": 7,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 249.46142635651134,
+      "eaten": 314.8370736753997,
+      "overflow": 0.0,
+      "transport_loss": 14.465109140810544,
+      "physical_shortfall": 485.1629263245999,
+      "unpaid": 0.0,
+      "unmet": 485.1629263246002,
+      "farm_revenue": 31.483707367540003,
+      "farm_pay": 31.483707367540006,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0.0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 140.25291124032856,
+        "unmet": 140.25291124032864,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 140.25291124032856,
+        "baseline_unmet": 140.25291124032864,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 140.25291124032856,
+        "unmet": 140.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 140.25291124032856,
+        "baseline_unmet": 140.25291124032867,
+        "baseline_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 135.59580739638574,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 6.610305652441365,
+        "physical_shortfall": 64.40419260361423,
+        "unpaid": 0.0,
+        "unmet": 64.40419260361425,
+        "farm_revenue": 13.559580739638575,
+        "farm_pay": 13.559580739638575,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.3092638912203256e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 1.4210854715202004e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127835,
+        "eaten": 59.74708875967133,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456393,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032867,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.2256862191861728e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967133,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456393,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032864,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967142,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.362554596402333e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 5.684341886080802e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967133,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456393,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032867,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.3573144264664734e-13,
+        "gold_gap": 3.637978807091713e-12,
+        "demand_gap": 5.684341886080802e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_more_competition",
+    "group": 7,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 219.2463351892334,
+      "eaten": 286.13273706648584,
+      "overflow": 0.0,
+      "transport_loss": 12.95435458244664,
+      "physical_shortfall": 513.867262933514,
+      "unpaid": 3.552713678800501e-15,
+      "unmet": 513.8672629335142,
+      "farm_revenue": 28.6132737066486,
+      "farm_pay": 28.613273706648606,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -30.215091167277933,
+      "eaten": -28.704336608913877,
+      "overflow": 0.0,
+      "transport_loss": -1.510754558363903,
+      "physical_shortfall": 28.704336608914105,
+      "unpaid": 3.552713678800501e-15,
+      "unmet": 28.70433660891399,
+      "farm_revenue": -2.870433660891404,
+      "farm_pay": -2.8704336608914005
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 140.25291124032856,
+        "unmet": 140.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 140.25291124032856,
+        "baseline_unmet": 140.25291124032864,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 7.105427357601002e-15
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 140.25291124032856,
+        "unmet": 140.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 140.25291124032856,
+        "baseline_unmet": 140.25291124032867,
+        "baseline_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -7.105427357601002e-15
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 121.24363909192877,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 5.854928373259408,
+        "physical_shortfall": 78.75636090807126,
+        "unpaid": 3.552713678800501e-15,
+        "unmet": 78.75636090807127,
+        "farm_revenue": 12.124363909192873,
+        "farm_pay": 12.124363909192873,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.9539925233402755e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 4.263256414560601e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548887,
+        "eaten": 45.39492045521442,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 1.8628905502744457,
+        "physical_shortfall": 154.60507954478558,
+        "unpaid": 0.0,
+        "unmet": 154.6050795447856,
+        "farm_revenue": 4.539492045521442,
+        "farm_pay": 4.539492045521442,
+        "closing_stock": {
+          "(0, 0)": 3.552713678800501e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.5757174171303632e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 5.684341886080802e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 59.74708875967133,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.6182678294563937,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032867,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.0480505352461478e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 5.684341886080802e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967133,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456393,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032867,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967146,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.900701818158268e-13,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "delivery_more_competition",
+    "group": 7,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 188.39516008800013,
+      "eaten": 256.82412072031417,
+      "overflow": 0.0,
+      "transport_loss": 11.411795827384987,
+      "physical_shortfall": 543.1758792796855,
+      "unpaid": 3.552713678800501e-15,
+      "unmet": 543.1758792796855,
+      "farm_revenue": 25.68241207203144,
+      "farm_pay": 25.68241207203144,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -61.066266268511214,
+      "eaten": -58.01295295508555,
+      "overflow": 0.0,
+      "transport_loss": -3.053313313425557,
+      "physical_shortfall": 58.012952955085666,
+      "unpaid": 3.552713678800501e-15,
+      "unmet": 58.012952955085325,
+      "farm_revenue": -5.801295295508563,
+      "farm_pay": -5.801295295508567
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 140.25291124032856,
+        "unmet": 140.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 140.25291124032856,
+        "baseline_unmet": 140.25291124032864,
+        "baseline_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": 7.105427357601002e-15
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 140.25291124032856,
+        "unmet": 140.25291124032867,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "baseline_shortfall": 140.25291124032856,
+        "baseline_unmet": 140.25291124032867,
+        "baseline_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "stock_difference": {
+          "(0, 2)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 0)": -7.105427357601002e-15
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 106.58933091884298,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 5.083648995728588,
+        "physical_shortfall": 93.41066908115707,
+        "unpaid": 3.552713678800501e-15,
+        "unmet": 93.41066908115705,
+        "farm_revenue": 10.658933091884291,
+        "farm_pay": 10.658933091884291,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.019806626980426e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 2.842170943040401e-14,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872235,
+        "eaten": 30.74061228212851,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 1.0916111727436135,
+        "physical_shortfall": 169.2593877178714,
+        "unpaid": 0.0,
+        "unmet": 169.25938771787116,
+        "farm_revenue": 3.0740612282128623,
+        "farm_pay": 3.0740612282128623,
+        "closing_stock": {
+          "(0, 0)": 3.552713678800501e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 7.815970093361102e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 3.410605131648481e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967133,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456393,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032867,
+        "farm_revenue": 5.974708875967144,
+        "farm_pay": 5.974708875967144,
+        "closing_stock": {
+          "(0, 0)": 7.105427357601002e-15,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.8118839761882555e-13,
+        "gold_gap": 3.637978807091713e-12,
+        "demand_gap": 3.410605131648481e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 59.74708875967136,
+        "required": 200.0,
+        "overflow": 0.0,
+        "transport_loss": 2.618267829456393,
+        "physical_shortfall": 140.25291124032856,
+        "unpaid": 0.0,
+        "unmet": 140.25291124032867,
+        "farm_revenue": 5.974708875967142,
+        "farm_pay": 5.974708875967142,
+        "closing_stock": {
+          "(0, 0)": 0.0,
+          "(0, 1)": 0.0,
+          "(0, 2)": 0.0
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.6645352591003757e-13,
+        "gold_gap": 3.637978807091713e-12,
+        "demand_gap": 3.410605131648481e-13,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "producer_death_restore_effort",
+    "group": 8,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 306.8403243527045,
+      "eaten": 250.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 25.0,
+      "farm_pay": 25.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 96.21220777328222
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 96.21220777328222
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532097,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 89.66463281517062
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 91.85150798468283
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127856,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 96.21220777328222
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "producer_death_restore_effort",
+    "group": 8,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 263.6409401677601,
+      "eaten": 250.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 25.0,
+      "farm_pay": 25.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -43.19938418494439,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 50.97644292395998
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "stock_difference": {
+          "(0, 0)": -43.05758715843268
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 53.240328647548466
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 96.21220777328222
+        },
+        "stock_difference": {
+          "(0, 0)": -42.97187912573375
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 91.65241598401556,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 61.57279421386522
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 91.65241598401556,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548886,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 48.70804184764381
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 50.97644292395998
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.365356589127856,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 53.240328647548466
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "producer_death_restore_effort",
+    "group": 8,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 218.92829322225572,
+      "eaten": 250.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 25.0,
+      "farm_pay": 25.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -87.91203113044878,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 6.410979625559165
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "stock_difference": {
+          "(0, 0)": -87.6230504568335
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 8.76357487603238
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 96.21220777328222
+        },
+        "stock_difference": {
+          "(0, 0)": -87.44863289724984
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 62.365356589127835,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 32.28573481897749
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872228,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 4.053692089927438
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 6.410979625559165
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.2862601528904634e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 60.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 8.76357487603238
+        },
+        "pack_food": 0.0,
+        "food_gap": 4.085620730620576e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "producer_travel_restore_effort",
+    "group": 8,
+    "effort": 1.0,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": true,
+    "totals": {
+      "produced": 364.21922234889763,
+      "eaten": 260.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 20.0,
+      "farm_revenue": 26.0,
+      "farm_pay": 26.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": 0.0,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 10.0,
+        "closing_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 10.0,
+        "baseline_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 143.59110576947535
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 143.59110576947535
+        },
+        "stock_difference": {
+          "(0, 0)": 0.0
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532097,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 89.66463281517062
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912784,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 91.85150798468283
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532099,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 143.59110576947535
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "producer_travel_restore_effort",
+    "group": 8,
+    "effort": 0.75,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 321.01983816395324,
+      "eaten": 260.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 20.0,
+      "farm_revenue": 26.0,
+      "farm_pay": 26.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -43.19938418494439,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 10.0,
+        "closing_stock": {
+          "(0, 0)": 50.97644292395998
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 10.0,
+        "baseline_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "stock_difference": {
+          "(0, 0)": -43.05758715843268
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 100.6192266437416
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 143.59110576947535
+        },
+        "stock_difference": {
+          "(0, 0)": -42.97187912573375
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 91.65241598401556,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 61.57279421386522
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.5,
+            "child": 0,
+            "labour": 1.5,
+            "made": 91.65241598401556,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.75,
+        "produced": 47.25781100548886,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 48.70804184764381
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.75,
+            "child": 0,
+            "labour": 0.75,
+            "made": 47.25781100548887,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 50.97644292395998
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.842170943040401e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532099,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 100.6192266437416
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  },
+  {
+    "fixture": "producer_travel_restore_effort",
+    "group": 8,
+    "effort": 0.5,
+    "deterministic": true,
+    "effort_1_equals_original_baseline": null,
+    "totals": {
+      "produced": 276.30719121844885,
+      "eaten": 260.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 20.0,
+      "farm_revenue": 26.0,
+      "farm_pay": 26.0,
+      "worked_for_food": 0.0,
+      "starved": 0
+    },
+    "deltas_vs_baseline": {
+      "produced": -87.91203113044878,
+      "eaten": 0.0,
+      "overflow": 0.0,
+      "transport_loss": 0.0,
+      "physical_shortfall": 0,
+      "unpaid": 0.0,
+      "unmet": 0.0,
+      "farm_revenue": 0.0,
+      "farm_pay": 0.0
+    },
+    "recovery": [
+      {
+        "step": 3,
+        "day": 10980,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 10.0,
+        "closing_stock": {
+          "(0, 0)": 6.410979625559165
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 10.0,
+        "baseline_stock": {
+          "(0, 0)": 94.03403008239266
+        },
+        "stock_difference": {
+          "(0, 0)": -87.6230504568335
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "applied_effort": 1.0,
+        "physical_shortfall": 0,
+        "unmet": 0.0,
+        "closing_stock": {
+          "(0, 0)": 56.14247287222551
+        },
+        "baseline_shortfall": 0,
+        "baseline_unmet": 0.0,
+        "baseline_stock": {
+          "(0, 0)": 143.59110576947535
+        },
+        "stock_difference": {
+          "(0, 0)": -87.44863289724984
+        }
+      }
+    ],
+    "tick_summary": [
+      {
+        "step": 1,
+        "day": 10960,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 62.365356589127835,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 32.28573481897749
+        },
+        "pack_food": 0.0,
+        "food_gap": 1.4210854715202004e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 2,
+        "day": 10970,
+        "phase": "diagnostic",
+        "applied_effort": 0.5,
+        "produced": 31.832223454872228,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 4.053692089927438
+        },
+        "pack_food": 0.0,
+        "food_gap": 2.1316282072803006e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 0.5,
+            "child": 0,
+            "labour": 0.5,
+            "made": 31.832223454872235,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 3,
+        "day": 10980,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 62.36535658912783,
+        "eaten": 60.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 10.0,
+        "farm_revenue": 6.0,
+        "farm_pay": 6.0,
+        "closing_stock": {
+          "(0, 0)": 6.410979625559165
+        },
+        "pack_food": 0.0,
+        "food_gap": 3.2862601528904634e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 1.0,
+            "effective_adult": 1.0,
+            "child": 0,
+            "labour": 1.0,
+            "made": 62.365356589127835,
+            "season": 1.3
+          }
+        }
+      },
+      {
+        "step": 4,
+        "day": 10990,
+        "phase": "restore_1.0",
+        "applied_effort": 1.0,
+        "produced": 119.74425458532096,
+        "eaten": 70.0,
+        "required": 70.0,
+        "overflow": 0.0,
+        "transport_loss": 0.0,
+        "physical_shortfall": 0,
+        "unpaid": 0.0,
+        "unmet": 0.0,
+        "farm_revenue": 7.0,
+        "farm_pay": 7.0,
+        "closing_stock": {
+          "(0, 0)": 56.14247287222551
+        },
+        "pack_food": 0.0,
+        "food_gap": 4.263256414560601e-14,
+        "gold_gap": 0.0,
+        "demand_gap": 0.0,
+        "rng_draws": 0,
+        "starved": 0,
+        "production": {
+          "(0, 0)": {
+            "raw_adult": 2.0,
+            "effective_adult": 2.0,
+            "child": 0,
+            "labour": 2.0,
+            "made": 119.74425458532097,
+            "season": 1.3
+          }
+        }
+      }
+    ]
+  }
+]

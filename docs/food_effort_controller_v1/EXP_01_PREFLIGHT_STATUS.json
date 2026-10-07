@@ -1,0 +1,67 @@
+﻿{
+    "status":  "PREFLIGHT_PENDING",
+    "batch_started":  false,
+    "simulation_runs":  0,
+    "candidate_implemented":  false,
+    "revision":  "95b07ea260d19771810e7748eb61fbbb50db2174",
+    "pending":  [
+                    "forecast horizon/loss-window contract",
+                    "lead-in/core/tail and resource budget"
+                ],
+    "profile_id":  "EXP-01",
+    "preflight_review_sha256":  "04becfee3fa4e8a50f3c306fea02f625452e34def218cdd6b2bf8f4d348db807",
+    "input_hash_checks":  [
+                              {
+                                  "path":  "out\\volunteer-schema2-95b07ea-18seeds-20261001\\source\\tiandao\\food.py",
+                                  "sha256":  "3c853874f32d26940c05194ec9189f2ae3611944953fbf5a34ce41fd155e29c1",
+                                  "expected":  "3c853874f32d26940c05194ec9189f2ae3611944953fbf5a34ce41fd155e29c1",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "out\\volunteer-schema2-95b07ea-18seeds-20261001\\source\\tiandao\\sim.py",
+                                  "sha256":  "b216a9a2637e4b2bb459c9cf5680465825fc99581a654efbfbbcbc06a94ce5ce",
+                                  "expected":  "b216a9a2637e4b2bb459c9cf5680465825fc99581a654efbfbbcbc06a94ce5ce",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "out\\volunteer-schema2-95b07ea-18seeds-20261001\\source\\tiandao\\config.py",
+                                  "sha256":  "33d69477bd1840a0e7ad5bacce74df3b2c2e07b79b74b8f5e4f070f78332f50e",
+                                  "expected":  "33d69477bd1840a0e7ad5bacce74df3b2c2e07b79b74b8f5e4f070f78332f50e",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "out\\volunteer-schema2-95b07ea-18seeds-20261001\\source\\tiandao\\wages.py",
+                                  "sha256":  "aca1d5533b376190412cbf6ab7160fa5d3895e802e7ba887cf6e18be4f8201fb",
+                                  "expected":  "aca1d5533b376190412cbf6ab7160fa5d3895e802e7ba887cf6e18be4f8201fb",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "docs\\food_effort_controller_v1\\DECISIONS_TH.md",
+                                  "sha256":  "80c8521c48ff101f9af6e80d41092ab90fd670d0103aa3610b84de54efe78060",
+                                  "expected":  "80c8521c48ff101f9af6e80d41092ab90fd670d0103aa3610b84de54efe78060",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "docs\\food_effort_controller_v1\\SPEC_TH.md",
+                                  "sha256":  "2ad245df2d0c87db859d2ccd4a81ad91c213f794a859f24d15a4f3daf37c5734",
+                                  "expected":  "2ad245df2d0c87db859d2ccd4a81ad91c213f794a859f24d15a4f3daf37c5734",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "docs\\food_effort_controller_v1\\TEST_PLAN_TH.md",
+                                  "sha256":  "ba427639950b4d6eb3ec7625b2f76a5ef13bfae9fa3bd914685ff9fa12a8df32",
+                                  "expected":  "ba427639950b4d6eb3ec7625b2f76a5ef13bfae9fa3bd914685ff9fa12a8df32",
+                                  "matches":  true
+                              },
+                              {
+                                  "path":  "tools/food_storage_eval/effort_diagnostic_v1/archive_hashes.json",
+                                  "sha256":  "4498dc44dea3bac15afe4106c1aeda5be6ade7005ffa531ebadf1a483827eaf8",
+                                  "expected":  "4498dc44dea3bac15afe4106c1aeda5be6ade7005ffa531ebadf1a483827eaf8",
+                                  "matches":  true
+                              }
+                          ],
+    "proposed_runs":  44,
+    "proposed_food_ticks":  608,
+    "production_changes":  false,
+    "commit_push":  false
+}

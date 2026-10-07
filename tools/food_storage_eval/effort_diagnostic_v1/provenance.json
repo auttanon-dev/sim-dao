@@ -1,0 +1,155 @@
+{
+  "archive_created": "2026-10-02",
+  "origin_directory": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002",
+  "revision": "95b07ea260d19771810e7748eb61fbbb50db2174",
+  "retained_and_derived": {
+    "REPORT_TH.md": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\REPORT_TH.md",
+      "sha256": "94d5eb72c02a6b1a5f7cc6d48d96b294c0a42a44c258b6a902f1eeb6758d8bdd",
+      "byte_identical": true
+    },
+    "manifest.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\manifest.json",
+      "sha256": "4cadaeea7e8c245b8d17d52614114084b8ae9dba32fdeda75c1d802036a79723",
+      "byte_identical": true
+    },
+    "checks.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\checks.json",
+      "sha256": "f1f802a1bf6ef8cd5e55b549775c3d0504675654896cf5f451392c6e6ef6a0d4",
+      "byte_identical": true
+    },
+    "completed.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\completed.json",
+      "sha256": "079b04b24fac56c6c5d16d7c3bb7a34530b0e1d4e79ed13536891a7d9d18fd39",
+      "byte_identical": true
+    },
+    "final_audit.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\final_audit.json",
+      "sha256": "7595215ad71aef49049e13d66aaec15bae18c3ee89fd6d1eb459c9f9c63b73bb",
+      "byte_identical": true
+    },
+    "worsening.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\worsening.json",
+      "sha256": "1ff27eb02ca1da1ae592288187c42c85cd8e1772b64a9fda76a121ebfbbcfa16",
+      "byte_identical": true
+    },
+    "all_metrics.csv": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\all_metrics.csv",
+      "sha256": "d5f801c3882d09f2e54a5a3b4e0b5f72bc5291eb38ac0c721eb3eaa7f0af1919",
+      "byte_identical": true
+    },
+    "recovery.csv": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\recovery.csv",
+      "sha256": "91564712f8ccd2abcc08f32f21ca7d566a15121389c6396c59226315bf74237a",
+      "byte_identical": true
+    },
+    "delivery_decomposition.csv": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\delivery_decomposition.csv",
+      "sha256": "584e4755cc97fd41a35bb3976ea0c8a238d50b2fab7b3a07c2f9298acb6e00aa",
+      "byte_identical": true
+    },
+    "hashes.before.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\hashes.before.json",
+      "sha256": "22883295beb7779b8519acc51b0aba11c76afbc029eaf4db109456a43e5a5c99",
+      "byte_identical": true
+    },
+    "hashes.after.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\hashes.after.json",
+      "sha256": "22883295beb7779b8519acc51b0aba11c76afbc029eaf4db109456a43e5a5c99",
+      "byte_identical": true
+    },
+    "original_tools/fixtures.py": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\fixtures.py",
+      "sha256": "d4b8fd47edb42c89875022faf0d200af3a77ae013000daf33ac414dcc23756e2",
+      "byte_identical": true
+    },
+    "original_tools/harness.py": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\harness.py",
+      "sha256": "06fd5045caec482a19cdec8b5360e7e65b4ae91f09d799c98e34a038e720fdb8",
+      "byte_identical": true
+    },
+    "original_tools/run.py": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\run.py",
+      "sha256": "fdfa413a799bbc7b7b49b64a42299f6452f4573137a29616a89d9a403c67207a",
+      "byte_identical": true
+    },
+    "original_tools/report.py": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\report.py",
+      "sha256": "ceedc75b86df3aedd12674005566f6aa36e84baae200e5f07f3cc0eaf7450d3c",
+      "byte_identical": true
+    },
+    "original_tools/observer_common.py": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\observer_common.py",
+      "sha256": "05ac9d2c6fea4fc1f29a728763b9b1b769d63362020a738faccb8b4df54623fe",
+      "byte_identical": true
+    },
+    "artifact_hashes.original.json": {
+      "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\artifact_hashes.json",
+      "sha256": "ddf4c7794197d06c1b3159aa8b0044a032314688f98a9bcaf236916489895664",
+      "byte_identical": true
+    },
+    "summary_outcomes.json": {
+      "derived": true,
+      "inputs": [
+        {
+          "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\outcomes.jsonl",
+          "sha256": "ff05917f3d5081146003e49d60e0bfdce9c63e4fd380e149b44a03bb129bb639"
+        },
+        {
+          "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\records.jsonl",
+          "sha256": "c2cf8641d1f54a5e4e923db5a9c0689f85be85db5d67def0e4686c260de8bce7"
+        }
+      ],
+      "transformation": "Read-only selection/aggregation/hash of completed evidence; no simulator imports or execution"
+    },
+    "determinism_baseline_matrix.json": {
+      "derived": true,
+      "inputs": [
+        {
+          "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\outcomes.jsonl",
+          "sha256": "ff05917f3d5081146003e49d60e0bfdce9c63e4fd380e149b44a03bb129bb639"
+        },
+        {
+          "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\records.jsonl",
+          "sha256": "c2cf8641d1f54a5e4e923db5a9c0689f85be85db5d67def0e4686c260de8bce7"
+        }
+      ],
+      "transformation": "Read-only selection/aggregation/hash of completed evidence; no simulator imports or execution"
+    },
+    "selected_evidence.json": {
+      "derived": true,
+      "inputs": [
+        {
+          "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\outcomes.jsonl",
+          "sha256": "ff05917f3d5081146003e49d60e0bfdce9c63e4fd380e149b44a03bb129bb639"
+        },
+        {
+          "origin": "D:\\Sim Dao\\out\\effort-diagnostic-95b07ea-20261002\\records.jsonl",
+          "sha256": "c2cf8641d1f54a5e4e923db5a9c0689f85be85db5d67def0e4686c260de8bce7"
+        }
+      ],
+      "transformation": "Read-only selection/aggregation/hash of completed evidence; no simulator imports or execution"
+    }
+  },
+  "omitted_original_files": [
+    "delivery_more_competition.baseline.json",
+    "delivery_reference.baseline.json",
+    "delivery_source_scarcity.baseline.json",
+    "empty_stock_import_dependence.baseline.json",
+    "normal_volunteer_child.baseline.json",
+    "no_normal_producer_affordability.baseline.json",
+    "outcomes.jsonl",
+    "producer_death_restore_effort.baseline.json",
+    "producer_travel_restore_effort.baseline.json",
+    "records.jsonl",
+    "shared_source_competing_destinations.baseline.json",
+    "single_low_demand_overflow.baseline.json",
+    "winter_entry.baseline.json"
+  ],
+  "omission_reason": "Exclude full raw records/repeated logs, detailed baseline traces and bulk output; hashes retained in original index and matrix",
+  "frozen_production_source_copied": false,
+  "simulation_executed_for_archival": false,
+  "original_outputs_unchanged": true,
+  "source_dependency": "Use frozen git revision and verify source inventory; original tool relative layout documented in README",
+  "erratum": "Pricing static in actual diagnostic configuration; original report retained unchanged plus ERRATA_TH.md"
+}

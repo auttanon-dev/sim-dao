@@ -1,0 +1,37 @@
+{
+  "status": "DESIGN_ONLY",
+  "date": "2026-10-02",
+  "revision": "95b07ea260d19771810e7748eb61fbbb50db2174",
+  "source_config_verified_against_diagnostic": true,
+  "simulation_runs_this_task": 0,
+  "prototype_created": false,
+  "production_changes": false,
+  "commit_push": false,
+  "evidence_archive": "D:\\Sim Dao\\tools\\food_storage_eval\\effort_diagnostic_v1",
+  "evidence_archive_index_sha256": "4498dc44dea3bac15afe4106c1aeda5be6ade7005ffa531ebadf1a483827eaf8",
+  "document_hashes": {
+    "DECISIONS_TH.md": "80c8521c48ff101f9af6e80d41092ab90fd670d0103aa3610b84de54efe78060",
+    "SPEC_TH.md": "2ad245df2d0c87db859d2ccd4a81ad91c213f794a859f24d15a4f3daf37c5734",
+    "TEST_PLAN_TH.md": "ba427639950b4d6eb3ec7625b2f76a5ef13bfae9fa3bd914685ff9fa12a8df32"
+  },
+  "source_contracts": {
+    "tiandao/food.py": "3c853874f32d26940c05194ec9189f2ae3611944953fbf5a34ce41fd155e29c1",
+    "tiandao/sim.py": "b216a9a2637e4b2bb459c9cf5680465825fc99581a654efbfbbcbc06a94ce5ce",
+    "tiandao/config.py": "33d69477bd1840a0e7ad5bacce74df3b2c2e07b79b74b8f5e4f070f78332f50e",
+    "tiandao/wages.py": "aca1d5533b376190412cbf6ab7160fa5d3895e802e7ba887cf6e18be4f8201fb"
+  },
+  "proposed_next_experiment": {
+    "authorized_or_executed": false,
+    "miniature_runs": 44,
+    "food_ticks": 172,
+    "profile_count": 1,
+    "repetitions": 2
+  },
+  "reviewed_limitations": [
+    "Native retrospective food accounting",
+    "Static price elasticity=0 in diagnostic",
+    "Suppressed adaptive/relocation fixture shell",
+    "No shock schedule allowed as controller input",
+    "Guards unproven; numeric decisions pending"
+  ]
+}

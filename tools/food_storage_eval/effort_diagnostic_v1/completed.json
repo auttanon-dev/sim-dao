@@ -1,0 +1,12 @@
+{
+  "status": "COMPLETED",
+  "groups": 8,
+  "subcases": 11,
+  "variants": 33,
+  "repetitions": 2,
+  "all_effort_1_match_baseline": true,
+  "all_variants_deterministic": true,
+  "no_added_rng_draws": true,
+  "source_instrumentation_unchanged": true,
+  "elapsed": 4.2984790999908
+}
