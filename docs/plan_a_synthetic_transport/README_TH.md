@@ -1,6 +1,6 @@
 # Plan A: ขอบเขตหลักฐาน synthetic transport
 
-สถานะ: ยอมรับ synthetic controls แยก5กรณีภายในขอบเขต cooperative เท่านั้น ไม่อนุญาต real reader, runtime receipt integration หรือ G2 extraction จากเอกสารนี้
+สถานะ: ยอมรับ synthetic controls แยก6กรณีภายในขอบเขต cooperative เท่านั้น ไม่อนุญาต real reader, runtime receipt integration หรือ G2 extraction จากเอกสารนี้
 
 กรณีที่ยอมรับ
 - Positive: actual delayed faulthandler traceback ณ named GIL-releasing synthetic site พร้อม external drainer และ normal closure
@@ -9,7 +9,9 @@
 - Overflow: finite synthetic byte stream4608, sink before-write cap4096/read256, overflow latched/discardต่อจน actual EOF; prefix/hash/FINALตรงจริง แต่ผล INCOMPLETE
 - Held writer: producer STATUS EOF/exit0 ขณะที่ ownerถือ DATA writer; sinkยังไม่มี DATA EOF จน ownerปล่อย fd แล้วตรวจ actual FINAL/reap/close
 
-accepted-controls.json เก็บ revision/artifact hashes และประเภทผลของ5กรณี ไม่มี machine-private absolute paths, PIDs, nonce, handle values, raw stack หรือ private data ตัว hash index ไม่ใช่ลายเซ็นหรือหลักฐาน terminal execution
+- Cooperative interruption: synchronous deliberately caught Python subclass ณ phase หลัง sink DRAINED/worker exit0 ก่อน owner ปล่อย DATA writer; handler ปิด fd ที่ถือไว้แล้วตรวจ sink FINAL/EOF และ normal closure ผลยัง INCOMPLETE/no receipt ไม่ใช่ external SIGINT/console event/abrupt owner death/native blocked read/timer interruption/C-GIL/general cleanup และไม่อ้าง heldwriter observation .20s จากกรณีนี้
+
+accepted-controls.json เก็บ revision/artifact hashes และประเภทผลของ6กรณี ไม่มี machine-private absolute paths, PIDs, nonce, handle values, raw stack หรือ private data ตัว hash index ไม่ใช่ลายเซ็นหรือหลักฐาน terminal execution
 
 Provenance: actual terminalcommand/CWD/exit เป็นการสังเกตจาก owning Lead tool; Criticตรวจ retained artifacts/hashes อย่างอิสระ แต่ไม่ใช่ independent authenticated terminal export raw evidence ปัจจุบันอยู่ใน local private untracked scratch ซึ่ง mutable และ subject to pruning; hashes ไม่รับรอง durability, immutability หรือ authentication และยังไม่มี verified archive ไม่ rerunเพื่อเติมประวัติ และไม่ commit raw evidence
 
@@ -19,8 +21,8 @@ Negative control PASS ไม่ใช่ capture COMPLETE/receipt: ต้อง�
 
 สิ่งที่ยังไม่พิสูจน์: arbitrary OS signals/owner abrupt death, native C/GIL recovery, universal failure cleanup/conservation, real reader diagnosis, mandatory runtime diagnostic/receipt integration, strict simulation equivalence, save/load equivalence หรือ extraction safety
 
-ลำดับต่อไป: separately reviewed cooperative owner interruption negative -> sandbox transport-to-reader contract/integration -> independently gated real reader phase telemetry -> strict comparator/saveVersion31 -> G2 extraction หากหลักฐาน prerequisite ผ่าน งานที่เสร็จใน repositoryต้อง path-scoped review/test/commit/pushและ verify remote ห้าม stage scratch/private artifacts/other edits
+ลำดับต่อไป: separately designed/reviewed sandbox synthetic-to-reader contract/integration (ยังไม่ dispatch OS/Sim/reader) -> independently gated real reader phase telemetry -> strict comparator/saveVersion31 -> G2 extraction หากหลักฐาน prerequisite ผ่าน งานที่เสร็จใน repositoryต้อง path-scoped review/test/commit/pushและ verify remote ห้าม stage scratch/private artifacts/other edits
 
 เอกสารนี้ไม่เปิด gate ใหม่และไม่ขยาย timeout/memory guarantee; first unexpected failure/hang STOP ไม่มี auto retry
 
-ขอบเขต watchdog evidence: cancellation historical artifact บันทึกเฉพาะ watchdog joined และ errors[] ไม่มี explicit fired flag จึงไม่อ้างว่าพิสูจน์ firedFalse จากกรณีนั้น ส่วน sinkdeath/overflow/heldwriter และ gate รุ่นหลังบันทึก explicit firedFalse เป็น requirement; prospective gates ต้องตรวจ firedFalse หลัง join ไม่ย้อนเติมหรือ relabel historical cancellation evidence
+ขอบเขต watchdog evidence: cancellation historical artifact บันทึกเฉพาะ watchdog joined และ errors[] ไม่มี explicit fired flag จึงไม่อ้างว่าพิสูจน์ firedFalse จากกรณีนั้น ส่วน sinkdeath/overflow/heldwriter/cooperative interruption และ gate รุ่นหลังบันทึก explicit firedFalse เป็น requirement; prospective gates ต้องตรวจ firedFalse หลัง join ไม่ย้อนเติมหรือ relabel historical cancellation evidence

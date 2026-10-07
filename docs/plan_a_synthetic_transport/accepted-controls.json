@@ -76,6 +76,21 @@
       "expected_reason": "ExpectedHeldWriterNegative",
       "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
       "scope": "one cooperative synthetic control, no real reader diagnosis/issuer or universal failure proof"
+    },
+    {
+      "control": "cooperative_interruption",
+      "revision": "fd8fb5740547bb52028b3cd9c3395669a0aecad8e20d918b3e12c2bde379f5b3",
+      "transport": "WINDOWS-POPEN-EXTERNAL-FAULTHANDLER-SYNTHETIC-v1",
+      "owner_artifact_sha256": "9555423172c6d503cbed740bdf877bd12ca5fd7ec584c2ec3e0471c2a9ba3a18",
+      "outer_result_sha256": "ded3fd22ad86d75166ad567c42c079a94e5e1f92d221f620f9fe1cd8d766c7ea",
+      "manifest_sha256": "b0e12493b05e52fdb66b2aab9e81580a0346601e6b390428ab91b8d4e4ec3a41",
+      "retained_data_bytes": 39,
+      "retained_data_sha256": "ae295d2c92aa7c1bbb527a25beb7f9984cd76d1b945a038bf04bcf0fd3f29153",
+      "critic_review_sha256": "0785b29b74eb411713e3e1f3483a9baf2f2fbbf9f97f30b5992e25190ccce3d1",
+      "capture_complete": false,
+      "expected_reason": "ExpectedInterruptionNegative",
+      "terminal_provenance": "Lead owning-tool observation; independent Critic artifact review, not independently authenticated terminal export",
+      "scope": "selected synchronous deliberately caught Python subclass with owned DATA writer release; not external SIGINT/console event, abrupt owner death, native blocked read, timer interruption, C/GIL recovery or general cleanup; no .20s heldwriter observation duration claimed"
     }
   ],
   "not_acceptance_of": [
