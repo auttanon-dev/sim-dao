@@ -114,7 +114,12 @@ def travel_speed(realm: int, config=None, character=None, friction=None, day=Non
     """ระยะทางต่อวันจากปราณ *และ* ร่างจริง; ไม่ส่ง character ได้พฤติกรรมเก่าเหมือนเดิม
     ส่ง `day` = วันที่ออกเดินทาง: ความเร็วตามฤดูของวันนั้นทั้งทาง (แบบ §6.3) ไม่ส่งได้ความเร็วฤดูปกติ (ใช้วางแผน)"""
     cfg = config or C
-    speed = cfg.TRAVEL_BASE_SPEED * (1.0 + cfg.TRAVEL_REALM_SPEEDUP * max(0, realm))
+    if getattr(cfg, "REAL_DISTANCE", False):
+        # โหมดดาวเคราะห์: ความเร็วเป็น กม./วัน จริง แล้วแปลงกลับเป็นหน่วยกราฟ (ดู units.py)
+        from . import units as UNITS
+        speed = UNITS.km_per_day(realm, cfg) / UNITS.km_per_unit(cfg)
+    else:
+        speed = cfg.TRAVEL_BASE_SPEED * (1.0 + cfg.TRAVEL_REALM_SPEEDUP * max(0, realm))
     if day is not None:
         speed *= SEASONS.factor(SEASONS.TRAVEL_SPEED, day)
     if character is not None:
