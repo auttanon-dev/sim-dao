@@ -170,6 +170,10 @@ def outline(save_path: str, cid: int, chapters: int = 0,
             event_log_path: Optional[str] = None) -> dict:
     """โครงนิยายทั้งเรื่องโดยไม่จ่าย GPU สักนิด — ดูก่อนว่าคุ้มค่าจะเขียนไหม"""
     w = WORLD.load(save_path, event_log_path)
+    # cast เป็น list ที่ใช้ cid เป็นตำแหน่ง: cid เกินจำนวนทำให้ IndexError (หน้าเว็บได้ 500)
+    # ส่วน cid ติดลบ Python นับจากท้าย ได้ชื่อของคนอื่นกลับไปเงียบๆ — ต้องปฏิเสธทั้งสองแบบ
+    if not 0 <= cid < len(w.sim.cast):
+        raise LookupError(f"ไม่พบตัวละคร cid={cid}")
     scenes = w.scenes_of(cid)
     if chapters > 0:
         scenes = scenes[:chapters]
