@@ -18,6 +18,7 @@ from .treasures import TREASURES, BURST_MULT
 from . import skills as SK
 from . import crafting as CR
 from . import materials as MAT
+from . import minerals as MIN
 from . import physics as PHYS
 from . import elements as EL
 from . import economy as EC
@@ -5139,8 +5140,12 @@ class Sim:
                     it.pill_bonus = recipe[4]
                     it.lifespan_bonus = CR.longevity_years(recipe[0], recipe[1], recipe[2])
                 else:
-                    it = self.make_item("อาวุธวิเศษ", recipe[1], recipe[3], maker=a.cid)
+                    # เนื้อแร่ในสูตรปรับคุณภาพชิ้นงาน: แร่แข็งคมและคงรูปกว่า แร่อ่อน (ทองคำ ทองแดง) บิ่นง่าย
+                    ore_q = MIN.forge_quality(reqs, C.ORE_QUALITY_W)
+                    it = self.make_item("อาวุธวิเศษ", recipe[1], recipe[3] * ore_q, maker=a.cid)
                     it.name = recipe[0]
+                    if ore_q != 1.0:
+                        d["เนื้อแร่"] = f"{'แข็งกว่า' if ore_q > 1 else 'อ่อนกว่า'}ค่ากลาง คุณภาพ ×{ore_q:.2f}"
                 a.items.append(it.iid)
                 made.append(it.iid)
             setattr(a, "alchemy" if is_pill else "forge", lvl)

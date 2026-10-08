@@ -15,7 +15,9 @@
 """
 import hashlib
 
+from . import config as C
 from . import crafting as CR
+from . import minerals as MIN
 from . import places as PL
 
 # ---------------------------------------------------------------- ระดับของวัตถุดิบ
@@ -69,6 +71,10 @@ def materials_at(place_idx):
         return []
     tier = WORLD_MAT_TIER.get(p[1], 0)
     pool = _sorted_pool(kind, tier)
+    if kind == "แร่" and getattr(C, "ORE_GEOLOGY", False):
+        # แร่ที่เกิดในจังหวัดธรณีของแหล่งนี้ขึ้นก่อน — จำนวนชนิดต่อแหล่งเท่าเดิม แต่แหล่งธรรมดาสองแห่งที่อยู่คนละ
+        # จังหวัดให้แร่คนละชุด (เดิมทุกแหล่งให้สองชนิดที่ถูกที่สุดเหมือนกันหมด จึงไม่มีเหตุให้ค้าแร่ข้ามถิ่น)
+        pool = MIN.order_for_site(pool, place_idx)
     return pool[:GRADE_DEPTH.get(p[2], 2)]
 
 
