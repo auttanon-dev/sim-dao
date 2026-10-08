@@ -411,7 +411,11 @@ def parse(data, ctx, sim, table):
 
     def s(key, limit=600):
         v = data.get(key, "")
-        text = str(v).strip()[:limit] if v is not None else ""
+        # โมเดลบางตัวตอบเป็นรายการประโยคแทนข้อความเดียว — ต่อกันได้ ส่วนชนิดอื่น (ตัวเลข/จริงเท็จ/dict)
+        # ไม่ใช่ความคิด ถ้าแปลงเป็นข้อความตรงๆ จะได้ "5" หรือ "{...}" ไปอยู่ในความทรงจำถาวร
+        if isinstance(v, (list, tuple)):
+            v = " ".join(x for x in v if isinstance(x, str))
+        text = v.strip()[:limit] if isinstance(v, str) else ""
         # โมเดลบางตัวลอกคำอธิบายช่องจาก JSON schema กลับมา ค่านั้นไม่ใช่ความคิดหรือ
         # เป้าหมายจริงและห้ามปล่อยให้กลายเป็นความทรงจำถาวร
         return "" if any(mark in text for mark in placeholder_marks) else text
@@ -461,8 +465,15 @@ def parse(data, ctx, sim, table):
         if len(steps) >= MC.PLAN_MAX_STEPS:
             break
     feelings = {}
-    for f in data.get("feelings") or []:
-        if isinstance(f, dict):
+    raw_feelings = data.get("feelings")
+    if isinstance(raw_feelings, dict):
+        # รูปที่โมเดลชอบตอบแทนรายการ: ก้อนเดียว {"person":..,"feeling":..} หรือแผนที่ {"P1": "ความรู้สึก"}
+        raw_feelings = ([raw_feelings] if "person" in raw_feelings
+                        else [{"person": k, "feeling": v} for k, v in raw_feelings.items()])
+    elif not isinstance(raw_feelings, list):
+        raw_feelings = []     # ตัวเลข/จริงเท็จ/ข้อความ วนไม่ได้หรือวนแล้วไม่มีความหมาย — เดิมทำให้ทั้งรันล้ม
+    for f in raw_feelings:
+        if isinstance(f, dict) and isinstance(f.get("feeling"), str):
             person = _resolve_person(f.get("person", ""), ctx, sim)
             text = str(f.get("feeling", "") or "").strip()[:120]
             if person is not None and text:

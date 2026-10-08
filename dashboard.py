@@ -281,6 +281,8 @@ def api_novel_outline(cid: int, chapters: int = 0,
         return STUDIO.outline(SAVE_PATH, cid, chapters=chapters, target_chars=target_chars)
     except FileNotFoundError:
         raise HTTPException(404, f"ไม่พบไฟล์ {SAVE_PATH}")
+    except LookupError as exc:
+        raise HTTPException(404, str(exc))
 
 
 @app.post("/api/novel/start")
@@ -294,6 +296,8 @@ def api_novel_start(body: dict = Body(...)):
             structure_model=body.get("structure_model") or ACFG.OLLAMA_STRUCTURE_MODEL,
             target_chars=int(body.get("target_chars", ACFG.SCENE_TARGET_CHARS)),
         )
+    except (KeyError, TypeError) as exc:      # ไม่ได้ส่ง cid หรือส่งค่าที่แปลงเป็นตัวเลขไม่ได้ — เดิมกลายเป็น 500
+        raise HTTPException(400, f"คำขอไม่ครบหรือผิดรูปแบบ: {exc}")
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(409, str(exc))
     except FileNotFoundError:
