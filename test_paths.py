@@ -132,31 +132,43 @@ def test_spirit_climbs_higher(sim, decided):
     print("\n=== 3. สายจิตต้องข้ามขั้นได้ง่ายกว่า (วัดที่กฎ) ===")
     import copy
     import random
-    src = next(c for c in sim.cast if c.alive and c.skills and c.realm < C.REALM_CAP - 1)
     bs, ss = _skill_sets()
-    w = sim.world(src.world_id)
     import collections
-    wins, outcomes = {}, collections.defaultdict(collections.Counter)
-    for label, skills in (("กายบำเพ็ญ", bs), ("จิตบำเพ็ญ", ss)):
-        ok = 0
-        for i in range(400):
-            ch = copy.deepcopy(src)
-            ch.skills, ch.items = list(skills), []
-            # สะสม "พอดีเป๊ะ" ไม่ใช่เหลือเฟือ — ถ้าให้เกินมาก โบนัสส่วนเกินจะดัน p ไปชน
-            # เพดาน 0.95 ของทั้งคู่ แล้วส่วนต่างของสายจะถูกกลืนหายไปทั้งหมด (เจอจริง: ผลออกมา
-            # เท่ากันเป๊ะทั้ง 400 ครั้ง) และต้องเติม hp เต็มด้วย ไม่งั้นด่านทัณฑ์สวรรค์จะฆ่าทั้งคู่
-            # ก่อนถึงจุดที่วัด (เจอจริงเช่นกัน: "บาดเจ็บสาหัส" 351 จาก 400 ทั้งสองสาย)
-            ch.insight = R.need(ch, w)
-            ch.refine, ch.decay, ch.fails = 0.0, 0.0, 0
-            ch.inner = 0.0                        # ล้างจิตมารทั้งคู่ ไม่งั้นด่านที่สองบังตัวแปรที่วัด
-            ch.hp = getattr(ch, "max_hp", 100) or 100
-            res, _ = R.attempt_break(sim, ch, w, random.Random(1000 + i))
-            outcomes[label][str(res)] += 1
-            # วัดที่ **ด่านพลัง** ซึ่งเป็นด่านที่ PATH_SPIRIT_BREAK ออกฤทธิ์จริง — ผ่านด่านนี้คือ
-            # ไม่ได้ผลลัพธ์ "ล้มเหลว" ส่วนด่านถัดไป (จิตมาร และทัณฑ์สวรรค์ที่วัดจาก hp) เป็นคนละ
-            # กลไกที่สายบำเพ็ญไม่ได้เกี่ยว การเอา "ผ่านครบทุกด่าน" มาเป็นเกณฑ์จึงวัดผิดตัวแปร
-            ok += 0 if res == "ล้มเหลว" else 1
-        wins[label] = ok
+
+    def measure(src):
+        w = sim.world(src.world_id)
+        wins, outcomes = {}, collections.defaultdict(collections.Counter)
+        for label, skills in (("กายบำเพ็ญ", bs), ("จิตบำเพ็ญ", ss)):
+            ok = 0
+            for i in range(400):
+                ch = copy.deepcopy(src)
+                ch.skills, ch.items = list(skills), []
+                # สะสม "พอดีเป๊ะ" ไม่ใช่เหลือเฟือ — ถ้าให้เกินมาก โบนัสส่วนเกินจะดัน p ไปชน
+                # เพดาน 0.95 ของทั้งคู่ แล้วส่วนต่างของสายจะถูกกลืนหายไปทั้งหมด (เจอจริง: ผลออกมา
+                # เท่ากันเป๊ะทั้ง 400 ครั้ง) และต้องเติม hp เต็มด้วย ไม่งั้นด่านทัณฑ์สวรรค์จะฆ่าทั้งคู่
+                # ก่อนถึงจุดที่วัด (เจอจริงเช่นกัน: "บาดเจ็บสาหัส" 351 จาก 400 ทั้งสองสาย)
+                ch.insight = R.need(ch, w)
+                ch.refine, ch.decay, ch.fails = 0.0, 0.0, 0
+                ch.inner = 0.0                        # ล้างจิตมารทั้งคู่ ไม่งั้นด่านที่สองบังตัวแปรที่วัด
+                ch.hp = getattr(ch, "max_hp", 100) or 100
+                res, _ = R.attempt_break(sim, ch, w, random.Random(1000 + i))
+                outcomes[label][str(res)] += 1
+                # วัดที่ **ด่านพลัง** ซึ่งเป็นด่านที่ PATH_SPIRIT_BREAK ออกฤทธิ์จริง — ผ่านด่านนี้คือ
+                # ไม่ได้ผลลัพธ์ "ล้มเหลว" ส่วนด่านถัดไป (จิตมาร และทัณฑ์สวรรค์ที่วัดจาก hp) เป็นคนละ
+                # กลไกที่สายบำเพ็ญไม่ได้เกี่ยว การเอา "ผ่านครบทุกด่าน" มาเป็นเกณฑ์จึงวัดผิดตัวแปร
+                ok += 0 if res == "ล้มเหลว" else 1
+            wins[label] = ok
+        return wins, outcomes
+
+    # วัดกับคนแรกที่ด่านพลัง "ยังเป็นการทอย" — บางคนผ่านด่านนี้แน่นอนทั้ง 400 ครั้งไม่ว่าสายไหน (วัดจริง 5 จาก 12
+    # คนแรก) กับคนแบบนั้นโบนัสของสายจิตไม่มีที่ให้แสดงผล ผลเท่ากัน 400/400 จึงไม่ได้แปลว่ากฎหาย
+    # เดิมหยิบคนแรกเสมอ เทสต์จึงขึ้นกับว่าใครบังเอิญเป็น cid ต่ำสุดที่ยังมีชีวิตในโลกของ seed นั้น
+    wins = outcomes = None
+    for src in [c for c in sim.cast if c.alive and c.skills and c.realm < C.REALM_CAP - 1][:12]:
+        wins, outcomes = measure(src)
+        if wins["กายบำเพ็ญ"] < 400:
+            break
+    assert wins is not None, "ไม่มีใครให้วัด"
     for label in wins:
         print(f"  {label}: {dict(outcomes[label])}")
     print(f"  ผ่านด่านพลังจาก 400 ครั้ง — กาย {wins['กายบำเพ็ญ']} | จิต {wins['จิตบำเพ็ญ']}")

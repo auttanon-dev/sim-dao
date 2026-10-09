@@ -113,10 +113,11 @@ class TestFix2Home(Base):
         self.assertIsInstance(home, int)
         self.assertGreaterEqual(home, 0)
         minds = [self.sim.cast[m.cid] for m in self.mind.active()]
-        near = [c for c in minds
-                if c.world_id == 0 and (days_between(home, c.place) or 10**9) <= MC.HOME_RADIUS_DAYS]
+        # "ใกล้บ้าน" ใช้เกณฑ์เดียวกับที่ manager ใช้เลือกคน: HOME_RADIUS_DAYS วันเดินทาง (สูตรเดิม)
+        # หรือ HOME_RADIUS_KM กิโลเมตร (ระยะทางจริง — 20 วันเดินเท้าแคบกว่าระยะถึงที่ใกล้ที่สุดของเกือบทุกที่)
+        near = [c for c in minds if self.mind._near_home(home, c)]
         self.assertGreaterEqual(len(near), math.ceil(len(minds) * 0.75),
-                                f"ผู้มีจิตใจต้องเริ่มใกล้ {PL.PLACES[home][0]} ภายใน {MC.HOME_RADIUS_DAYS} วัน")
+                                f"ผู้มีจิตใจต้องเริ่มใกล้ {PL.PLACES[home][0]}")
 
     def test_home_place_survives_save_load(self):
         home = self.mind.home_place

@@ -374,6 +374,13 @@ class MindManager:
             return False
         if c.place == home:
             return True
+        from .. import config as C
+        if getattr(C, "REAL_DISTANCE", False):
+            # ระยะทางจริง: 20 วันเดินเท้า = 600 กม. แคบกว่าระยะถึงเพื่อนบ้านที่ใกล้ที่สุดของเกือบทุกที่ (มัธยฐาน ~3,000 กม.)
+            # "ใกล้บ้าน" จะเหลือแค่ที่เดียว และผู้มีจิตใจจะกระจายทั่วโลกเหมือนก่อนแก้ — วัดเป็นกิโลเมตรของละแวกเดิมแทน
+            from .. import units as UNITS
+            dist = TR.shortest_path_distance(home, c.place)
+            return dist is not None and UNITS.to_km(dist) <= MC.HOME_RADIUS_KM
         d = TR.shortest_path_days(home, c.place, 0)
         return d is not None and d <= MC.HOME_RADIUS_DAYS
 

@@ -18,6 +18,7 @@ from .treasures import TREASURES, BURST_MULT
 from . import skills as SK
 from . import crafting as CR
 from . import materials as MAT
+from . import minerals as MIN
 from . import physics as PHYS
 from . import elements as EL
 from . import economy as EC
@@ -1451,6 +1452,11 @@ class Sim:
         d["child_id"] = child.cid
         if C.GUARDIANS_ENABLED:
             GUARD.at_birth(self, child, mother, father)
+        if getattr(mother, "place", -1) != getattr(father, "place", -2):
+            # คลอดหลังปฏิสนธิหลายเดือน พ่ออาจเดินทางไปที่อื่นแล้ว (ยิ่งเมื่อระยะทางเป็นของจริง การเดินทางกินเวลาเป็นปี)
+            # เหตุการณ์นี้ไม่ผ่าน resolve() จึงไม่มีใครบันทึกว่าทำไมคู่นี้เอื้อมถึงกันข้ามระยะ — test_locality นับเป็น
+            # "ไม่มีเหตุผลรองรับ" 21 จาก 30 ครั้ง ทั้งที่เหตุผลชัดที่สุดในโลก: เขาเป็นพ่อของเด็ก
+            d[C.PRIOR_TIE_KEY] = "เป็นพ่อของทารกที่เพิ่งเกิด"
         self.emit(w, "กำเนิดทายาท", mother, father, ["คน", "เลือด"], "กำเนิด",
                   f"{a.name}กับ{t.name}ให้กำเนิด{child.name}แห่ง{clan}", 0, d)
         return child
@@ -5139,8 +5145,12 @@ class Sim:
                     it.pill_bonus = recipe[4]
                     it.lifespan_bonus = CR.longevity_years(recipe[0], recipe[1], recipe[2])
                 else:
-                    it = self.make_item("อาวุธวิเศษ", recipe[1], recipe[3], maker=a.cid)
+                    # เนื้อแร่ในสูตรปรับคุณภาพชิ้นงาน: แร่แข็งคมและคงรูปกว่า แร่อ่อน (ทองคำ ทองแดง) บิ่นง่าย
+                    ore_q = MIN.forge_quality(reqs, C.ORE_QUALITY_W)
+                    it = self.make_item("อาวุธวิเศษ", recipe[1], recipe[3] * ore_q, maker=a.cid)
                     it.name = recipe[0]
+                    if ore_q != 1.0:
+                        d["เนื้อแร่"] = f"{'แข็งกว่า' if ore_q > 1 else 'อ่อนกว่า'}ค่ากลาง คุณภาพ ×{ore_q:.2f}"
                 a.items.append(it.iid)
                 made.append(it.iid)
             setattr(a, "alchemy" if is_pill else "forge", lvl)

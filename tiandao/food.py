@@ -675,6 +675,21 @@ def _reach(sim, place):
     return TR.places_within(sim, place, C.FOOD_REACH_HOPS)
 
 
+def _carry_keep(place, src, hops) -> float:
+    """สัดส่วนของข้าวที่ส่งจากยุ้งฉาง `src` แล้วมาถึง `place`
+
+    โหมดเดิม: สูญ FOOD_CARRY_LOSS_PER_HOP ต่อก้าว ไม่ว่าก้าวนั้นจะยาวเท่าไร
+    โหมดระยะทางจริง: สูญตามกิโลเมตรของถนนจริง (FOOD_CARRY_LOSS_PER_1000KM ทบต้น) — สองยุ้งฉางที่ห่างกันก้าวเดียว
+    แต่ไกล 5,000 กม. เสียมากกว่าคู่ที่ห่าง 1,000 กม. หลายเท่า ซึ่งการนับก้าวมองไม่เห็น
+    """
+    if getattr(C, "REAL_DISTANCE", False):
+        dist = TR.distances_from(place).get(src)
+        if dist is not None:
+            from . import units as UNITS
+            return (1.0 - C.FOOD_CARRY_LOSS_PER_1000KM) ** (UNITS.to_km(dist) / 1000.0)
+    return (1.0 - C.FOOD_CARRY_LOSS_PER_HOP) ** hops
+
+
 def _carry_in(sim, short):
     """ส่งข้าวจากยุ้งฉางใกล้เคียงในแดนเดียวกันไปที่ที่ยังขาด — คืน {ปลายทาง: {ต้นทาง: สำรับที่มาถึง}}
 
@@ -690,7 +705,7 @@ def _carry_in(sim, short):
         weight = {src: sim.granary[src] / (1.0 + hops) for src, hops in sources}
         total_w = sum(weight.values())
         for src, hops in sources:
-            keep = (1.0 - C.FOOD_CARRY_LOSS_PER_HOP) ** hops
+            keep = _carry_keep(place, src[1], hops)
             asks[src][dest] = (short[dest] * weight[src] / total_w / keep, hops)
     for src in sorted(asks):
         wanted = sum(amount for amount, _ in asks[src].values())
@@ -698,7 +713,7 @@ def _carry_in(sim, short):
         for dest in sorted(asks[src]):
             amount, hops = asks[src][dest]
             sent = min(amount * scale, sim.granary[src])     # ปัดทศนิยมรวมกันแล้วไม่ให้ยุ้งฉางติดลบ
-            came = sent * (1.0 - C.FOOD_CARRY_LOSS_PER_HOP) ** hops
+            came = sent * _carry_keep(dest[1], src[1], hops)
             sim.granary[src] -= sent
             sim.food_stats["carried_lost"] += sent - came
             arrived[dest][src] = came

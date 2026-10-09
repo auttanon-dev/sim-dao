@@ -139,7 +139,9 @@ class FoodRulesTests(unittest.TestCase):
             FOOD.tick(self.sim, 30)
         self.assertEqual(eater.hunger_days, 0.0)
         sent = 1000.0 - self.sim.granary[(0, self.near)]
-        self.assertAlmostEqual(sent * (1 - C.FOOD_CARRY_LOSS_PER_HOP), 30.0, places=6)
+        # ข้าวสูญตามกฎที่ใช้อยู่: ระยะทางจริงเป็นกิโลเมตร (REAL_DISTANCE) หรือต่อก้าวแบบเดิม — ที่ใกล้นี้ห่างหนึ่งก้าว
+        self.assertAlmostEqual(sent * FOOD._carry_keep(self.a, self.near, 1), 30.0, places=6)
+        self.assertLess(FOOD._carry_keep(self.a, self.near, 1), 1.0)
         self.assertAlmostEqual(self.sim.food_stats["carried_lost"], sent - 30.0, places=6)
 
     def test_when_food_runs_short_idle_adults_farm_until_the_granary_is_plentiful(self):

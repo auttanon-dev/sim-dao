@@ -154,8 +154,13 @@ class TestFateAccounting(unittest.TestCase):
             quiet(sim.run, 5000)
             if not ch.foreseen or sim.day > deadline:
                 break
-        if not ch.alive and ch.foreseen:
-            self.skipTest("ผู้เห็นนิมิตตายก่อนถึงกำหนด — check_fate ตัดสินเฉพาะนิมิตของคนที่ยังมีชีวิต")
+        if not ch.alive:
+            # นิมิตของผู้เห็นที่ตายแล้วยังถูกตัดสินและนับผล (fate_kept/fate_changed) แต่ไม่ออกเป็นเหตุการณ์
+            # เพราะคนตายเป็นผู้กระทำเหตุการณ์ไม่ได้ (ดู Sim.check_fate) — เดิมข้ามเฉพาะกรณีที่นิมิตยังค้าง
+            # ผู้เห็นที่ตายวันเดียวกับคนในนิมิตจึงหลุดมาถึงการตรวจเหตุการณ์ซึ่งไม่มีทางมี
+            self.assertEqual({k: d for k, d in ch.foreseen.items()
+                              if d + C.FORESIGHT_GRACE_DAYS <= sim.day}, {})
+            self.skipTest("ผู้เห็นนิมิตตายก่อนถึงกำหนด — นิมิตถูกนับผลแล้วแต่ไม่ออกเป็นเหตุการณ์")
         expired = {k: d for k, d in ch.foreseen.items() if d + C.FORESIGHT_GRACE_DAYS <= sim.day}
         self.assertEqual(expired, {}, "นิมิตที่หมดอายุต้องถูกตัดสินและเคลียร์ออก (นิมิตใหม่ที่ยังไม่ถึงกำหนดค้างได้)")
         self.assertGreater(ch.fate_changed + ch.fate_kept, 0)
