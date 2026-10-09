@@ -85,9 +85,11 @@ class DeathNewsTests(unittest.TestCase):
 
     def test_news_to_someone_who_died_first_is_dropped(self):
         self.mate.place = self.far
+        # รอนานกว่าที่ข่าวใช้เดินทางจริง — เมื่อระยะทางเป็นของจริง ข่าวในแดนเดียวกันใช้เวลาเกินปีได้
+        wait = NEWS.delay_days(self.sim, self.dead, self.mate)
         self.kill()
         quiet(self.sim.kill, self.mate, "ทดสอบ")
-        self.deliver_after(C.NEWS_CROSS_REALM_DAYS + 365)
+        self.deliver_after(max(wait, C.NEWS_CROSS_REALM_DAYS) + 365)
         self.assertEqual(self.sim.death_news, [])
         self.assertGreaterEqual(self.sim.news_stats.get("dropped", 0), 1)
 

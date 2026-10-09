@@ -179,6 +179,10 @@ class MindRunner:
             self.state = "error"
             raise
         finally:
+            if self.state != "error":
+                # เติมที่ว่างก่อนเซฟ — attach() เรียก ensure_cast ทุกครั้งที่เปิดโลก ถ้าเซฟตอนยังมีที่ว่าง (ตรวจทุก 200
+                # เหตุการณ์ระหว่างเดิน) การเปิดเซฟเดิมขึ้นมาใหม่จะได้จิตใจเพิ่มหนึ่งดวงทั้งที่โลกไม่ได้เดินสักก้าว
+                mind.ensure_cast(sim)
             self.save()
             if self.state != "error":
                 self.state = "idle"

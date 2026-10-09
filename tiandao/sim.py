@@ -1452,6 +1452,11 @@ class Sim:
         d["child_id"] = child.cid
         if C.GUARDIANS_ENABLED:
             GUARD.at_birth(self, child, mother, father)
+        if getattr(mother, "place", -1) != getattr(father, "place", -2):
+            # คลอดหลังปฏิสนธิหลายเดือน พ่ออาจเดินทางไปที่อื่นแล้ว (ยิ่งเมื่อระยะทางเป็นของจริง การเดินทางกินเวลาเป็นปี)
+            # เหตุการณ์นี้ไม่ผ่าน resolve() จึงไม่มีใครบันทึกว่าทำไมคู่นี้เอื้อมถึงกันข้ามระยะ — test_locality นับเป็น
+            # "ไม่มีเหตุผลรองรับ" 21 จาก 30 ครั้ง ทั้งที่เหตุผลชัดที่สุดในโลก: เขาเป็นพ่อของเด็ก
+            d[C.PRIOR_TIE_KEY] = "เป็นพ่อของทารกที่เพิ่งเกิด"
         self.emit(w, "กำเนิดทายาท", mother, father, ["คน", "เลือด"], "กำเนิด",
                   f"{a.name}กับ{t.name}ให้กำเนิด{child.name}แห่ง{clan}", 0, d)
         return child
