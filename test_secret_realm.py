@@ -17,6 +17,8 @@ import contextlib
 import io
 import unittest
 
+import pytest
+
 from tiandao import config as C
 from tiandao import events as E
 from tiandao import rules as R
@@ -151,6 +153,7 @@ class TestTheRealmIsAShelterNotAShortcut(unittest.TestCase):
 
 
 class TestComingBackOut(unittest.TestCase):
+    @pytest.mark.longrun                       # a_world steps=60000 ~107 วิ
     def test_the_world_hears_about_it(self):
         sim = a_world(steps=60000)
         out = [e for e in sim.log if e.kind == "ออกจากแดนลับ"]
