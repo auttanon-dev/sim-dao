@@ -10,6 +10,7 @@
 """
 import argparse
 import os
+import re
 import sys
 
 if sys.platform == "win32":
@@ -25,6 +26,13 @@ from tiandao import story
 from tiandao.ai import config_ai as ACFG
 from tiandao.ai import history as HIST
 from tiandao.ai import llm_agent as LLM
+
+
+def episode_path(out, cid, ch_name, model):
+    """ชื่อไฟล์ตอน — ชื่อโมเดลอาจมี "/" หรือ ":" (เช่น hf.co/org/model:tag) จึงตัดเหลือ [A-Za-z0-9_-]
+    ไม่ให้กลายเป็นโฟลเดอร์ซ้อนจน open() ล้มหลังเรียก Ollama ไปแล้ว"""
+    model_tag = re.sub(r"[^A-Za-z0-9_-]+", "-", model).strip("-")
+    return os.path.join(out, f"episode_{cid}_{ch_name}_{model_tag}.md")
 
 
 def main():
@@ -64,10 +72,9 @@ def main():
     text = HIST.generate_episode(sim, cid, max_scenes=a.max_scenes, agent=agent,
                                   event_log_path=event_log_path)
 
-    os.makedirs(a.out, exist_ok=True)
     ch_name = next((c.name for c in sim.cast if c.cid == cid), str(cid))
-    model_tag = a.model.replace(":", "-")
-    path = os.path.join(a.out, f"episode_{cid}_{ch_name}_{model_tag}.md")
+    path = episode_path(a.out, cid, ch_name, a.model)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         f.write(text)
     print(f"[history] บันทึกตอนไว้ที่ {path}")

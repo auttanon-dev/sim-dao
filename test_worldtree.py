@@ -13,10 +13,14 @@
 import contextlib
 import io
 
+import pytest
+
 from tiandao import branches as BR
 from tiandao import config as C
 from tiandao import sim as S
 from tiandao import worldtree as WT
+
+pytestmark = pytest.mark.longrun           # fixture ร่วม setup ~92 วิ, เทสต์ ~107 วิ
 
 STEPS = 60000
 SEED = 5
