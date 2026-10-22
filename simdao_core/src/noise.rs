@@ -257,6 +257,13 @@ impl Planet {
         Planet { field: Field::new(seed), radius, amp, lam, octaves, warp_octaves }
     }
 
+    /// สร้างจาก Field ที่มีอยู่ (เช่นจาก `Field.from_perm`) — ใช้ในเทสต์เทียบต้นฉบับ
+    #[staticmethod]
+    #[pyo3(signature = (field, radius = 1.0, amp = 0.12, lam = 1.0, octaves = 5, warp_octaves = 2))]
+    fn from_field(field: PyRef<Field>, radius: f64, amp: f64, lam: f64, octaves: i64, warp_octaves: i64) -> Self {
+        Planet { field: field.clone(), radius, amp, lam, octaves, warp_octaves }
+    }
+
     #[getter]
     fn field(&self) -> Field {
         self.field.clone()
