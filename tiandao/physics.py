@@ -632,3 +632,21 @@ def hazard_p(rate_per_year: float, days: float) -> float:
         return 0.0
     return 1.0 - math.exp(-rate_per_year * days / 365.0)
 
+
+
+# ---------------------------------------------------------------- Rust core
+# ถ้า build simdao_core แล้ว ใช้สมการฉบับ Rust แทน (ผลเท่ากันทุกค่า — test_simdao_core_parity.py)
+# ถ้ายังไม่ได้ build ก็ใช้ฉบับ Python ข้างบนต่อไป
+PYTHON_IMPL = {}  # ฉบับ Python เดิม เก็บไว้ให้เทสต์ parity เทียบ
+try:
+    import simdao_core as _core
+except ImportError:
+    _core = None
+else:
+    for _name in [n for n, f in list(globals().items())
+                  if callable(f) and not n.startswith("_")
+                  and getattr(f, "__module__", None) == __name__]:
+        if hasattr(_core, _name):
+            PYTHON_IMPL[_name] = globals()[_name]
+            globals()[_name] = getattr(_core, _name)
+    del _name

@@ -64,7 +64,7 @@ CASES = {
 
 @pytest.mark.parametrize("name", sorted(CASES))
 def test_physics_parity(name):
-    py, rs = getattr(PP, name), getattr(core, name)
+    py, rs = PP.PYTHON_IMPL.get(name, getattr(PP, name)), getattr(core, name)
     for _ in range(200):
         args = CASES[name]()
         assert close(rs(*args), py(*args)), (name, args)
