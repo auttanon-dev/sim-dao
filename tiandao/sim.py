@@ -3102,15 +3102,10 @@ class Sim:
         w = IN.weigh(actor, self, E.EVENT_TABLE, bool(others), loot_nearby,
                      debtor_nearby, secret_available, others=others)
         w = self.brain_manager.decide(actor, self, w)
-        # ชั้นจิตใจ (tiandao/mind): ตัวละครที่มีจิตใจเลือกการกระทำ/เป้าหมายเอง แทนการสุ่มตามน้ำหนัก
-        # ไม่ได้แนบ sim.mind ไว้ = ทางเดิมทุกประการ ไม่กิน RNG เพิ่ม (test_determinism.py)
-        mind = getattr(self, "mind", None)
-        mind_choice = mind.choose(actor, self, w, others, rng) if mind is not None else None
-        # Decision Engine (tiandao/decision): Utility+Softmax+Belief+Memory+Social+GOAP สำหรับทุกคนที่
-        # ไม่มีจิตใจ LLM — ไม่ได้ attach ไว้ (ค่าเริ่มต้น) = ทางเดิมทุกประการ และไม่แตะ rng หลักเลย
+        # Decision Engine (tiandao/decision): Utility+Softmax+Belief+Memory+Social+GOAP
+        # ไม่ได้ attach ไว้ (ค่าเริ่มต้น) = ทางเดิมทุกประการ และไม่แตะ rng หลักเลย
         _de = getattr(self, "decision_engine", None)
-        if mind_choice is None and _de is not None:
-            mind_choice = _de.choose(actor, self, w, others, world)
+        mind_choice = _de.choose(actor, self, w, others, world) if _de is not None else None
         kind = mind_choice.kind if mind_choice is not None else IN.sample_weighted(w, rng)
         ev = next((e for e in E.EVENT_TABLE if e["kind"] == kind), None) \
             or E.pick_event(actor, rng, bool(others), city=city_dict)
@@ -3248,7 +3243,7 @@ class Sim:
 
         # --- Sect Rank Challenge ---
         if (getattr(actor, "org", None) is not None and actor.org < len(self.orgs)
-                and not (mind is not None and mind.skip_side_rolls(actor)) and BODY.can_fight(actor)
+                and BODY.can_fight(actor)
                 and rng.random() < 0.1):
             org = self.orgs[actor.org]
             rank = getattr(actor, "sect_rank", "ศิษย์สายนอก")
@@ -3315,8 +3310,6 @@ class Sim:
         for t in ev["tags"]:
             actor.exp[t] = actor.exp.get(t, 0) + 1
         e = self.emit(world, ev["kind"], actor, target, ev["tags"], outcome, text, elapsed, d)
-        if mind is not None:
-            mind.after_action(actor, self, ev["kind"], target, e)
         if actor.alive:
             self._next_turn(actor, gap, rng)
         return e
@@ -5530,12 +5523,7 @@ class Sim:
                 want_pl = [p for p in want_pl if p in pl]
                 seek_pl = [p for p in pl if p in seek]
                 safe_pl = [p for p in pl if p not in avoid] or pl
-                mind_dest = (self.mind.take_destination(a, pl)
-                             if getattr(self, "mind", None) is not None else None)
-                if mind_dest is not None:
-                    dest = mind_dest      # จุดหมายที่ตัวละครเลือกเอง (tiandao/mind)
-                    tail_want = False
-                elif want_pl and rng.random() < C.WANT_SEEK_P:
+                if want_pl and rng.random() < C.WANT_SEEK_P:
                     dest = self.pick_destination(a, want_pl, rng)
                     tail_want = True
                 elif seek_pl and rng.random() < 0.6:

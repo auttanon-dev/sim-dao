@@ -224,19 +224,6 @@ class TestItChangesWhatActuallyHappens(unittest.TestCase):
         self.assertGreater(big, small * 50)
 
 
-class TestPeopleCanSeeIt(unittest.TestCase):
-    def test_the_self_sheet_names_his_element_and_the_two_cycles(self):
-        from tiandao.mind import persona as PR
-        sim = quiet(S.Sim, seed=5)
-        quiet(sim.run, 4000)
-        ch = sim.living()[0]
-        ch.element = "ไฟ"
-        line = PR.self_sheet(sim, ch).get("ธาตุประจำตัว", "")
-        self.assertIn("ไฟ", line)
-        self.assertIn("ดิน", line, "ต้องบอกว่าไฟให้กำเนิดดิน")
-        self.assertIn("ทอง", line, "และไฟข่มทอง")
-
-
 class TestNothingBroke(unittest.TestCase):
     def test_the_world_is_still_reproducible(self):
         a = quiet(S.Sim, seed=11)

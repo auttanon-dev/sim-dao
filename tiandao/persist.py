@@ -195,13 +195,32 @@ def save_sim(sim, path=DEFAULT_PATH):
         raise
 
 
+# โมดูลที่ถอดออกแล้ว (ชั้น LLM/จิตใจ) — เซฟเก่าที่ pickle ของพวกนี้ติดมาด้วยยังโหลดได้ ค่าที่อ่านได้ถูกทิ้ง
+_REMOVED_MODULES = ("tiandao.ai.llm_agent", "tiandao.ai.llm_queue", "tiandao.ai.history", "tiandao.mind")
+
+
+class _Removed:
+    def __init__(self, *a, **kw):
+        pass
+
+    def __setstate__(self, state):
+        pass
+
+
+class _CompatUnpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module.startswith(_REMOVED_MODULES):
+            return _Removed
+        return super().find_class(module, name)
+
+
 def read_save(path=DEFAULT_PATH):
     """อ่านไฟล์เซฟดิบๆ — คืน (sim, รุ่นของไฟล์) โดยยังไม่ทำ migration ใดๆ
 
     เซฟก่อนมีระบบรุ่นคือ pickle ของ Sim เปล่าๆ จึงไม่มีซองให้อ่าน — นับเป็นรุ่น 0
     """
     with open_for_read(path) as f:
-        blob = pickle.load(f)
+        blob = _CompatUnpickler(f).load()
     if isinstance(blob, dict) and "sim" in blob:
         return blob["sim"], int(blob.get("save_version", 0))
     return blob, 0

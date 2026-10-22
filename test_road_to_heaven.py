@@ -19,7 +19,6 @@ from tiandao import config as C
 from tiandao import events as E
 from tiandao import intent as IN
 from tiandao import sim as S
-from tiandao.mind import persona as P
 
 
 def quiet(fn, *a, **kw):
@@ -133,17 +132,6 @@ class TestTheWall(unittest.TestCase):
         self.assertEqual(out, "ข้ามฟ้า")
         self.assertIn("ขั้นของข้า", d)
         self.assertIn("สิ่งที่เพิ่งรู้", d, "ต้องมีบรรทัดที่บอกว่าเขาเพิ่งรู้ว่าบันไดยาวกว่าที่เคยเห็น")
-        sheet = P.self_sheet(sim, ch)
-        self.assertIn(str(C.REALM_TOP + 1), sheet["ขั้นพลัง"],
-                      "คนที่ข้ามฟ้าแล้วต้องเห็นบันไดจริงทั้งเส้น")
-
-    def test_a_mortal_only_sees_his_own_worlds_ceiling(self):
-        sim, w, ch = a_peak_cultivator()
-        sheet = P.self_sheet(sim, ch)
-        self.assertIn(f"จาก {C.REALM_BAND} ของโลกนี้", sheet["ขั้นพลัง"],
-                      "คนที่ยังไม่เคยขึ้นไป ไม่ควรรู้ว่าเหนือโลกตัวเองมีอีกกี่ขั้น")
-        self.assertNotIn(str(C.REALM_TOP + 1), sheet["ขั้นพลัง"])
-
 
 class TestCrossingSurvival(unittest.TestCase):
     def test_preparation_decides_who_lives(self):

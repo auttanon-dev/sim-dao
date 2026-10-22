@@ -4,7 +4,7 @@
 เหตุผลที่แยกไฟล์นี้ออกมา ไม่ใช่เขียนลูปใหม่ในหน้าเว็บ
 ---------------------------------------------------------------------------------------------
 งานหนึ่งรอบไม่ได้มีแค่ `sim.run(n)` แต่มีลำดับที่ต้องถูกต้องพอดี: เดินซิม -> flush+trim event log
-(Phase G กัน world.save โตไม่มีเพดาน) -> เซฟ -> drain คิว LLM ถ้าเปิด -> วัดผล -> ขยับค่าคงที่
+(Phase G กัน world.save โตไม่มีเพดาน) -> เซฟ -> วัดผล -> ขยับค่าคงที่
 (online tuning) ถ้าหน้าเว็บเขียนลูปของตัวเองขึ้นมาอีกชุด สองชุดนี้จะค่อยๆ ต่างกันจนไม่มีใครรู้ว่า
 "โลกที่เดินจากหน้าเว็บ" กับ "โลกที่เดินจากเทอร์มินัล" ต่างกันตรงไหน — ซึ่งเป็นบั๊กที่หายากที่สุด
 `daemon.py` จึงเหลือหน้าที่แค่แปลง argparse เป็น `LoopConfig` แล้วเรียก `run_round()` เหมือนกัน
@@ -22,7 +22,6 @@ from . import event_log as EL
 from . import metrics as M
 from . import persist as PS
 from . import tuning as TN
-from .ai import config_ai as ACFG
 from .sim import Sim
 
 STEP_BATCH = 2000   # เดินทีละก้อนย่อยเพื่อให้ "กดหยุด" ตอบสนองภายในไม่กี่วินาที ไม่ต้องรอจบรอบใหญ่
@@ -60,8 +59,6 @@ class LoopConfig:
     autotune: bool = True
     trim_log: bool = True
     keep_recent_events: int = 5000
-    llm: bool = False
-    llm_drain_budget: int = 20
 
     def log_path(self) -> str:
         return self.event_log_path or EL.default_log_path(self.save_path)
@@ -113,14 +110,6 @@ def run_round(sim, cfg: LoopConfig, state: dict,
 
     save_error = _save(sim, cfg.save_path)
 
-    drained = backlog = 0
-    if cfg.llm:
-        drained = sim.brain_manager.drain_llm_queue(sim, cfg.llm_drain_budget)
-        backlog = len(sim.brain_manager.llm_queue)
-
-        # Persist drained results and the remaining queue, including on the last round.
-        save_error = _save(sim, cfg.save_path)
-
     if cfg.autotune and ran:
         state["overrides"] = TN.propose_update(state.get("overrides", {}), metrics,
                                                learning_rate=cfg.lr)
@@ -134,7 +123,6 @@ def run_round(sim, cfg: LoopConfig, state: dict,
         "advancement_rate": round(metrics.get("advancement_rate", 0.0), 4),
         "org_rate": round(metrics.get("org_rate", 0.0), 3),
         "log_flushed": flushed, "log_kept": len(sim.log),
-        "llm_drained": drained, "llm_backlog": backlog,
         "saved": not save_error, "save_error": save_error,
         "seconds": round(time.time() - t0, 1),
         "at": time.time(),
@@ -221,7 +209,6 @@ class WorldRunner:
         cfg = self.cfg
         lock = None
         try:
-            ACFG.LLM_ENABLED = cfg.llm
             state = TN.load_state()
             if cfg.autotune and state.get("overrides"):
                 TN.apply_overrides(state["overrides"])

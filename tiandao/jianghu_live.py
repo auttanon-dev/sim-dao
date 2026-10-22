@@ -12,7 +12,7 @@ from . import worldloop as WL
 def viewer_config(save_path):
     # One scheduler turn per update: large daemon batches skip too much to watch.
     return WL.LoopConfig(save_path=os.path.abspath(save_path), chunk_events=1,
-                         interval=2.0, autotune=False, llm=False)
+                         interval=2.0, autotune=False)
 
 
 def start_live(save_path, runner=WL.RUNNER):

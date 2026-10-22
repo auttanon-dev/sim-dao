@@ -12,7 +12,6 @@ from tiandao import tuning as TN
 from tiandao import chronicle as CH
 from tiandao import persist as PS
 from tiandao import event_log as EL
-from tiandao.ai import config_ai as ACFG
 
 
 
@@ -75,27 +74,14 @@ def main():
     ap.add_argument("--save", action="store_true",
                      help="บันทึกสถานะโลกทั้งก้อนไว้ที่ --save-path หลังรันจบ (คนละอย่างกับ chronicle "
                           "ที่บันทึกแค่ตำนานสรุป — อันนี้บันทึกตัวโลกจริง เดินต่อได้ด้วย --resume)")
-    ap.add_argument("--llm", action="store_true",
-                     help="เปิด Layer 3 (Ollama) จริง — ต้องมี Ollama รันอยู่ที่ localhost:11434 พร้อม "
-                          "โมเดลที่ตั้งไว้ใน tiandao/ai/config_ai.py (ดีฟอลต์ qwen2.5vl:7b) "
-                          "(Phase G) sim.run() เองไม่บล็อกอีกต่อไป — งาน LLM เข้าคิวไว้แล้วประมวลผล "
-                          "ทั้งหมดหลัง sim.run() จบครั้งเดียว (ยังกินเวลารวมเท่าเดิม แค่ไม่บล็อกระหว่างเดิน)")
-    ap.add_argument("--llm-budget", type=int, default=0,
-                     help="จำกัดจำนวนงาน LLM ที่จะ drain หลัง sim.run() จบ (0 = ทั้งคิวเหมือนเดิม) — "
-                          "สำคัญมากตอนรันยาว: คิวโตตามจำนวนเหตุการณ์ (341,000 เหตุการณ์เคยได้ 121,302 งาน) "
-                          "ถ้า drain ทั้งคิวจะใช้เวลาระดับสัปดาห์และ --save จะไม่ได้ทำงานเลยเพราะยังไม่ถึง "
-                          "บรรทัดนั้น ตั้ง budget ไว้เพื่อให้ได้ dataset จริงพร้อมเซฟในเวลาที่คุมได้")
     ap.add_argument("--decision", action="store_true",
                      help="เปิด Decision Engine แบบ Hybrid (tiandao/decision) — Utility+Softmax+Belief+"
-                          "Memory+Social+GOAP ตัดสินใจแทนการสุ่มตามน้ำหนักสำหรับทุกคนที่ไม่มีจิตใจ LLM")
+                          "Memory+Social+GOAP ตัดสินใจแทนการสุ่มตามน้ำหนัก")
     ap.add_argument("--decision-mode", choices=("stochastic", "deterministic"), default=None,
                      help="stochastic = จำลองจริง (softmax) · deterministic = argmax สำหรับดีบัก")
     ap.add_argument("--explain", type=int, default=None, metavar="CID",
                      help="พิมพ์คำอธิบายการตัดสินใจล่าสุดของตัวละคร cid นี้ (ต้องใช้กับ --decision)")
     a = ap.parse_args()
-
-    if a.llm:
-        ACFG.LLM_ENABLED = True
 
     if a.legends:
         print(CH.format_hall_of_legends())
@@ -108,6 +94,39 @@ def main():
             print(f"[autotune] โหลดค่าที่เรียนรู้ไว้: {state['overrides']}")
 
     lock = None
+    if a.save:
+        try:
+            lock = PS.writer_lock(a.save_path)   # noqa: F841 — ถือไว้จนโปรเซสจบ
+        except PS.WorldLocked as ex:
+            raise SystemExit(f"[persist] {ex}")
+    sim = None
+    if a.resume:
+        try:
+            sim = PS.load_sim(a.save_path)
+            print(f"[persist] เดินต่อจากไฟล์ {a.save_path} — วันที่ {sim.day} (ปีที่ {sim.day//365})")
+        except FileNotFoundError:
+            print(f"[persist] ไม่พบไฟล์ {a.save_path} — เริ่มโลกใหม่จาก seed {a.seed} แทน")
+    if sim is None:
+        sim = Sim(seed=a.seed, tiers=a.tiers)
+    if a.decision or a.explain is not None:
+        from tiandao import decision as DE
+        if getattr(sim, "decision_engine", None) is None:
+            DE.attach(sim, mode=a.decision_mode,
+                      focus=(a.explain,) if a.explain is not None else ())
+        elif a.decision_mode:
+            sim.decision_engine.mode = a.decision_mode
+        if a.explain is not None:
+            sim.decision_engine.focus.add(a.explain)
+    sim.run(a.events)
+    if getattr(sim, "decision_engine", None) is not None:
+        print(f"[decision] {sim.decision_engine.summary()}")
+        if a.explain is not None:
+            print(sim.decision_engine.explain_text(a.explain, n=3) or
+                  f"[decision] ตัวละคร {a.explain} ยังไม่ได้ตัดสินใจผ่าน engine ในรอบนี้")
+    if getattr(sim, "last_run_steps", a.events) < a.events:
+        print(f"[warning] scheduler stopped early after {sim.last_run_steps}/{a.events} events "
+              "— ตรวจไฟล์ save/log ก่อนเดินต่อ")
+
     if a.save:
         try:
             lock = PS.writer_lock(a.save_path)   # noqa: F841 — ถือไว้จนโปรเซสจบ

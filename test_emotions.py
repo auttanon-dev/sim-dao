@@ -18,8 +18,6 @@ from tiandao import emotions as EM
 from tiandao import intent as IN
 from tiandao import events as E
 from tiandao.models import Character
-from tiandao.mind import persona as P
-from tiandao.mind import storyteller as ST
 
 
 def quiet(fn, *a, **kw):
@@ -253,21 +251,6 @@ class TestEmotions(unittest.TestCase):
         other.fear, other.greed, other.compassion = 0.8, 0.2, 0.6
         EM.ensure(other)
         assert other.emotions != ch.emotions
-
-
-# ------------------------------------------------------------------ ถึงตาโมเดลอ่าน
-    def test_prompt_and_story_see_the_heart(self):
-        s = _sim(steps=1200)
-        ch = next(c for c in s.cast if c.alive and c.sentient)
-        sheet = P.self_sheet(s, ch)
-        assert sheet["อารมณ์ในใจตอนนี้"]
-        assert sheet["สิ่งที่ใจข้าปรารถนาที่สุด"]
-        assert any(d in sheet["สิ่งที่ใจข้าปรารถนาที่สุด"] for d in EM.DESIRES)
-        entry = {"cid": ch.cid, "name": ch.name, "year": s.day // 365, "place": "ที่ใดสักแห่ง",
-                 "kind": "บำเพ็ญ", "action": "บำเพ็ญ", "outcome": "สำเร็จ",
-             "text": "บำเพ็ญจนสำเร็จ", "why": "อยากทะลวงขั้น", "thought": "สงบใจไว้ก่อน"}
-        _sys, prompt = ST.build(s, entry)
-        assert "ใจตอนนี้" in prompt and "ใจปรารถนา" in prompt
 
 
     def test_stirred_reports_only_what_is_above_the_personal_baseline(self):

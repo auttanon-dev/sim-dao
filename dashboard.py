@@ -243,101 +243,7 @@ def combat_view(request: Request):
     })
 
 
-# ---------------------------------------------------------------- โรงเขียนนิยาย (Phase L2)
-# ตรรกะทั้งหมดอยู่ใน narrative_factory/studio.py — ที่นี่เป็นแค่ทางเข้า HTTP ตามแพทเทิร์นเดียวกับ
-# endpoint อื่นในไฟล์นี้ ยกเว้นเรื่องเดียวที่ต่าง: การเขียนหนึ่งบทกินเวลาเป็นนาที จึงไม่รอให้จบใน
-# request เดียว แต่คืน job_id ให้หน้าเว็บ poll เอา (ดูเหตุผลเต็มใน docstring ของ studio.py)
 from fastapi import Body, HTTPException
-from fastapi.responses import PlainTextResponse
-
-from narrative_factory import studio as STUDIO
-from tiandao.ai import config_ai as ACFG
-
-
-@app.get("/api/novel/models")
-def api_novel_models():
-    installed = STUDIO.ollama_models()
-    return {
-        "installed": installed,
-        "default_prose": ACFG.OLLAMA_PROSE_MODEL,
-        "default_structure": ACFG.OLLAMA_STRUCTURE_MODEL,
-        "ollama_up": bool(installed),
-    }
-
-
-@app.get("/api/novel/candidates")
-def api_novel_candidates(limit: int = 40, min_points: int = 0):
-    try:
-        return STUDIO.candidates(SAVE_PATH, limit=limit,
-                                 min_points=min_points or STUDIO.SCAST.MIN_TURNING_POINTS)
-    except FileNotFoundError:
-        raise HTTPException(404, f"ไม่พบไฟล์ {SAVE_PATH} — รัน `python run.py --save` ก่อน")
-
-
-@app.get("/api/novel/outline")
-def api_novel_outline(cid: int, chapters: int = 0,
-                      target_chars: int = ACFG.SCENE_TARGET_CHARS):
-    try:
-        return STUDIO.outline(SAVE_PATH, cid, chapters=chapters, target_chars=target_chars)
-    except FileNotFoundError:
-        raise HTTPException(404, f"ไม่พบไฟล์ {SAVE_PATH}")
-    except LookupError as exc:
-        raise HTTPException(404, str(exc))
-
-
-@app.post("/api/novel/start")
-def api_novel_start(body: dict = Body(...)):
-    try:
-        job = STUDIO.RUNNER.start(
-            SAVE_PATH,
-            cid=int(body["cid"]),
-            chapters=int(body.get("chapters", 0)),
-            prose_model=body.get("prose_model") or ACFG.OLLAMA_PROSE_MODEL,
-            structure_model=body.get("structure_model") or ACFG.OLLAMA_STRUCTURE_MODEL,
-            target_chars=int(body.get("target_chars", ACFG.SCENE_TARGET_CHARS)),
-        )
-    except (KeyError, TypeError) as exc:      # ไม่ได้ส่ง cid หรือส่งค่าที่แปลงเป็นตัวเลขไม่ได้ — เดิมกลายเป็น 500
-        raise HTTPException(400, f"คำขอไม่ครบหรือผิดรูปแบบ: {exc}")
-    except (RuntimeError, ValueError) as exc:
-        raise HTTPException(409, str(exc))
-    except FileNotFoundError:
-        raise HTTPException(404, f"ไม่พบไฟล์ {SAVE_PATH}")
-    return job.as_dict()
-
-
-@app.get("/api/novel/job/{job_id}")
-def api_novel_job(job_id: str):
-    job = STUDIO.RUNNER.get(job_id)
-    if job is None:
-        raise HTTPException(404, "ไม่พบงานนี้ (เซิร์ฟเวอร์อาจถูกรีสตาร์ตไปแล้ว)")
-    return job.as_dict()
-
-
-@app.post("/api/novel/job/{job_id}/stop")
-def api_novel_stop(job_id: str):
-    if not STUDIO.RUNNER.stop(job_id):
-        raise HTTPException(404, "ไม่พบงานนี้")
-    return {"ok": True}
-
-
-@app.post("/api/novel/job/{job_id}/rewrite/{index}")
-def api_novel_rewrite(job_id: str, index: int):
-    try:
-        return STUDIO.RUNNER.rewrite(job_id, index).as_dict()
-    except KeyError as exc:
-        raise HTTPException(404, str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(409, str(exc))
-
-
-@app.get("/api/novel/job/{job_id}/download", response_class=PlainTextResponse)
-def api_novel_download(job_id: str):
-    job = STUDIO.RUNNER.get(job_id)
-    if job is None:
-        raise HTTPException(404, "ไม่พบงานนี้")
-    return PlainTextResponse(job.markdown(), media_type="text/markdown; charset=utf-8",
-                             headers={"Content-Disposition":
-                                      f'attachment; filename="novel_{job.cid}.md"'})
 
 
 # ---------------------------------------------------------------- ปุ่มเดินโลก (Phase L3)
@@ -359,7 +265,6 @@ def api_world_start(body: dict = Body(default={})):
         chunk_events=int(body.get("chunk_events", 20000)),
         interval=float(body.get("interval", 5.0)),
         autotune=bool(body.get("autotune", True)),
-        llm=bool(body.get("llm", False)),
     )
     try:
         return WL.RUNNER.start(cfg)
@@ -370,13 +275,6 @@ def api_world_start(body: dict = Body(default={})):
 @app.post("/api/world/stop")
 def api_world_stop():
     return WL.RUNNER.stop()
-
-
-@app.get("/novel", response_class=HTMLResponse)
-def novel_view(request: Request):
-    return templates.TemplateResponse(request, "novel.html", {
-        "save_path": SAVE_PATH,
-    })
 
 
 if __name__ == "__main__":

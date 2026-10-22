@@ -7,9 +7,7 @@
 สำเนา 27 MB · เดินอนาคต 90 วัน รวม 1.25 วินาที · และโลกจริงไม่ขยับแม้แต่ tick เดียว
 
 สามข้อที่ต้องระวังและถูกจัดการไว้ในไฟล์นี้
-  1. **สำเนาต้องไม่เรียกโมเดลภาษาและไม่เขียนสมุดชีวิต** — ชั้นจิตใจถูกถอดออกจากสำเนา และ
-     สมาชิกของ event_bus ที่ผูกกับ MindManager ถูกตัดทิ้ง ไม่งั้นการมองอนาคตหนึ่งครั้งจะยิง
-     คำขอไปที่ Ollama เป็นสิบครั้งและเขียนบันทึกปลอมลงไฟล์จริง
+  1. **สำเนาต้องไม่เขียนอะไรลงดิสก์** — ทุกอย่างอยู่ในหน่วยความจำของสำเนา
   2. **โลกจริงต้องไม่ขยับ** — ทุกอย่างเกิดบนสำเนา แล้วสำเนาถูกทิ้ง RNG ของโลกจริงไม่ถูกดึงเลย
      แม้แต่ครั้งเดียว (เทสต์ตรวจ rng.getstate() ก่อน/หลัง)
   3. **นิมิตต้องมีราคา** — ไม่งั้นตัวเอกไม่มีวันตายและเรื่องก็ไม่เหลืออะไรให้ลุ้น ราคาคือชะตา
@@ -41,31 +39,8 @@ DULL_OUTCOMES = frozenset({"ผ่านไป", "ทั่วไป", "สะ�
 
 
 def _fork(sim):
-    """สำเนาโลกที่ "ตาบอดและใบ้" — เดินเองได้ แต่ไม่เรียกโมเดลและไม่เขียนอะไรลงดิสก์"""
-    # ถอดชั้นจิตใจออกจากโลกจริง "ชั่วคราว" ก่อนสำเนา — สองเหตุผล: สำเนาจะได้เล็กและเร็วขึ้น
-    # และของที่ผู้ใช้แนบไว้ที่ sim.mind (แบ็กเอนด์ คอนเนกชัน ฯลฯ) อาจ pickle ไม่ได้เลย
-    mind = getattr(sim, "mind", None)
-    bus = getattr(sim, "event_bus", None)
-    subs = list(getattr(bus, "_subscribers", []) or [])
-    if mind is not None:
-        sim.mind = None
-        if bus is not None:
-            bus._subscribers = [h for h in subs if getattr(h, "__self__", None) is not mind]
-    try:
-        blob = pickle.dumps(sim, protocol=pickle.HIGHEST_PROTOCOL)
-    finally:
-        if mind is not None:
-            sim.mind = mind
-            if bus is not None:
-                bus._subscribers = subs
-    fork = pickle.loads(blob)
-    fork.mind = None
-    bus = getattr(fork, "event_bus", None)
-    subs = getattr(bus, "_subscribers", None)
-    if subs is not None:
-        bus._subscribers = [h for h in subs
-                            if type(getattr(h, "__self__", None)).__name__ != "MindManager"]
-    return fork
+    """สำเนาโลกที่เดินเองได้ แต่ไม่เขียนอะไรลงดิสก์"""
+    return pickle.loads(pickle.dumps(sim, protocol=pickle.HIGHEST_PROTOCOL))
 
 
 def _ties_of(ch):

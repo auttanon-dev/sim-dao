@@ -3,8 +3,7 @@
 (ตามกฎ ROLE.md: "หากมีคลาสเดิมอยู่แล้ว เช่น Character ให้ใช้ CharacterBrain เป็น Component ไม่แก้
 Character ตรงๆ ถ้าไม่จำเป็น")
 
-Phase 1: เก็บ episodic memory แบบมีเพดานต่อคนเท่านั้น ยังไม่มี Utility/GOAP/LLM จริง
-(ดู tiandao/ai/config_ai.py สำหรับ NOTABLE_KINDS ที่ Phase 5 จะใช้เป็นตัวกระตุ้น LLM)
+เก็บ episodic/semantic memory + ชื่อเสียงแบบมีเพดานต่อคน และ Utility/GOAP ชั้นตัดสินใจ
 
 BrainManager แขวนอยู่บน Sim ตัวเดียว (sim.brain_manager) — pickle ได้ฟรีเพราะเป็นส่วนหนึ่งของ object
 graph ของ Sim อยู่แล้ว (ดู tiandao/persist.py) ไม่ต้องแก้ persist.py เพิ่ม
@@ -15,8 +14,6 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 
 from . import config_ai as ACFG
 from . import goap as GOAP
-from . import llm_agent as LLM
-from . import llm_queue as LLMQ
 from . import memory as MEM
 from . import utility as UT
 
@@ -50,8 +47,6 @@ class CharacterBrain:
     # Relationship ไม่เก็บในนี้ — อ่านจาก ch.rivals/ch.bonds ตรงๆ ผ่าน tiandao/ai/memory.py แทน
     semantic: Dict[int, MEM.PlaceFact] = field(default_factory=dict)
     reputation: Dict[str, Dict[str, int]] = field(default_factory=dict)
-    # Layer 3 — Local LLM Agent (Phase 5): บทพูด/ความคิดที่ Ollama สร้างให้ ("Memory Update" ตาม ROLE.md)
-    narrative_moments: List[LLM.NarrativeMoment] = field(default_factory=list)
 
     def __setstate__(self, state: dict) -> None:
         """save เก่าที่เซฟไว้ก่อนมี field ใหม่ (semantic/reputation/narrative_moments ฯลฯ) ยัง
@@ -64,12 +59,7 @@ class CharacterBrain:
         self.__dict__.setdefault("needs", {})
         self.__dict__.setdefault("current_goal", "")
         self.__dict__.setdefault("goal_score", 0.0)
-        self.__dict__.setdefault("narrative_moments", [])
-
-    def remember_narrative(self, moment: LLM.NarrativeMoment) -> None:
-        self.narrative_moments.append(moment)
-        if len(self.narrative_moments) > ACFG.NARRATIVE_MOMENT_CAP:
-            del self.narrative_moments[: len(self.narrative_moments) - ACFG.NARRATIVE_MOMENT_CAP]
+        self.__dict__.pop("narrative_moments", None)   # ของเหลือจากชั้น LLM ที่ถอดออกแล้ว
 
     def remember(self, ev: "Event") -> None:
         self.episodic.append(EpisodicMemory(day=ev.day, kind=ev.kind, outcome=ev.outcome, text=ev.text))
@@ -106,16 +96,12 @@ class BrainManager:
 
     def __init__(self) -> None:
         self.brains: Dict[int, CharacterBrain] = {}
-        self._agent: "LLM.OllamaAgent | None" = None   # lazy — สร้างเฉพาะตอนต้องเรียกจริงครั้งแรก
-        self.llm_queue = LLMQ.LLMJobQueue()            # Phase G — งาน LLM ที่รอ drain แบบไม่บล็อก sim
 
     def __setstate__(self, state: dict) -> None:
-        """save เก่าที่เซฟไว้ก่อนมี _agent (ก่อน Phase 5) หรือ llm_queue (ก่อน Phase G) ยัง unpickle
-        ได้ — เติมค่า default ให้ (BrainManager ไม่ใช่ dataclass แต่ pickle ก็ไม่เรียก __init__
-        เหมือนกัน จึงต้องมี __setstate__ เองแบบเดียวกับ CharacterBrain)"""
+        """save เก่าอาจมี _agent/llm_queue ของชั้น LLM ที่ถอดออกแล้ว — ทิ้งไป"""
         self.__dict__.update(state)
-        self.__dict__.setdefault("_agent", None)
-        self.__dict__.setdefault("llm_queue", LLMQ.LLMJobQueue())
+        self.__dict__.pop("_agent", None)
+        self.__dict__.pop("llm_queue", None)
 
     def get_or_create(self, cid: int) -> CharacterBrain:
         brain = self.brains.get(cid)
@@ -153,40 +139,3 @@ class BrainManager:
                 brain.observe_place(actor_ch.place, ev)
             region = sim.world(actor_ch.world_id).name
             brain.note_reputation(region, ev)
-
-        if not brain.is_notable(ev):
-            return
-
-        if not ACFG.LLM_ENABLED or actor_ch is None:
-            logger.debug("brain: cid=%s เจอเหตุการณ์น่าจดจำ kind=%s outcome=%s (LLM ปิดอยู่ — "
-                         "เปิดด้วย --llm)", ev.actor, ev.kind, ev.outcome)
-            return
-
-        # Layer 3 — Local LLM Agent (Phase 5) + Phase G: แค่ enqueue ไม่เรียก Ollama ตรงนี้เลย
-        # (ของเดิมเรียก blocking ตรงนี้ทันที ทำให้ sim loop ช้าลงมหาศาลตามที่วัดไว้แล้ว) ผู้เรียก
-        # (run.py/daemon.py) ต้องเรียก self.drain_llm_queue(sim, budget) เองเป็นช่วงๆ ถึงจะมีผล
-        self.llm_queue.enqueue(ev.actor, ev)
-
-    def drain_llm_queue(self, sim: "Sim", budget: int = 0) -> int:
-        """ประมวลผลงาน LLM ที่ค้างอยู่ในคิวสูงสุด budget อัน (<=0 = ทั้งหมด) — เรียก Ollama จริงตรงนี้
-        (ยังเป็น blocking call เหมือนเดิม แค่ **แยกจากลูปหลักของ sim.step() แล้ว** เรียกตอนไหนก็ได้ที่
-        ผู้ใช้สะดวก เช่น หลัง sim.run() แต่ละก้อนใน daemon.py) คืนจำนวนงานที่ประมวลผลจริง"""
-        batch = self.llm_queue.pop_batch(budget)
-        if not batch:
-            return 0
-        if self._agent is None:
-            self._agent = LLM.OllamaAgent()
-        processed = 0
-        for job in batch:
-            ch = sim.cast[job.cid] if 0 <= job.cid < len(sim.cast) else None
-            if ch is None:
-                continue
-            brain = self.get_or_create(job.cid)
-            system, user = LLM.build_prompt(ch, brain, sim, job.event)
-            result = self._agent.chat(system, user)
-            if result is not None:
-                brain.remember_narrative(LLM.NarrativeMoment(
-                    day=job.event.day, kind=job.event.kind,
-                    dialogue=result["dialogue"], thought=result["thought"]))
-            processed += 1
-        return processed

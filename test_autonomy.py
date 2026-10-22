@@ -96,19 +96,18 @@ class AutonomyTests(unittest.TestCase):
         self.assertTrue(result["exhausted"])
         save.assert_called_once()
 
-    def test_tuning_applies_and_llm_results_are_saved(self):
+    def test_tuning_applies_and_round_is_saved(self):
         sim = Sim(seed=7)
         with tempfile.TemporaryDirectory() as td:
             cfg = WL.LoopConfig(save_path=str(Path(td) / "audit.save"),
-                                chunk_events=1, autotune=True, llm=True)
+                                chunk_events=1, autotune=True)
             with patch.object(sim, "step", return_value=object()), \
-                 patch.object(sim.brain_manager, "drain_llm_queue", return_value=1), \
                  patch.object(PS, "save_sim") as save, \
                  patch.object(WL.TN, "save_state"), \
                  patch.object(WL.TN, "propose_update", return_value={"BREAK_BASE_P": 0.51}), \
                  patch.object(WL.TN, "apply_overrides") as apply:
                 WL.run_round(sim, cfg, {})
-                self.assertEqual(save.call_count, 2)
+                self.assertEqual(save.call_count, 1)
                 apply.assert_called_once_with({"BREAK_BASE_P": 0.51})
 
     def test_cannot_restart_while_worker_is_stopping(self):

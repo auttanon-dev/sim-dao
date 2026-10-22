@@ -5,16 +5,11 @@
 """
 import contextlib
 import io
-import shutil
-import tempfile
 import unittest
 
 from tiandao import config as C
 from tiandao import persist as PS
 from tiandao import sim as S
-from tiandao.mind import backend as B
-from tiandao.mind import config as MC
-from tiandao.mind.runner import RunConfig, open_world
 
 
 def quiet(fn, *a, **kw):
@@ -190,29 +185,3 @@ class TestRaidRealmMatching(unittest.TestCase):
         self.assertEqual(ev.target, victim.cid)
 
 
-class TestBeastMindCap(unittest.TestCase):
-    def test_beasts_cannot_take_over_the_cast(self):
-        tmp = tempfile.mkdtemp()
-        try:
-            cfg = RunConfig(out_dir=tmp, seed=4, capacity=12, story=False)
-            sim = open_world(cfg, B.MockThinker())
-            mind = sim.mind
-            beasts = [c for c in sim.living()
-                      if c.cid not in mind.minds and getattr(c, "sentient", True) and c.age(sim.day) >= MC.MIND_MIN_AGE]
-            for c in beasts[:8]:                 # จำลองอสูรร่างมนุษย์ที่ฆ่าผู้มีจิตใจแล้วได้สืบบท
-                c.is_beast, c.has_human_form = True, True
-            for m in list(mind.active())[:6]:    # เปิดที่ว่างให้ผู้สืบบท
-                mind.minds[m.cid].alive = False
-                sim.cast[m.cid].alive = False
-            mind.successor_hints = [(c.cid, "ผู้ที่ปลิดชีพผู้มีจิตใจ") for c in beasts[:8]]
-            mind.ensure_cast(sim)
-            n_beast = sum(1 for m in mind.active() if getattr(sim.cast[m.cid], "is_beast", False))
-            cap = max(1, int(cfg.capacity * MC.BEAST_MIND_MAX_RATIO))
-            self.assertLessEqual(n_beast, cap, f"อสูรเป็นผู้มีจิตใจ {n_beast} คน เกินเพดาน {cap}")
-            self.assertGreaterEqual(len(mind.active()), cfg.capacity - 2, "ต้องยังเติมคนให้ครบด้วยคนอื่น")
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
-
-
-if __name__ == "__main__":
-    unittest.main()
