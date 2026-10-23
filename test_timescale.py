@@ -234,27 +234,6 @@ class TestSeclusion(unittest.TestCase):
         self.assertGreater(len(changed), 0,
                            "อย่างน้อยต้องมีคนที่ออกมาแล้วพบว่าโลกไม่เหมือนเดิม")
 
-    def test_seclusion_reaches_the_menu_of_the_people_who_need_it(self):
-        """น้ำหนักสูงอย่างเดียวไม่พอ — ต้องติด 12 อันดับแรกถึงจะมีตัวตนสำหรับผู้มีจิตใจ
-
-        เทสเดิม (`..._only_tempting_when_there_is_something_to_break`) วัดแค่ว่าน้ำหนัก "ขึ้น"
-        ซึ่งผ่านมาตลอดทั้งที่ของจริงใช้ไม่ได้ เพราะเอนจินสุ่มตามน้ำหนัก (ค่าน้อยก็ยังมีโอกาส) แต่
-        ผู้มีจิตใจเห็นเมนูแค่ `MENU_MAX_ACTIONS` อันดับแรก ค่าที่ "ขึ้นแล้วแต่ยังเตี้ย" จึงหายไปเงียบๆ
-        วัดจริงปีที่ 104-118: ปิดด่านอันดับ 18/18 · โผล่ในเมนู 2/60 คน · ผู้มีจิตใจใช้จริง 0 ครั้ง
-        """
-        from tiandao.mind import actions as A
-        from tiandao.mind import config as MC
-        sim, w, ch = self._ready()
-        ch.insight, ch.refine = 0.0, 0.0
-        menu_far = A.build_menu(IN.weigh(ch, sim, E.EVENT_TABLE, False),
-                                E.EVENT_TABLE, MC.MENU_MAX_ACTIONS)
-        ch.insight = 500.0
-        menu_near = A.build_menu(IN.weigh(ch, sim, E.EVENT_TABLE, False),
-                                 E.EVENT_TABLE, MC.MENU_MAX_ACTIONS)
-        self.assertNotIn("ปิดด่าน", menu_far,
-                         "ยังไม่มีอะไรจะทะลวง ก็ไม่ควรมีตัวเลือกทิ้งชีวิตสามถึงแปดปี")
-        self.assertIn("ปิดด่าน", menu_near,
-                      "ถึงคอขวดแล้วตัวเลือกนี้ต้องอยู่ในสิ่งที่ตัวละคร 'เห็น' จริงๆ")
 
     def test_the_seclusion_share_across_a_live_world(self):
         """วัดทั้งโลกจริง ไม่ใช่ตัวละครที่เซ็ตค่าเอง — ผู้ฝึกต้องปิดด่านจริงบ้าง แต่ไม่ใช่ทุกคน

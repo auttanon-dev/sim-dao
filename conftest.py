@@ -58,13 +58,13 @@ def _learned_config_isolated(tmp_path_factory):
         TN.load_state, TN.save_state = real_load, real_save
 
 
-_GLOBAL_MODULES = ("tiandao.config", "tiandao.ai.config_ai", "tiandao.ai.llm_agent")
+_GLOBAL_MODULES = ("tiandao.config", "tiandao.ai.config_ai")
 
 
 @pytest.fixture(scope="module", autouse=True)
 def _restore_module_globals():
     """คืนค่าตัวแปรระดับโมดูลของ config ทุกตัวหลังจบแต่ละไฟล์เทสต์ — ไฟล์ที่เขียนทับ global โดยไม่คืน
-    (world loop ใส่ค่า autotune ทับ tiandao.config, test_novel_web แทน llm_agent.OllamaAgent) ไม่รั่วไปถึงไฟล์ถัดไป"""
+    (world loop ใส่ค่า autotune ทับ tiandao.config) ไม่รั่วไปถึงไฟล์ถัดไป"""
     import copy
     import importlib
     saved = {}

@@ -11,9 +11,6 @@ import unittest
 
 from tiandao import config as C
 from tiandao import sim as S
-from tiandao.mind import backend as B
-from tiandao.mind import storyteller as ST
-from tiandao.mind.runner import RunConfig, open_world
 
 
 def quiet(fn, *a, **kw):
@@ -152,70 +149,8 @@ class TestMarketAuctionEvent(Base):
         self.assertEqual(len(self.sim.log), before)
 
 
-class TestAuctionReachesMinds(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-        self.sim = open_world(RunConfig(out_dir=self.tmp, seed=3, capacity=10, story=False), B.MockThinker())
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def test_winner_mind_gets_the_crowd_list_and_a_story(self):
-        from tiandao import places as PL
-        w = self.sim.worlds[0]
-        mind_cid = self.sim.mind.active()[0].cid
-        market = next(i for i, p in enumerate(PL.PLACES)
-                      if p[1] == w.place_key and p[3] in C.AUCTION_PLACES)
-        folk = [c for c in self.sim.living_in(0) if c.cid != mind_cid][:5] + [self.sim.cast[mind_cid]]
-        for c in folk:
-            c.place, c.hidden, c.travel_dest = market, False, -1
-            c.money[0] = 100
-        self.sim.cast[mind_cid].money[0] = 5000
-        self.sim.cast[mind_cid].greed = 0.99
-        host = folk[0]
-        # มูลค่าในใจของผู้เข้าประมูลเป็นค่าส่วนตัวแบบล็อกนอร์มัลแล้ว (independent private
-        # values) การมีเงินเยอะจึงไม่ได้แปลว่าชนะทุกครั้ง — เงินเป็นแค่เพดาน ไม่ใช่ราคาที่เสนอ
-        # เทสนี้ล็อกเรื่อง "ผู้มีจิตใจได้รับรู้งานประมูล" ไม่ใช่ "เขาชนะในการทอยครั้งเดียว"
-        for _ in range(25):
-            for c in folk:
-                c.place, c.hidden, c.travel_dest = market, False, -1
-                c.money[0] = 100
-            self.sim.cast[mind_cid].money[0] = 5000
-            self.sim.auction(host, w, self.sim.rng, {})
-            if any(e.get("action") == "เปิดประมูล" for e in self.sim.mind.recent):
-                break
-        entries = [e for e in self.sim.mind.recent if e.get("action") == "เปิดประมูล"]
-        self.assertTrue(entries, "ผู้มีจิตใจต้องได้บรรทัดงานประมูล")
-        self.assertTrue(any((e.get("details") or {}).get("ผู้ร่วมประมูล") for e in entries),
-                        "บันทึกต้องพารายชื่อผู้ร่วมงานมาด้วย ไม่งั้นเขียนฉากหมู่ไม่ได้")
-        queued = [e for e in self.sim.mind.story_queue if e.get("action") == "เปิดประมูล"]
-        self.assertTrue(queued, "ฉากงานประมูลต้องเข้าคิวแต่งเรื่อง")
-        _, user = ST.build(self.sim, queued[0])
-        self.assertIn("ฉากงานชุมนุม", user)
 
 
-class TestAuctionScene(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-        self.sim = open_world(RunConfig(out_dir=self.tmp, seed=3, capacity=10, story=False), B.MockThinker())
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
-
-    def test_story_prompt_asks_for_a_crowd_scene(self):
-        cid = self.sim.mind.active()[0].cid
-        entry = {"id": "d-5", "seq": 5, "day": self.sim.day, "year": 0, "cid": cid,
-                 "name": self.sim.cast[cid].name, "place": "ตลาดมืด", "action": "เปิดประมูล", "target": "",
-                 "dest": "", "why": "หาเงิน", "thought": "", "emotion": "", "long_goal": "",
-                 "outcome": "ประมูล", "text": "เปิดงานประมูล", "alive": True, "side": [],
-                 "details": {"ของที่ประมูล": "แผนที่แดนลับ",
-                             "ผู้ร่วมประมูล": "ฉินลั่ว (สู้ถึง 280) · มู่หรงม่อ (สู้ถึง 167) · เซียวเจี้ยน (สู้ถึง 139)",
-                             "ผู้ชนะ": "ฉินลั่ว จ่าย 168 เหรียญ", "คู่แข่งคนสุดท้าย": "มู่หรงม่อ"}}
-        _, user = ST.build(self.sim, entry)
-        self.assertIn("ฉากงานชุมนุม", user)
-        self.assertIn("ฉินลั่ว", user)
-        self.assertIn("มู่หรงม่อ", user)
-        self.assertIn("ผู้ที่พลาดไปอย่างหวุดหวิด", user)
 
 
 if __name__ == "__main__":

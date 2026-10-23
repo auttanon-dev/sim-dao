@@ -48,13 +48,6 @@ class _Boom:
         raise AssertionError("สำเนาโลกต้องไม่เรียกโมเดลภาษา")
 
 
-class _FakeMind:
-    def __init__(self):
-        self.journal_path = "/ห้ามเขียน/journal.jsonl"
-        self._backend = _Boom()
-
-    def on_event(self, ev, sim):
-        raise AssertionError("สำเนาโลกต้องไม่ยิง handler ของชั้นจิตใจ")
 
 
 class TestTheVisionIsReal(unittest.TestCase):
@@ -67,21 +60,6 @@ class TestTheVisionIsReal(unittest.TestCase):
         self.assertEqual(sim.rng.getstate(), ver, "และต้องไม่ดึง RNG ของโลกจริงเลย")
         self.assertEqual((len(sim.log), len(sim.cast)), (n_log, n_cast))
 
-    def test_the_copy_cannot_call_the_model_or_write_the_journal(self):
-        sim, w, ch = a_world()
-
-        sim.mind = _FakeMind()
-        sim.event_bus.subscribe(sim.mind.on_event)
-        try:
-            fork = FS._fork(sim)
-            self.assertIsNone(fork.mind, "ชั้นจิตใจต้องถูกถอดออกจากสำเนา")
-            names = [type(getattr(h, "__self__", None)).__name__
-                     for h in fork.event_bus._subscribers]
-            self.assertNotIn("_FakeMind", names)
-        finally:
-            sim.event_bus._subscribers = [h for h in sim.event_bus._subscribers
-                                          if type(getattr(h, "__self__", None)).__name__ != "_FakeMind"]
-            sim.mind = None
 
     def test_what_it_shows_is_what_would_have_happened(self):
         """ภาพที่เห็นต้องตรงกับอนาคตจริง ถ้าปล่อยโลกเดินต่อโดยไม่มีใครเปลี่ยนอะไร"""
@@ -181,17 +159,7 @@ class TestFateAccounting(unittest.TestCase):
 
 
 class TestOwnership(unittest.TestCase):
-    def test_exactly_one_protagonist_gets_the_system(self):
-        import tempfile
-        from tiandao.mind import backend as B
-        from tiandao.mind.runner import RunConfig, open_world
-        cfg = RunConfig(out_dir=tempfile.mkdtemp(), seed=4, capacity=6, story=False)
-        sim = quiet(open_world, cfg, B.MockThinker())
-        owners = [c for c in sim.cast if getattr(c, "system_foresight", False)]
-        self.assertEqual(len(owners), 1, "ระบบนี้ต้องมีคนเดียวในโลก")
-        self.assertIn(owners[0].cid, sim.mind.minds, "และต้องเป็นตัวเอกที่มีจิตใจของตัวเอง")
-        quiet(sim.run, 4000)
-        self.assertEqual(sum(1 for c in sim.cast if getattr(c, "system_foresight", False)), 1)
+    pass
 
 class TestTheVisionIsAboutHim(unittest.TestCase):
     """นิมิตต้องเป็นเรื่องของเจ้าของนิมิต ไม่ใช่เรื่องคนแปลกหน้า
@@ -260,31 +228,8 @@ class TestTheOwnerKnowsHeHasIt(unittest.TestCase):
         ch.visions = []
         return sim, ch
 
-    def test_the_sheet_says_so_before_he_has_ever_used_it(self):
-        from tiandao.mind import persona as P
-        sim, ch = self._owner()
-        sheet = P.self_sheet(sim, ch)
-        line = sheet.get("วิถีพิเศษที่มีอยู่ในตัวข้า", "")
-        self.assertIn("หยั่งรู้อนาคต", line)
-        self.assertIn("ยังไม่เคยใช้", line, "ต้องบอกด้วยว่ายังไม่เคยใช้ ไม่ใช่แค่ว่ามี")
-        self.assertIn("ใช้ได้แล้ว", line, "และต้องบอกว่าตอนนี้ใช้ได้ไหม")
 
-    def test_nobody_else_is_told_they_have_it(self):
-        from tiandao.mind import persona as P
-        sim, ch = self._owner()
-        other = next(c for c in sim.cast
-                     if c.alive and c is not ch and getattr(c, "sentient", True))
-        other.system_foresight = False
-        self.assertNotIn("วิถีพิเศษที่มีอยู่ในตัวข้า", P.self_sheet(sim, other))
 
-    def test_the_line_reports_the_cooldown_after_a_look(self):
-        from tiandao.mind import persona as P
-        sim, ch = self._owner()
-        ch.visions = [{"day": sim.day - 30, "lines": ["อะไรสักอย่าง"]}]
-        line = P.self_sheet(sim, ch)["วิถีพิเศษที่มีอยู่ในตัวข้า"]
-        self.assertIn("ยังใช้ไม่ได้", line, "เพิ่งใช้ไปเดือนเดียว ต้องรู้ว่ายังใช้ไม่ได้")
-        ch.visions = [{"day": sim.day - C.FORESIGHT_COOLDOWN_DAYS - 1, "lines": ["x"]}]
-        self.assertIn("ใช้ได้แล้ว", P.self_sheet(sim, ch)["วิถีพิเศษที่มีอยู่ในตัวข้า"])
 
 
 if __name__ == "__main__":

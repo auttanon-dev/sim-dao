@@ -26,7 +26,6 @@ from tiandao import events as E
 from tiandao import intent as IN
 from tiandao import rules as R
 from tiandao import sim as S
-from tiandao.mind import actions as A
 
 
 def quiet(fn, *a, **kw):
@@ -215,10 +214,6 @@ class TestDuel(unittest.TestCase):
 
 
 class TestHeavenWar(unittest.TestCase):
-    def test_the_action_exists_for_both_the_dice_and_the_minds(self):
-        kinds = {e["kind"] for e in E.EVENT_TABLE}
-        self.assertIn("สงครามเบิกฟ้า", kinds, "handler มีอยู่แต่ไม่มี kind = ไม่มีใครเลือกได้เลย")
-        self.assertIn("สงครามเบิกฟ้า", A.ACTION_INFO, "ผู้มีจิตใจต้องเห็นตัวเลือกนี้ในเมนูด้วย")
 
     def test_it_is_offered_only_when_the_gate_is_actually_shut(self):
         sim = quiet(S.Sim, seed=7, tiers=3)

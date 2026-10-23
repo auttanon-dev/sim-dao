@@ -28,8 +28,6 @@ import unittest
 from tiandao import config as C
 from tiandao import hopfield as HF
 from tiandao import sim as S
-from tiandao.mind import config as MC
-from tiandao.mind import situation as SIT
 
 
 def quiet(fn, *a, **kw):
@@ -99,22 +97,7 @@ class TestBetaIsPersonality(unittest.TestCase):
                            m.recall(q, beta=C.HOPFIELD_BETA_MIN).confidence,
                            "β สูงต้องเด็ดขาดกว่า β ต่ำ ไม่งั้นนิสัยไม่มีผลอะไรเลย")
 
-    def test_an_inner_demon_makes_the_mind_waver(self):
-        sim = quiet(S.Sim, seed=3)
-        ch = next(c for c in sim.cast if c.alive)
-        ch.traits = []
-        ch.inner = 0.0
-        calm = SIT.beta_of(ch)
-        ch.inner = 12.0
-        dark = SIT.beta_of(ch)
-        self.assertLess(dark, calm, "จิตมารหนักแล้วใจต้องไม่มั่นเท่าเดิม")
 
-    def test_beta_stays_in_its_band(self):
-        sim = quiet(S.Sim, seed=3)
-        for ch in sim.cast[:60]:
-            b = SIT.beta_of(ch)
-            self.assertGreaterEqual(b, C.HOPFIELD_BETA_MIN)
-            self.assertLessEqual(b, C.HOPFIELD_BETA_MAX)
 
 
 class TestBetaIsScaledByTheSpread(unittest.TestCase):
@@ -210,45 +193,10 @@ class TestTheSituationVector(unittest.TestCase):
         quiet(sim.run, 4000)
         return sim
 
-    def test_the_layout_never_shifts_silently(self):
-        self.assertEqual(SIT.DIM, len(SIT.field_names()))
-        sim = self.a_world()
-        ch = next(c for c in sim.cast if c.alive and c.place is not None)
-        self.assertEqual(len(SIT.encode(sim, ch, [])), SIT.DIM)
 
-    def test_it_is_deterministic(self):
-        sim = self.a_world()
-        ch = next(c for c in sim.cast if c.alive and c.place is not None)
-        self.assertEqual(SIT.encode(sim, ch, []), SIT.encode(sim, ch, []))
 
-    def test_continuous_values_are_bucketed_into_levels(self):
-        """ถ้าไม่แบ่งระดับ ทุกสถานการณ์จะไม่เหมือนกันเลยแม้แต่ครั้งเดียว
-        (อารมณ์ 0.4821 vs 0.4823 ก็เป็นคนละเวกเตอร์) แล้ว "เคยเจอเรื่องแบบนี้"
-        จะไม่มีความหมาย — วัดจริงตอนไม่แบ่ง: ดึงคืนได้ 3 จาก 344
-        """
-        for v in (0.4821, 0.4823, 0.49):
-            self.assertEqual(SIT.q(v), SIT.q(0.4822))
-        levels = {SIT.q(i / 200.0) for i in range(201)}
-        self.assertLessEqual(len(levels), C.SITUATION_LEVELS + 1)
 
-    def test_two_people_in_the_same_place_are_told_apart_by_their_hearts(self):
-        """ถ้าน้ำหนักของใจต่ำเกินไป ทุกคนในที่เดียวกันจะกลายเป็นคนเดียวกัน"""
-        sim = self.a_world()
-        here = [c for c in sim.cast if c.alive and c.place is not None]
-        # คู่แรกที่อยู่ที่เดียวกันและขั้นเดียวกัน — ไม่ผูกกับคนแรกของรายชื่อซึ่งอาจไม่มีใครตรงกันเมื่อเส้นทางของโลกเปลี่ยน
-        a, b = next((x, y) for i, x in enumerate(here) for y in here[i + 1:]
-                    if y.place == x.place and y.realm == x.realm)
-        va, vb = SIT.encode(sim, a, []), SIT.encode(sim, b, [])
-        self.assertLess(HF.dot(HF.normalize(va), HF.normalize(vb)), 0.9999)
 
-    def test_the_qi_pressure_actually_moves_the_vector(self):
-        sim = self.a_world()
-        ch = next(c for c in sim.cast if c.alive and c.place is not None)
-        ch.realm = 1
-        low = SIT.encode(sim, ch, [])
-        ch.realm = 8
-        high = SIT.encode(sim, ch, [])
-        self.assertNotEqual(low, high)
 
 
 class TestTheHybridKeepsCharactersVaried(unittest.TestCase):
@@ -260,45 +208,11 @@ class TestTheHybridKeepsCharactersVaried(unittest.TestCase):
     ความมั่นใจสูงจึงไม่ใช่เกณฑ์ที่พอ ต้องมีเพดานตัดวงจรโดยตรง
     """
 
-    def test_there_is_a_ceiling_on_answering_from_habit(self):
-        self.assertGreater(MC.RECALL_MAX_STREAK, 0)
-        self.assertLessEqual(MC.RECALL_MAX_STREAK, 8,
-                             "เพดานหลวมเกินไปก็เท่ากับไม่มีเพดาน")
 
-    def test_there_is_a_guard_against_repeating_the_same_action(self):
-        self.assertGreater(MC.RECALL_REPEAT_WINDOW, MC.RECALL_REPEAT_MAX)
 
-    def test_the_trust_bar_is_high_enough_to_have_been_measured(self):
-        """0.6 วัดแล้วปล่อยให้ความจำกลืน 93% ของการตัดสินใจ"""
-        self.assertGreaterEqual(MC.RECALL_TRUST_CONF, 0.75)
-        self.assertGreater(MC.RECALL_TRUST_CONF, MC.RECALL_ROUTINE_CONF,
-                           "วันที่ต้องคิดต้องเข้มกว่าวันธรรมดา เพราะทางเลือกอีกทางคือคิดจริง")
 
-    def test_a_routine_day_may_use_a_weaker_memory_than_a_thinking_day(self):
-        """วันธรรมดาทางเลือกอีกทางคือลูกเต๋า เกณฑ์จึงต่ำได้โดยไม่เสียอะไร"""
-        self.assertLess(MC.RECALL_ROUTINE_CONF, MC.RECALL_TRUST_CONF)
 
-    def test_a_violent_shock_always_reaches_the_model(self):
-        from tiandao.mind import manager as MG
 
-        class FakeMind:
-            shaken = True
-        self.assertTrue(MG.MindManager._turning_point(FakeMind(), None))
-
-    def test_a_bottleneck_is_a_state_not_a_turning_point(self):
-        """วัดจริง: รวม at_bottleneck() เข้าไปแล้ว 263 จาก 315 วันที่ต้องคิด (83%)
-        กลายเป็นจุดพลิก เพราะหลังรื้อเศรษฐกิจปราณ ตัวละครค้างที่คอขวดเป็นสิบปี
-        """
-        from tiandao.mind import manager as MG
-        sim = quiet(S.Sim, seed=5)
-        quiet(sim.run, 3000)
-        ch = next((c for c in sim.cast if c.alive and c.at_bottleneck()), None)
-        if ch is None:
-            self.skipTest("รันสั้นเกินกว่าจะมีคนติดคอขวด")
-
-        class FakeMind:
-            shaken = False
-        self.assertFalse(MG.MindManager._turning_point(FakeMind(), ch))
 
 
 if __name__ == "__main__":
