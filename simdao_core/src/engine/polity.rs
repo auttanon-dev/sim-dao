@@ -287,7 +287,7 @@ mod tests {
                 city_of.insert(p["id"].as_u64().unwrap(), cities.len());
                 cities.push(json!({"id": cities.len(), "name": p["name"], "world": p["world"], "place": p["seat"], "kind": p["style"],
                     "safety": t["safety"], "wealth": t["wealth"], "jianghu": t["jianghu"], "info": t["info"],
-                    "strictness": p["policy"]["strictness"].as_f64().unwrap() * 100.0, "title": p["offices"][0]["title"], "ruler": p["offices"][0]["holder"]}));
+                    "strictness": (p["policy"]["strictness"].as_f64().unwrap() * 100.0).round(), "title": p["offices"][0]["title"], "ruler": p["offices"][0]["holder"]}));
             }
         }
         let o = v.as_object_mut().unwrap();
@@ -324,5 +324,26 @@ mod tests {
         a.run_until(6 * 365);
         b.run_until(6 * 365);
         assert_eq!(crate::engine::sim::tests::fingerprint(&a), crate::engine::sim::tests::fingerprint(&b));
+    }
+}
+#[cfg(test)]
+mod index_tests {
+    /// ดัชนีคนต่อสถานที่ต้องตรงกับความจริงเสมอ (เจ้าโกลาหลที่สลายอยู่ไม่อยู่ในดัชนี)
+    #[test]
+    fn at_index_matches_truth() {
+        let mut e = crate::engine::sim::Engine::new(9, crate::engine::config::Config::default());
+        for d in 1..=120 {
+            e.run_until(d * 20);
+            for (pl, set) in e.at.iter().enumerate() {
+                for &i in set {
+                    let p = &e.people[i as usize];
+                    assert!(p.alive && p.place as usize == pl, "day {} stale at[{}] has {} alive {} place {}", e.day, pl, p.name, p.alive, p.place);
+                }
+            }
+            for &i in &e.alive {
+                let p = &e.people[i as usize];
+                assert!(p.dissolved() || e.at[p.place as usize].contains(&i), "day {} missing {} process {:?} lord {} chaos {}", e.day, p.name, p.process, p.is_lord, p.chaos_rank);
+            }
+        }
     }
 }

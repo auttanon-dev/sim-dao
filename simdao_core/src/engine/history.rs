@@ -2,7 +2,7 @@
 //!
 //! · ประวัติศาสตร์ (Historic): ผู้นำเปลี่ยน ตั้ง/ล่มสลาย/ควบรวมสำนัก สงคราม ภัยระดับแดน — บันทึกเสมอ ไม่ทิ้ง
 //! · น่าสนใจ (Notable): บันทึกจนถึงงบต่อแดนต่อปี (notable_per_world_year) เกินนั้นนับเป็นสถิติ
-//! · ประจำวัน (Routine): นับเป็นสถิติอย่างเดียว
+//! · ประจำวัน (Routine): นับเป็นสถิติอย่างเดียว — เว้นแต่ผู้กระทำเป็นคนสำคัญ จึงนับเป็นน่าสนใจ
 //! ทุกเหตุการณ์ถูกนับใน ledger.counts และ world_counts เสมอ — ไม่มีอะไรหายเงียบ
 //! สำเนาที่ใช้มองอนาคต (fork) บันทึกทุกอย่าง เพราะการให้คะแนนอนาคตอ่านจากบันทึก
 
@@ -35,10 +35,17 @@ impl Engine {
         if HISTORIC.contains(&kind) {
             return Tier::Historic;
         }
-        if ROUTINE.contains(&kind) {
-            return Tier::Routine;
-        }
         let band = self.cfg.realm_band;
+        if ROUTINE.contains(&kind) {
+            // กิจวัตรของคนสำคัญ (ผู้ดำรงตำแหน่ง ผู้บำเพ็ญขั้นสูง ผู้มาจากแดนบน) เป็นเรื่องที่คนเล่าขาน
+            return match actor {
+                Some(a) if {
+                    let p = &self.people[a as usize];
+                    p.office.is_some() || p.realm % band >= 7 || p.peak_tier > 0
+                } => Tier::Notable,
+                _ => Tier::Routine,
+            };
+        }
         match (kind, actor) {
             // คนสำคัญตาย = น่าสนใจ · ชาวบ้านตาย = สถิติ (การตายของผู้นำทำให้เกิดเหตุการณ์สืบทอดอยู่แล้ว)
             ("ตาย", Some(a)) => {

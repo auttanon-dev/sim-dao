@@ -127,7 +127,8 @@ impl Engine {
         let base = self.polities.len() as u32;
         for c in std::mem::take(&mut self.legacy_cities) {
             let id = base + c.id as u32;
-            let mut pol = Polity::new(id, PolityKind::City, c.name, c.world, c.place, Succession::Strength, &c.title, 0);
+            let rule = super::society::city_rule(&c.kind).3;
+            let mut pol = Polity::new(id, PolityKind::City, c.name, c.world, c.place, rule, &c.title, 0);
             pol.style = c.kind;
             pol.policy.strictness = c.strictness / 100.0;
             pol.offices[0].holder = c.ruler;

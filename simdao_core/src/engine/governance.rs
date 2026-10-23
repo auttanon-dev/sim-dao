@@ -290,7 +290,9 @@ impl Engine {
         let authority = match g.head() {
             Some(h) => {
                 let mine = self.power(h);
-                let rival = pool.iter().filter(|&&i| i != h).map(|&i| self.power(i)).fold(0.0, f64::max);
+                // คู่แข่งที่นับ: ผู้ดำรงตำแหน่งรอง และ (สำหรับสำนัก) ศิษย์ขั้นสูงสุด — ไม่ต้องคิดพลังของทุกคนทุกเดือน
+                let top = pool.iter().copied().filter(|&i| i != h).max_by_key(|&i| (self.people[i as usize].realm, std::cmp::Reverse(i)));
+                let rival = g.holders().map(|(_, x)| x).filter(|&x| x != h).chain(top).map(|i| self.power(i)).fold(0.0, f64::max);
                 (mine / (mine + rival).max(1e-9)).min(1.0) as f32 * 2.0
             }
             None => 0.0,

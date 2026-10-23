@@ -148,6 +148,10 @@ impl Engine {
         self.compute_qi();
         self.at = vec![Default::default(); self.places.len()];
         for &i in &self.alive {
+            // เจ้าโกลาหลที่สลายอยู่ไม่มีตัวตนที่สถานที่ใด (เหมือนตอนเล่นต่อเนื่อง)
+            if self.people[i as usize].dissolved() {
+                continue;
+            }
             self.at[self.people[i as usize].place as usize].insert(i);
         }
     }
@@ -495,7 +499,7 @@ pub(crate) mod tests {
         eprintln!("GOLDEN {} {}", h, e.alive.len());
         assert_eq!(h, GOLDEN, "behaviour changed (alive {})", e.alive.len());
     }
-    const GOLDEN: u64 = 5666692564723387031;
+    const GOLDEN: u64 = 6789734594892141689;
 
     /// พฤติกรรม (ไม่ขึ้นกับรูปแบบการเซฟ): ใช้ยืนยันว่าการย้ายโครงสร้างข้อมูลไม่เปลี่ยนผล
     #[test]
@@ -506,7 +510,7 @@ pub(crate) mod tests {
         eprintln!("BEHAVIOUR {:?}", f);
         assert_eq!(f, BEHAVIOUR);
     }
-    const BEHAVIOUR: (usize, usize, u64, i64) = (1626, 2207, 1719639053237918737, 7300);
+    const BEHAVIOUR: (usize, usize, u64, i64) = (1540, 2144, 13394171075381343699, 7301);
 
     #[test]
     fn same_seed_same_world() {

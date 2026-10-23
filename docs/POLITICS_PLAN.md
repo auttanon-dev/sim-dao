@@ -1,6 +1,6 @@
 # Politics & Interests: Design and Revised Migration Plan
 
-Status: **approved**. P0 is done; P1 is in progress. Branch: `rust-core-phase1`.
+Status: **approved**. P0 and P1 are done (see `docs/P0_BASELINE.md` and `docs/P1_REPORT.md`). P2 awaits approval. Branch: `rust-core-phase1`.
 
 ## 0. Approved decisions
 

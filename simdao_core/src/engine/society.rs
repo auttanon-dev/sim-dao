@@ -10,6 +10,31 @@ use super::model::*;
 use super::sim::Engine;
 use super::polity::*;
 
+/// อาชีพนอกกฎหมาย (คิดครั้งเดียวจากตาราง)
+pub fn criminal_profession(prof: u8) -> bool {
+    static CRIM: std::sync::OnceLock<Vec<bool>> = std::sync::OnceLock::new();
+    CRIM.get_or_init(|| {
+        let crim = data::strs(data::table("config", "CRIMINAL_PROFESSIONS"));
+        data::world().professions.iter().map(|(n, _)| crim.contains(n)).collect()
+    })[prof as usize]
+}
+
+/// กฎของเมืองตามประเภท: (ความเข้มงวด, ตำแหน่งผู้นำ, ขั้นของผู้นำคนแรก, กฎสืบทอด)
+/// ราชวงศ์สืบสายเลือด · ทัพและอำเภอรับการแต่งตั้ง (ไร้ผู้แต่งตั้ง → สภาขุนนาง) · ตลาดมืดถือกำลังเป็นใหญ่
+pub fn city_rule(kind: &str) -> (f32, &'static str, u8, Succession) {
+    if kind.contains("เมืองหลวง") {
+        (90.0, "ฮ่องเต้", 6, Succession::Heredity)
+    } else if kind.contains("ชายแดน") {
+        (80.0, "แม่ทัพใหญ่", 5, Succession::Appointment)
+    } else if kind.contains("หน้าด่านสำนัก") {
+        (40.0, "ตัวแทนสำนัก", 7, Succession::Appointment)
+    } else if kind.contains("ลับแล") || kind.contains("เถื่อน") || kind.contains("ตลาดมืด") {
+        (10.0, "ราชาตลาดมืด", 8, Succession::Strength)
+    } else {
+        (50.0, "นายอำเภอ", 3, Succession::Appointment)
+    }
+}
+
 impl Engine {
     /// เมืองของโลกมนุษย์และแดนเพื่อนบ้าน — หนึ่งเมืองต่อสถานที่ที่เป็นเมือง/ตลาด พร้อมเจ้าเมือง
     pub fn found_cities(&mut self) {
@@ -29,18 +54,7 @@ impl Engine {
         for (i, (world, place)) in spots.into_iter().enumerate().take(lore.len()) {
             let c = &lore[i];
             let kind = c["type_desc"].as_str().unwrap_or("").to_string();
-            // ราชวงศ์สืบสายเลือด · ทัพและอำเภอรับการแต่งตั้ง (ไร้ผู้แต่งตั้ง → สภาขุนนาง) · ตลาดมืดถือกำลังเป็นใหญ่
-            let (strict, title, realm, rule) = if kind.contains("เมืองหลวง") {
-                (90.0, "ฮ่องเต้", 6, Succession::Heredity)
-            } else if kind.contains("ชายแดน") {
-                (80.0, "แม่ทัพใหญ่", 5, Succession::Appointment)
-            } else if kind.contains("หน้าด่านสำนัก") {
-                (40.0, "ตัวแทนสำนัก", 7, Succession::Appointment)
-            } else if kind.contains("ลับแล") || kind.contains("เถื่อน") || kind.contains("ตลาดมืด") {
-                (10.0, "ราชาตลาดมืด", 8, Succession::Strength)
-            } else {
-                (50.0, "นายอำเภอ", 3, Succession::Appointment)
-            };
+            let (strict, title, realm, rule) = city_rule(&kind);
             let a = &c["attributes"];
             let id = self.polities.len() as u32;
             let age = 30.0 + self.rng.next_f64() * 30.0;
@@ -90,8 +104,7 @@ impl Engine {
     // ------------------------------------------------------------------ คุณธรรมและความผิด
     pub fn is_criminal(&self, id: Pid) -> bool {
         let p = &self.people[id as usize];
-        let crim = data::strs(data::table("config", "CRIMINAL_PROFESSIONS"));
-        p.crimes > 0 || (p.moral as f64) <= k("CRIMINAL_MORAL") || crim.contains(&data::world().professions[p.profession as usize].0) || self.hated(id)
+        p.crimes > 0 || (p.moral as f64) <= k("CRIMINAL_MORAL") || criminal_profession(p.profession) || self.hated(id)
     }
 
     pub fn crime_weight(&self, id: Pid) -> u16 {
