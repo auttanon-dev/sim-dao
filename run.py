@@ -128,49 +128,6 @@ def main():
               "— ตรวจไฟล์ save/log ก่อนเดินต่อ")
 
     if a.save:
-        try:
-            lock = PS.writer_lock(a.save_path)   # noqa: F841 — ถือไว้จนโปรเซสจบ
-        except PS.WorldLocked as ex:
-            raise SystemExit(f"[persist] {ex}")
-    sim = None
-    if a.resume:
-        try:
-            sim = PS.load_sim(a.save_path)
-            print(f"[persist] เดินต่อจากไฟล์ {a.save_path} — วันที่ {sim.day} (ปีที่ {sim.day//365})")
-        except FileNotFoundError:
-            print(f"[persist] ไม่พบไฟล์ {a.save_path} — เริ่มโลกใหม่จาก seed {a.seed} แทน")
-    if sim is None:
-        sim = Sim(seed=a.seed, tiers=a.tiers)
-    if a.decision or a.explain is not None:
-        from tiandao import decision as DE
-        if getattr(sim, "decision_engine", None) is None:
-            DE.attach(sim, mode=a.decision_mode,
-                      focus=(a.explain,) if a.explain is not None else ())
-        elif a.decision_mode:
-            sim.decision_engine.mode = a.decision_mode
-        if a.explain is not None:
-            sim.decision_engine.focus.add(a.explain)
-    sim.run(a.events)
-    if getattr(sim, "decision_engine", None) is not None:
-        print(f"[decision] {sim.decision_engine.summary()}")
-        if a.explain is not None:
-            print(sim.decision_engine.explain_text(a.explain, n=3) or
-                  f"[decision] ตัวละคร {a.explain} ยังไม่ได้ตัดสินใจผ่าน engine ในรอบนี้")
-    if getattr(sim, "last_run_steps", a.events) < a.events:
-        print(f"[warning] scheduler stopped early after {sim.last_run_steps}/{a.events} events "
-              "— ตรวจไฟล์ save/log ก่อนเดินต่อ")
-
-    if a.llm:
-        queued = len(sim.brain_manager.llm_queue)
-        print(f"[llm] คิว Layer 3 มีทั้งหมด {queued} งาน — จะประมวลผล "
-              f"{'ทั้งหมด' if a.llm_budget <= 0 else f'{a.llm_budget} งานแรก'} "
-              f"(~20 วินาที/งาน โดยประมาณ)")
-        n = sim.brain_manager.drain_llm_queue(sim, budget=a.llm_budget)
-        left = len(sim.brain_manager.llm_queue)
-        print(f"[llm] ประมวลผลคิว Layer 3 แล้ว {n} งาน (เหลือค้างคิว {left} งาน — งานที่เหลือถูกเซฟ "
-              f"ไปกับ world.save ด้วย ถ้าใช้ --save จึง drain ต่อได้ทีหลังด้วย --resume)")
-
-    if a.save:
         save_dir = os.path.dirname(a.save_path)
         if save_dir:
             os.makedirs(save_dir, exist_ok=True)
