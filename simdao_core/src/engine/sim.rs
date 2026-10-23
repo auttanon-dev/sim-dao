@@ -12,7 +12,7 @@ use crate::noise::Planet;
 use crate::rng::{fold_seed, Xoshiro};
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
-use std::collections::{BTreeSet, BinaryHeap, HashSet, VecDeque};
+use std::collections::{BTreeSet, BinaryHeap, VecDeque};
 
 pub const PLANET_SPAN: f64 = 1000.0;
 pub const PLANET_SCALE: f64 = 12.0;
@@ -35,7 +35,7 @@ pub struct Engine {
     pub seq: u64,
     pub news: Vec<News>,
     pub ledger: Ledger,
-    pub used_names: HashSet<String>,
+    pub used_names: BTreeSet<String>,
     pub steps: u64,
     // ---- แดนมารและเผ่าโกลาหล
     pub mara_world: Option<u16>,
@@ -91,7 +91,7 @@ impl Engine {
             seq: 0,
             news: Vec::new(),
             ledger: Ledger::default(),
-            used_names: HashSet::new(),
+            used_names: BTreeSet::new(),
             steps: 0,
             mara_world: None,
             chaos_world: None,
@@ -458,6 +458,21 @@ mod tests {
         });
         (e.alive.len(), e.people.len(), h, e.day)
     }
+
+    /// แฮชของสถานะทั้งหมด — ใช้ตรวจว่าการรื้อโครงสร้างไม่เปลี่ยนพฤติกรรม
+    pub fn state_hash(e: &Engine) -> u64 {
+        serde_json::to_string(e).unwrap().bytes().fold(0xcbf29ce484222325u64, |h, b| (h ^ b as u64).wrapping_mul(0x100000001b3))
+    }
+
+    #[test]
+    fn golden_state() {
+        let mut e = Engine::new(21, Config::default());
+        e.run_until(20 * 365);
+        let h = state_hash(&e);
+        eprintln!("GOLDEN {} {}", h, e.alive.len());
+        assert_eq!(h, GOLDEN, "behaviour changed (alive {})", e.alive.len());
+    }
+    const GOLDEN: u64 = 5628211116023001513;
 
     #[test]
     fn same_seed_same_world() {
