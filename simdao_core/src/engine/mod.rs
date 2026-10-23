@@ -5,12 +5,14 @@ pub mod config;
 pub mod conflict;
 pub mod cultivation;
 pub mod data;
+pub mod disease;
 pub mod geo;
 pub mod life;
 pub mod model;
 pub mod py;
 pub mod sect;
 pub mod sim;
+pub mod trades;
 pub mod world;
 
 pub use config::Config;

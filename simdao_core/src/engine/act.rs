@@ -31,6 +31,10 @@ pub enum Act {
     JoinSect(u32),
     FoundSect,
     Teach(Pid),
+    Heal(Pid),
+    Brew,
+    Forge,
+    Arrest(Pid),
 }
 
 impl Engine {
@@ -43,6 +47,18 @@ impl Engine {
                 } else {
                     self.arrive(id, dest);
                     let gap = self.range(1, 10);
+                    self.schedule(id, gap);
+                }
+                return;
+            }
+            Some(Process::Jail { until }) => {
+                if self.day < until {
+                    self.schedule(id, until - self.day);
+                } else {
+                    self.people[id as usize].process = None;
+                    let n = self.people[id as usize].name.clone();
+                    self.emit("พ้นโทษ", Some(id), None, "พ้นโทษ", format!("{}พ้นโทษออกจากคุก", n));
+                    let gap = self.range(5, 30);
                     self.schedule(id, gap);
                 }
                 return;
@@ -196,7 +212,7 @@ impl Engine {
         // ล้างแค้น — ศัตรูที่อยู่ตรงหน้า
         if let Some((&foe, &g)) = p.rivals.iter().filter(|(f, _)| others.contains(f)).max_by_key(|(_, &g)| g) {
             if g >= 2 {
-                menu.push((Act::Revenge(foe), 3.0 * g as f64 * (1.0 - 0.6 * p.compassion as f64)));
+                menu.push((Act::Revenge(foe), 1.5 * g as f64 * (1.0 - 0.6 * p.compassion as f64)));
             }
         }
         if p.cultivator && !others.is_empty() && p.injury < 0.3 {
@@ -211,7 +227,13 @@ impl Engine {
             if self.people[mark as usize].gold > 20.0 {
                 // ความเสี่ยงถูกโต้กลับในที่ที่เพิ่งมีการนองเลือด — คนระวังตัวมากกว่า
                 let heat = physics::hawkes_intensity(0.2, Some(world.blood_marks.iter().map(|&d| d as f64).collect()), day as f64, self.cfg.hawkes_alpha, self.cfg.hawkes_decay_days);
-                menu.push((Act::Rob(mark), 2.0 * p.greed as f64 / (1.0 + heat)));
+                menu.push((Act::Rob(mark), 0.8 * p.greed as f64 / (1.0 + heat)));
+            }
+        }
+        self.trade_options(id, &others, &mut menu);
+        if self.profession_is(id, &super::trades::GUARDS) {
+            if let Some(&crook) = others.iter().filter(|&&o| self.people[o as usize].crimes > 0).max_by_key(|&&o| (self.people[o as usize].crimes, std::cmp::Reverse(o))) {
+                menu.push((Act::Arrest(crook), 8.0 + 4.0 * self.people[crook as usize].crimes as f64));
             }
         }
         menu.push((Act::Wander, 1.5));
@@ -264,6 +286,10 @@ impl Engine {
             Act::JoinSect(s) => self.join_sect(id, s),
             Act::FoundSect => self.found_sect(id),
             Act::Teach(t) => self.teach(id, t),
+            Act::Heal(t) => self.heal(id, t),
+            Act::Brew => self.brew(id),
+            Act::Forge => self.forge(id),
+            Act::Arrest(t) => self.arrest(id, t, None),
         }
     }
 

@@ -227,7 +227,7 @@ impl Default for Config {
             decay_per_fight: 0.25,
             hawkes_alpha: 0.35,
             hawkes_decay_days: 720.0,
-            grudge_on_kill: 3,
+            grudge_on_kill: 2,
             grudge_half_life_years: 6.0,
 
             found_sect_realm: 4,

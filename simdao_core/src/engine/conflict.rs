@@ -55,6 +55,47 @@ impl Engine {
         self.range(10, 60)
     }
 
+    /// จับกุม — ปะทะกับผู้ต้องหา ถ้าชนะคืนของให้ผู้เสียหายแล้วคุมขังตามความผิด
+    pub fn arrest(&mut self, guard: Pid, crook: Pid, loot: Option<(Pid, f64)>) -> i64 {
+        if !self.people[crook as usize].alive || self.people[crook as usize].place != self.people[guard as usize].place {
+            return self.range(5, 20);
+        }
+        let (w, _l, ratio) = self.clash(guard, crook);
+        let (gn, cn) = (self.people[guard as usize].name.clone(), self.people[crook as usize].name.clone());
+        if w == guard {
+            if let Some((victim, amount)) = loot {
+                let back = amount.min(self.people[crook as usize].gold);
+                self.people[crook as usize].gold -= back;
+                if self.people[victim as usize].alive {
+                    self.people[victim as usize].gold += back;
+                } else {
+                    // ผู้เสียหายตายแล้ว — ของกลางตกเป็นของชุมชน
+                    let place = self.people[crook as usize].place as usize;
+                    self.places[place].treasury += back;
+                }
+            }
+            let crimes = self.people[crook as usize].crimes.max(1) as i64;
+            let years = (crimes).min(10);
+            let until = self.day + years * 365;
+            let p = &mut self.people[crook as usize];
+            p.crimes = 0;
+            p.process = Some(Process::Jail { until });
+            self.schedule(crook, years * 365);
+            self.emit("จับกุม", Some(guard), Some(crook), "คุมขัง", format!("{}จับกุม{} ตัดสินจำคุก {} ปี", gn, cn, years));
+        } else {
+            let p = &mut self.people[guard as usize];
+            p.injury = (p.injury + 0.25).min(1.0);
+            *self.people[crook as usize].rivals.entry(guard).or_insert(0) += 1;
+            if ratio > self.cfg.death_margin * 1.3 && self.chance(0.3) {
+                self.people[crook as usize].crimes += 3;
+                self.kill(guard, Some(crook), &format!("ถูก{}สังหารขณะเข้าจับกุม", cn), false);
+            } else {
+                self.emit("จับกุม", Some(guard), Some(crook), "หลบหนี", format!("{}เข้าจับกุม{}แต่ถูกตีถอย", gn, cn));
+            }
+        }
+        self.range(10, 40)
+    }
+
     pub fn rob(&mut self, a: Pid, b: Pid) -> i64 {
         if !self.people[b as usize].alive || self.people[b as usize].place != self.people[a as usize].place {
             return self.range(5, 20);
@@ -68,10 +109,24 @@ impl Engine {
             *self.people[b as usize].rivals.entry(a).or_insert(0) += 2;
             let p = &mut self.people[b as usize];
             p.injury = (p.injury + 0.15).min(1.0);
+            self.people[a as usize].crimes += 1;
             if ratio > self.cfg.death_margin * 1.5 && self.chance(0.25) {
+                self.people[a as usize].crimes += 3;
                 self.kill(b, Some(a), &format!("ถูก{}ปล้นฆ่า", an), false);
             } else {
                 self.emit("ปล้น", Some(a), Some(b), "ปล้นสำเร็จ", format!("{}ดักปล้น{} ได้ไป {:.0} ตำลึง", an, bn, take));
+            }
+            // มือปราบที่อยู่ในที่เกิดเหตุเข้าจับกุม
+            let place = self.people[a as usize].place;
+            let guards: Vec<Pid> = self
+                .present_at(place)
+                .into_iter()
+                .filter(|&g| g != a && g != b && self.is_adult(g) && self.profession_is(g, &super::trades::GUARDS))
+                .collect();
+            if let Some(&g) = guards.first() {
+                if self.chance(1.0 - 0.6f64.powi(guards.len() as i32)) {
+                    self.arrest(g, a, Some((b, take)));
+                }
             }
         } else {
             let p = &mut self.people[a as usize];

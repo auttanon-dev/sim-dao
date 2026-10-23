@@ -116,6 +116,8 @@ impl Engine {
                 cap,
                 era: 1,
                 blood_marks: Vec::new(),
+                harvest_mult: 1.0,
+                harvest_until: 0,
             });
             id
         };
@@ -312,6 +314,16 @@ impl Engine {
         self.ledger.count(kind);
     }
 
+    /// เหตุการณ์ที่ไม่มีผู้กระทำ (ภัยพิบัติ โรคระบาด) — ระบุแดนและสถานที่เอง
+    pub fn emit_at(&mut self, kind: &str, world: u16, place: u32, outcome: &str, text: String) {
+        self.seq += 1;
+        self.log.push_back(Event { seq: self.seq, day: self.day, kind: kind.to_string(), actor: None, target: None, world, place, outcome: outcome.to_string(), text });
+        while self.log.len() > self.cfg.log_keep {
+            self.log.pop_front();
+        }
+        self.ledger.count(kind);
+    }
+
     // ------------------------------------------------------------------ ตัวช่วย
     pub fn person(&self, id: Pid) -> &Person {
         &self.people[id as usize]
@@ -426,5 +438,19 @@ mod tests {
             let p = &e.people[i as usize];
             assert_eq!(e.place_world[p.place as usize], Some(p.world), "{} อยู่ผิดแดน", p.name);
         }
+    }
+}
+
+#[cfg(test)]
+mod long_tests {
+    use super::*;
+
+    /// บัญชีทองต้องปิดแม้มีการปล้น จับกุม รักษา ตีอาวุธ (เคยรั่วตอนคืนของกลางให้ผู้เสียหายที่ตายไปแล้ว)
+    #[test]
+    fn gold_closes_over_a_long_violent_run() {
+        let mut e = Engine::new(3, Config::default());
+        e.run_until(150 * 365);
+        let dg = (e.total_gold() - e.ledger_gold()).abs();
+        assert!(dg < 1e-6 * e.ledger_gold(), "gold off by {}", dg);
     }
 }

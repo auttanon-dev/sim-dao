@@ -12,6 +12,8 @@ impl Engine {
     pub fn world_tick(&mut self) {
         let days = self.cfg.world_tick_days as f64;
         self.tick_bodies(days);
+        self.tick_weather();
+        self.tick_disease(days);
         self.tick_food(days);
         self.tick_gold(days);
         self.tick_nature(days);
@@ -22,6 +24,40 @@ impl Engine {
         let horizon = self.day - 5 * 365;
         for w in self.worlds.iter_mut() {
             w.blood_marks.retain(|&d| d >= horizon);
+        }
+    }
+
+    // ------------------------------------------------------------------ ฟ้าฝน
+    /// ต้นปีของแต่ละแดน: ทอยภัยแล้ง/น้ำท่วม — ผลผลิตทั้งปีของแดนนั้นลดลง
+    fn tick_weather(&mut self) {
+        if self.day.rem_euclid(365) >= self.cfg.world_tick_days as i64 {
+            return;
+        }
+        for w in 0..self.worlds.len() {
+            if self.worlds[w].kind == WorldKind::Branch && self.worlds[w].places.len() < 3 {
+                continue;
+            }
+            let roll = self.rng.next_f64();
+            let (mult, kind, text) = if roll < 0.07 {
+                (0.45 + 0.2 * self.rng.next_f64(), "ภัยแล้ง", "ฝนไม่ตกทั้งปี ข้าวในนาแห้งตาย")
+            } else if roll < 0.11 {
+                (0.65 + 0.15 * self.rng.next_f64(), "น้ำท่วม", "น้ำหลากท่วมไร่นา")
+            } else {
+                continue;
+            };
+            self.worlds[w].harvest_mult = mult;
+            self.worlds[w].harvest_until = self.day + 365;
+            let place = self.worlds[w].places.first().copied().unwrap_or(0);
+            let wn = self.worlds[w].name.clone();
+            self.emit_at(kind, w as u16, place, kind, format!("{}: {} — ผลผลิตเหลือราว {:.0}%", wn, text, mult * 100.0));
+            // น้ำท่วมพัดยุ้งฉางเสียหาย
+            if kind == "น้ำท่วม" {
+                for q in self.worlds[w].places.clone() {
+                    let lost = self.places[q as usize].granary * 0.2;
+                    self.places[q as usize].granary -= lost;
+                    self.ledger.food("spoiled", lost);
+                }
+            }
         }
     }
 
@@ -170,7 +206,11 @@ impl Engine {
             let cap = self.cfg.land_cap_day;
             // ดินเสื่อมเมื่อพืชพรรณรอบที่นาถูกเก็บจนหมด
             let fert = 1.0 - 0.4 * (1.0 - (self.places[i].stock[0] / self.eco_k(i, Material::Herb)).min(1.0));
-            let per_day = cap * (1.0 - (-labour[i] * self.cfg.per_worker_day / cap).exp()) * season * fert;
+            let weather = match self.place_world[i] {
+                Some(w) if self.worlds[w as usize].harvest_until > self.day => self.worlds[w as usize].harvest_mult,
+                _ => 1.0,
+            };
+            let per_day = cap * (1.0 - (-labour[i] * self.cfg.per_worker_day / cap).exp()) * season * fert * weather;
             let made = per_day * days;
             self.places[i].granary += made;
             self.places[i].produced_month = made;

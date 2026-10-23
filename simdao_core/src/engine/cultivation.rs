@@ -23,7 +23,8 @@ impl Engine {
         // ร่างกายที่บาดเจ็บสู้ได้ไม่เต็มที่ · คนธรรมดาก็มีแรง (อายุและเพศมีผลเล็กน้อย)
         let age = p.age(self.day);
         let vigour = if age < 18.0 { 0.7 } else if age > 60.0 { (1.0 - (age - 60.0) / 60.0).max(0.4) } else { 1.0 };
-        (base + 1.0) * (1.0 - 0.7 * p.injury as f64) * vigour
+        let sick = if p.sick(self.day) { 0.6 } else { 1.0 };
+        (base + 1.0 + 1.5 * p.weapon as f64) * (1.0 - 0.7 * p.injury as f64) * vigour * sick
     }
 
     /// โอกาสข้ามขั้นตอนนี้ — ภาพการข้ามกำแพงพลังงาน (physics.barrier_odds)
@@ -40,6 +41,7 @@ impl Engine {
             -self.cfg.break_z_realm * (p.realm % band) as f64,
             self.cfg.break_z_scarce * ratio.ln(),
             (p.root as f64 - 0.5) * 1.5,
+            0.72 * p.pills.min(3) as f64,   // ยาวิเศษกดกำแพงลง (ใช้ได้ไม่เกินสามเม็ดต่อครั้ง)
         ];
         physics::barrier_odds(gap, Some(shifts), self.cfg.break_base_p, self.cfg.break_softness)
     }
@@ -123,6 +125,7 @@ impl Engine {
         let cost = self.cfg.break_cost * ((realm % self.cfg.realm_band) as f64 + 1.0).powi(2);
         let odds = self.break_odds(id);
         let got = self.draw_qi(id, cost);
+        let used = self.people[id as usize].pills.min(3);
         let name = self.people[id as usize].name.clone();
         if got < 0.999 {
             // ฟ้าไม่มีให้ — ปราณที่ดูดมาแล้วไม่สูญ แต่ข้ามไม่ได้
@@ -130,6 +133,7 @@ impl Engine {
             self.emit("ข้ามขั้น", Some(id), None, "ปราณไม่พอ", format!("{}พร้อมข้ามขั้นแต่ปราณฟ้าดินใน{}เหลือไม่พอ", name, wname));
             return self.range(120, 400);
         }
+        self.people[id as usize].pills -= used;
         if self.chance(odds) {
             let p = &mut self.people[id as usize];
             p.insight -= need;

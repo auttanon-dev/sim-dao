@@ -203,6 +203,11 @@ impl Engine {
             master: None,
             kills: 0,
             process: None,
+            sick_until: 0,
+            immune_until: 0,
+            pills: 0,
+            weapon: 0.0,
+            crimes: 0,
             last_day: self.day,
             next_turn: 0,
             fieldwork: false,
@@ -412,7 +417,9 @@ impl Engine {
 
 /// ย่อสาเหตุการตายเป็นหมวดสำหรับสถิติ
 pub fn cause_class(cause: &str) -> &'static str {
-    if cause.contains("อดอยาก") || cause.contains("หิว") {
+    if cause.contains("โรคระบาด") {
+        "โรคระบาด"
+    } else if cause.contains("อดอยาก") || cause.contains("หิว") {
         "อดอยาก"
     } else if cause.contains("ชรา") || cause.contains("อายุขัย") {
         "ชรา"

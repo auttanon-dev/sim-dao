@@ -40,6 +40,8 @@ pub enum Process {
     Travel { dest: u32, since: i64, arrive: i64 },
     /// ปิดด่านบำเพ็ญจนถึงวันไหน
     Seclusion { since: i64, until: i64 },
+    /// ถูกคุมขังจนถึงวันไหน
+    Jail { until: i64 },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -99,6 +101,12 @@ pub struct Person {
     pub kills: u16,
 
     pub process: Option<Process>,
+    // ---- โรค ของทำมือ กฎหมาย
+    pub sick_until: i64,        // ป่วยอยู่ถึงวันไหน (0 = ไม่ป่วย)
+    pub immune_until: i64,      // มีภูมิคุ้มกันถึงวันไหน
+    pub pills: u16,             // ยาวิเศษช่วยข้ามขั้น
+    pub weapon: f32,            // คุณภาพอาวุธที่ถือ (0 = มือเปล่า)
+    pub crimes: u16,            // ความผิดที่ยังไม่ได้ชดใช้
     pub last_day: i64,          // วันที่คิดอายุ/ความเสื่อม/บาดแผลไปแล้ว
     pub next_turn: i64,         // เทิร์นถัดไปที่นัดไว้ — รายการในคิวที่ไม่ตรงนี้คือนัดเก่าที่ถูกเลื่อนแล้ว
     pub fieldwork: bool,        // ลงไร่ช่วงข้าวขาด
@@ -110,6 +118,12 @@ impl Person {
     }
     pub fn tier(&self, band: u8) -> u8 {
         self.realm / band
+    }
+    pub fn sick(&self, day: i64) -> bool {
+        self.sick_until > day
+    }
+    pub fn jailed(&self) -> bool {
+        matches!(self.process, Some(Process::Jail { .. }))
     }
     pub fn travelling(&self) -> bool {
         matches!(self.process, Some(Process::Travel { .. }))
@@ -147,6 +161,8 @@ pub struct World {
     pub cap: f64,
     pub era: u32,
     pub blood_marks: Vec<i64>,  // วันที่มีการนองเลือด (ฮอว์กส์) — ตัดของเก่าทิ้งเป็นระยะ
+    pub harvest_mult: f64,      // ภัยแล้ง/น้ำท่วมปีนี้ (1 = ปกติ)
+    pub harvest_until: i64,
 }
 
 impl World {
