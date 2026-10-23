@@ -1,6 +1,57 @@
 # Politics & Interests: Design and Revised Migration Plan
 
-Status: proposal (not yet implemented). Branch: `rust-core-phase1`.
+Status: **approved**. P0 is done; P1 is in progress. Branch: `rust-core-phase1`.
+
+## 0. Approved decisions
+
+1. **Hierarchy:** there is one central **Heavenly Court** as the highest authority, with subordinate courts and regional governments at each realm tier where appropriate. Submission is **not automatic**. Realms, ancient clans, powerful sects and independent rulers may stay autonomous, resist the court or form rival blocs. Their relationships (vassalage, treaties, rivalry) emerge from actual power, interests, treaties, history and dependencies. They are never assigned by rule.
+2. **World Tree:** it stays **separate from politics**. It is a fundamental force that connects and nourishes realms, as in the existing lore. It is not a ruler. Polities may compete over access to its branches, but the tree belongs to no one.
+3. **Player support:** the simulation stays NPC-driven. Every political mechanism (holding office, factions, influence, negotiation, ambition) runs on the same `Act`/utility path for any character. There will be **no player-only rules**. A future player is a character whose choices come from outside instead of from `choose`.
+4. **Event logging:** the soft target is about **30 significant logged events per world per simulated year**. It is not a hard cap. Events have tiers:
+   - **Historic:** leadership changes, coups, wars, treaties, foundings and collapses. Always logged, never dropped.
+   - **Notable:** logged while under the soft budget and aggregated beyond it.
+   - **Routine:** counted in statistics only.
+5. **Python:** it stays untouched until full validation. P8 deletion needs fresh, explicit approval.
+6. **Approval:** each phase that brings major architectural change waits for approval.
+
+## P1 detailed design
+
+**Storage.** `Engine.polities: Vec<Polity>` replaces `Engine.sects` and `Engine.cities`. Polity ids are stable indices, and a fallen polity keeps its slot (`fallen: Some(day)`), so ids are never reused.
+- `Person.sect` stays as *membership of a sect polity*. Its old ids are kept, because existing sects migrate in id order.
+- `Person.city` becomes `Person.office: Option<(polity, rank)>`. A person holds at most one office.
+- Old saves are migrated in `after_load`: the legacy `sects` and `cities` fields are read and folded into `polities`.
+
+**Shape (extensible to P3–P6, unused fields default to neutral):** `kind`, `name`, `world`, `seat`, `territory`, `parent` (subordination), `succession`, `offices: Vec<Office{title, rank, holder, since, how}>`, `members`, `standing{legitimacy, support, authority, stability}`, `policy{tax, dues, strictness, admit_realm}`, `interests` (weights), `relations: BTreeMap<id, Relation{trust, fear, grudge, debt, treaty}>`, `factions` (empty until P4), `treasury`, `founder`, `founded`, `fallen`, `traits` (city attributes).
+
+**Offices.**
+- Rank 0 is the head (sect master, or a city ruler with a lore title).
+- Rank 1 holds elders or officials. Their number scales with size (sects have 1 + members/8 elders, capped at 6; cities have 2 officials).
+- Disciple rank (inner or outer, using `ORG_INNER_REALM`) is derived from realm. It is not an office.
+
+**Eligibility (explicit, one function).** The person must be alive, adult and in the same world. For sects they must be a member. City offices exclude criminals, except in `Strength` polities such as black markets. Each office has a minimum realm.
+
+**Succession rules:**
+- `Heredity`: the eldest eligible child; failing that, `Council`.
+- `Council`: office holders vote for the best candidate by realm, bond and merit, deterministically; with no electors it falls back to `Strength`.
+- `Appointment`: the parent polity's head appoints; with no parent, `Council`.
+- `Strength`: the most powerful eligible person.
+- `Mandate`: reserved for the Heavenly Court (P6); falls back to `Council`.
+
+How a ruler took the seat sets their initial legitimacy. Vacancies are filled **immediately**, at death or departure, not at the next tick. Leaving an office always clears both the holder slot and `Person.office`. A test enforces these invariants: no orphaned or dead holders, no double offices, nobody holding office in a fallen polity.
+
+**Sect founding requirements (configurable through `Config`):**
+- **Founder:** realm ≥ `found_sect_realm` within the band, enough ambition, and gold ≥ `sect_found_cost`, which moves into the new treasury so the ledger stays neutral.
+- **Site:** qi at the place ≥ `sect_site_qi`, and no living sect already seated there.
+- **Room in the world:** the world's living sects must be fewer than its capacity, `Σ qi of habitable places / sect_qi_per_sect`. Spiritual energy supports sects, so richer worlds hold more.
+
+**Decline.** A sect is weak when it falls under `sect_min_members` or its stability is low. After `sect_weak_months` it resolves deterministically:
+- If its head is gone or it has ≤ 2 members and a stronger sect is nearby, it **merges** into that sect (members and treasury transfer).
+- Otherwise, if a sect at least 2× its strength is nearby, it **becomes subordinate** (`parent` is set; tribute comes in P2).
+- Otherwise it **dissolves**.
+
+**Dues.** Members already pay `sect_tithe` on spending. Elders now receive a stipend from the treasury, using `SECT_PAYOUT_RATE`. All of it goes through the gold ledger.
+
+**Behaviour changes in P1 (intentional):** sect founding is limited; the sect successor is chosen by council instead of by highest realm; vacancies are filled immediately; routine events are no longer stored in the log ring, only counted. Forked foresight engines still log everything, so foresight scoring is unchanged.
 
 ## 1. What exists today
 
