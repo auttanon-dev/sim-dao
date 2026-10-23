@@ -71,33 +71,37 @@ impl Engine {
         (mu + sd * norm_inv(a + u * (b - a))).clamp(floor, hi)
     }
 
-    pub fn unique_name(&mut self, base: String) -> String {
-        if self.used_names.insert(base.clone()) {
-            return base;
-        }
-        for n in 2.. {
-            let cand = format!("{}ที่ {}", base, n);
-            if self.used_names.insert(cand.clone()) {
-                return cand;
-            }
-        }
-        unreachable!()
-    }
-
+    /// ตั้งชื่อ — พยายามไม่ให้ซ้ำกับใครที่เคยมี (สุ่มใหม่ได้หลายครั้ง และชื่อจีนใช้ชื่อสองพยางค์ได้)
+    /// ถ้ายังชนก็ยอมซ้ำ เหมือนโลกจริงที่มีคนชื่อเดียวกันได้ — ไม่ต่อท้ายตัวเลขให้อ่านไม่ออก
     fn roll_name(&mut self, culture: &str, family: Option<&str>) -> String {
         let d = data::world();
         let (first, second) = d.names.get(culture).or_else(|| d.names.get("han")).unwrap();
-        let a = first[self.rng.below(first.len() as u64) as usize].clone();
-        let b = second[self.rng.below(second.len() as u64) as usize].clone();
-        let name = match culture {
-            // จีน: แซ่ติดชื่อ · ตามสายพ่อ
-            "han" => format!("{}{}", family.unwrap_or(&a), b),
-            // สยาม โอเอซิส ชมพูทวีป: ชื่อ นามสกุล
-            "siam" | "oasis" | "bharata" => format!("{} {}", a, family.unwrap_or(&b)),
-            // อาทิตย์อุทัย ทุ่งหญ้า: นามสกุลก่อน
-            _ => format!("{} {}", family.unwrap_or(&a), b),
-        };
-        self.unique_name(name)
+        let mut name = String::new();
+        for _ in 0..8 {
+            let a = first[self.rng.below(first.len() as u64) as usize].clone();
+            let b = second[self.rng.below(second.len() as u64) as usize].clone();
+            name = match culture {
+                // จีน: แซ่ติดชื่อ ตามสายพ่อ · ชื่อตัวหนึ่งหรือสองพยางค์
+                "han" => {
+                    let given = if self.chance(0.6) {
+                        let b2 = &second[self.rng.below(second.len() as u64) as usize];
+                        if *b2 != b { format!("{}{}", b, b2) } else { b.clone() }
+                    } else {
+                        b.clone()
+                    };
+                    format!("{}{}", family.unwrap_or(&a), given)
+                }
+                // สยาม โอเอซิส ชมพูทวีป: ชื่อ นามสกุล
+                "siam" | "oasis" | "bharata" => format!("{} {}", a, family.unwrap_or(&b)),
+                // อาทิตย์อุทัย ทุ่งหญ้า: นามสกุลก่อน
+                _ => format!("{} {}", family.unwrap_or(&a), b),
+            };
+            if !self.used_names.contains(&name) {
+                break;
+            }
+        }
+        self.used_names.insert(name.clone());
+        name
     }
 
     /// สกุลของคน (ใช้ตั้งชื่อลูก)
@@ -205,6 +209,7 @@ impl Engine {
         };
         self.people.push(p);
         self.alive.insert(id);
+        self.at[place as usize].insert(id);
         // ผู้ที่ตั้งต้นมาจากสำนัก/ตระกูลผู้ฝึกตน เริ่มบนวิถีแล้ว
         let origin_name = &d.origins[origin as usize].0;
         if age >= self.cfg.adult_age && (origin_name == "ศิษย์สำนัก" || origin_name == "ทายาทตระกูล") {
@@ -279,6 +284,8 @@ impl Engine {
             p.process = None;
         }
         self.alive.remove(&id);
+        let place = self.people[id as usize].place;
+        self.at[place as usize].remove(&id);
         self.ledger.death(cause_class(cause));
         // คืนปราณที่ดูดไปให้ฟ้า — ตายตามธรรมชาติคืนมาก ถูกฆ่ากลางคันคืนน้อย
         let w = self.people[id as usize].world as usize;

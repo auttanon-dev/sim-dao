@@ -37,7 +37,7 @@ impl Material {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Process {
     /// เดินทางอยู่ — ถึงปลายทางวันไหน
-    Travel { dest: u32, arrive: i64 },
+    Travel { dest: u32, since: i64, arrive: i64 },
     /// ปิดด่านบำเพ็ญจนถึงวันไหน
     Seclusion { since: i64, until: i64 },
 }

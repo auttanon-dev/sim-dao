@@ -40,6 +40,9 @@ pub struct Engine {
     /// ค่าปราณธรรมชาติของแต่ละสถานที่ 0..1 (คิดจากผิวดาวครั้งเดียว)
     #[serde(skip)]
     pub qi: Vec<f64>,
+    /// ดัชนีคนที่มีชีวิตต่อสถานที่ (สร้างใหม่ได้จาก people — ไม่เซฟ)
+    #[serde(skip)]
+    pub at: Vec<std::collections::BTreeSet<Pid>>,
 }
 
 impl Engine {
@@ -65,6 +68,7 @@ impl Engine {
             used_names: HashSet::new(),
             steps: 0,
             qi: Vec::new(),
+            at: vec![Default::default(); d.places.len()],
         };
         e.build_worlds();
         e.compute_qi();
@@ -76,6 +80,20 @@ impl Engine {
     /// หลังโหลดเซฟ — คืนค่าที่ไม่ได้เซฟไว้ (คิดใหม่ได้จาก seed)
     pub fn after_load(&mut self) {
         self.compute_qi();
+        self.at = vec![Default::default(); self.places.len()];
+        for &i in &self.alive {
+            self.at[self.people[i as usize].place as usize].insert(i);
+        }
+    }
+
+    /// ย้ายคนไปสถานที่ใหม่ (ทางเดียวที่แก้ place — ดัชนี `at` ต้องตรงเสมอ)
+    pub fn move_to(&mut self, id: Pid, place: u32) {
+        let old = self.people[id as usize].place;
+        self.at[old as usize].remove(&id);
+        self.people[id as usize].place = place;
+        if self.people[id as usize].alive {
+            self.at[place as usize].insert(id);
+        }
     }
 
     // ------------------------------------------------------------------ สร้างโลก
@@ -305,14 +323,7 @@ impl Engine {
 
     /// คนที่ยังมีชีวิตอยู่ที่สถานที่เดียวกัน (ไม่นับผู้เดินทาง/ปิดด่าน)
     pub fn present_at(&self, place: u32) -> Vec<Pid> {
-        self.alive
-            .iter()
-            .copied()
-            .filter(|&i| {
-                let p = &self.people[i as usize];
-                p.place == place && p.process.is_none()
-            })
-            .collect()
+        self.at[place as usize].iter().copied().filter(|&i| self.people[i as usize].process.is_none()).collect()
     }
 
     pub fn living_in(&self, world: u16) -> Vec<Pid> {
@@ -352,5 +363,68 @@ impl Engine {
         let p = &self.people[id as usize];
         let tier = p.tier(self.cfg.realm_band) as f64;
         p.lifespan + p.realm as f64 * self.cfg.lifespan_per_minor + tier * self.cfg.lifespan_per_major
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fingerprint(e: &Engine) -> (usize, usize, u64, i64) {
+        let h = e.log.iter().fold(0u64, |h, ev| {
+            ev.text.bytes().fold(h.wrapping_mul(1_000_003) ^ ev.day as u64, |h, b| h.wrapping_mul(31) ^ b as u64)
+        });
+        (e.alive.len(), e.people.len(), h, e.day)
+    }
+
+    #[test]
+    fn same_seed_same_world() {
+        let mut a = Engine::new(3, Config::default());
+        let mut b = Engine::new(3, Config::default());
+        a.run_until(8 * 365);
+        b.run_until(8 * 365);
+        assert_eq!(fingerprint(&a), fingerprint(&b));
+        let mut c = Engine::new(4, Config::default());
+        c.run_until(8 * 365);
+        assert_ne!(fingerprint(&a).2, fingerprint(&c).2);
+    }
+
+    #[test]
+    fn ledgers_close() {
+        let mut e = Engine::new(5, Config::default());
+        for y in 1..=15 {
+            e.run_until(y * 365);
+            let df = (e.total_food() - e.ledger_food()).abs();
+            let dg = (e.total_gold() - e.ledger_gold()).abs();
+            assert!(df < 1e-3 * e.ledger_food().max(1.0), "food off by {} in year {}", df, y);
+            assert!(dg < 1e-6 * e.ledger_gold().max(1.0), "gold off by {} in year {}", dg, y);
+        }
+    }
+
+    #[test]
+    fn save_load_continues_identically() {
+        let mut a = Engine::new(9, Config::default());
+        a.run_until(5 * 365);
+        let blob = serde_json::to_string(&a).unwrap();
+        let mut b: Engine = serde_json::from_str(&blob).unwrap();
+        b.after_load();
+        a.run_until(10 * 365);
+        b.run_until(10 * 365);
+        assert_eq!(fingerprint(&a), fingerprint(&b));
+    }
+
+    #[test]
+    fn the_world_lives() {
+        let mut e = Engine::new(11, Config::default());
+        let start = e.alive.len();
+        e.run_until(30 * 365);
+        assert!(e.alive.len() > start / 2, "population collapsed: {} -> {}", start, e.alive.len());
+        assert!(e.people.len() > start + 200, "almost nobody was born");
+        assert!(e.alive.iter().all(|&i| e.people[i as usize].alive));
+        // ไม่มีใครค้างอยู่นอกแดนของตัวเอง
+        for &i in &e.alive {
+            let p = &e.people[i as usize];
+            assert_eq!(e.place_world[p.place as usize], Some(p.world), "{} อยู่ผิดแดน", p.name);
+        }
     }
 }

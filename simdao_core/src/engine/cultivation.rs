@@ -165,9 +165,9 @@ impl Engine {
         if self.chance(odds) {
             let dest_places = self.worlds[up as usize].places.clone();
             let dest = dest_places[self.rng.below(dest_places.len() as u64) as usize];
+            self.move_to(id, dest);
             let p = &mut self.people[id as usize];
             p.world = up;
-            p.place = dest;
             p.realm += 1;
             p.peak_realm = p.peak_realm.max(p.realm);
             p.insight = 0.0;

@@ -241,13 +241,23 @@ impl Engine {
             if !self.eats(id) || !self.people[id as usize].travelling() {
                 continue;
             }
-            let want = self.ration(id) * days;
+            // กินเฉพาะวันที่อยู่บนทางจริงในรอบนี้ (ทางสั้นกว่าหนึ่งรอบนาฬิกาไม่ต้องจ่ายทั้งเดือน)
+            let on_road = match self.people[id as usize].process {
+                Some(Process::Travel { since, arrive, .. }) => {
+                    (arrive.min(self.day) - since.max(self.day - days as i64)).clamp(0, days as i64) as f64
+                }
+                _ => days,
+            };
+            if on_road <= 0.0 {
+                continue;
+            }
+            let want = self.ration(id) * on_road;
             let p = &mut self.people[id as usize];
             let ate = (p.pack as f64).min(want);
             p.pack -= ate as f32;
             self.ledger.food("eaten", ate);
             let unmet = want - ate - self.feed_from_family(id, want - ate);
-            self.hunger(id, unmet, want, days);
+            self.hunger(id, unmet, want, on_road);
         }
         // ---- เติมเสบียงจากส่วนเกินของยุ้งฉาง (ซื้อ)
         for &id in &ids {
@@ -308,10 +318,7 @@ impl Engine {
                     .collect();
                 let want = ((need_month - g) / (self.cfg.per_worker_day * 30.0)).ceil() as usize;
                 for &e in cand.iter().take(want.max(1)) {
-                    if !self.people[e as usize].fieldwork {
-                        self.people[e as usize].fieldwork = true;
-                        self.ledger.count("ลงไร่");
-                    }
+                    self.people[e as usize].fieldwork = true;
                 }
             } else if g > need_month * 3.0 {
                 for &e in &eaters[i] {

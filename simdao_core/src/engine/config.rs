@@ -142,9 +142,9 @@ impl Default for Config {
             fertile_max_age: 45.0,
             gestation_days: 270,
             postpartum_days: 365,
-            conceive_per_year: 0.9,
-            infant_mortality: 0.15,
-            child_mortality: 0.01,
+            conceive_per_year: 0.45,
+            infant_mortality: 0.20,
+            child_mortality: 0.02,
 
             lifespan_mu: 72.0,
             lifespan_sigma: 10.0,

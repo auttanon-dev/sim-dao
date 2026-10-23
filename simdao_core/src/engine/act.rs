@@ -37,7 +37,7 @@ impl Engine {
     pub fn turn(&mut self, id: Pid) {
         // ---- กิจกรรมยาวที่ทำค้างอยู่
         match self.people[id as usize].process.clone() {
-            Some(Process::Travel { dest, arrive }) => {
+            Some(Process::Travel { dest, arrive, .. }) => {
                 if self.day < arrive {
                     self.schedule(id, arrive - self.day);
                 } else {
@@ -295,7 +295,7 @@ impl Engine {
             return self.range(5, 20);
         }
         let arrive = self.day + days;
-        self.people[id as usize].process = Some(Process::Travel { dest, arrive });
+        self.people[id as usize].process = Some(Process::Travel { dest, since: self.day, arrive });
         // ครอบครัวไปด้วยกัน — คู่ครองและลูกเล็กที่อยู่ที่เดียวกัน ว่างอยู่ และมีเสบียงพอ
         // (ผู้นำซื้อเสบียงให้ลูก · คู่ครองที่เสบียงไม่พอรออยู่บ้าน)
         let leader_spare = |e: &Engine| (e.people[id as usize].pack as f64 - need).max(0.0);
@@ -311,7 +311,7 @@ impl Engine {
                 have += give;
             }
             if have >= fneed || why == "ย้ายหาข้าว" {
-                self.people[f as usize].process = Some(Process::Travel { dest, arrive });
+                self.people[f as usize].process = Some(Process::Travel { dest, since: self.day, arrive });
                 self.schedule(f, days);
             }
         }
@@ -371,9 +371,9 @@ impl Engine {
     }
 
     fn arrive(&mut self, id: Pid, dest: u32) {
+        self.move_to(id, dest);
         let p = &mut self.people[id as usize];
         p.process = None;
-        p.place = dest;
         p.fieldwork = false;
     }
 

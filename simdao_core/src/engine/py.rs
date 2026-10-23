@@ -8,7 +8,7 @@ use pyo3::exceptions::{PyIOError, PyValueError};
 use pyo3::prelude::*;
 use serde_json::{json, Value};
 
-#[pyclass(module = "simdao_core", name = "Engine", unsendable)]
+#[pyclass(module = "simdao_core", name = "Engine")]
 pub struct PyEngine {
     pub inner: Engine,
 }
@@ -56,7 +56,7 @@ fn person_json(e: &Engine, p: &Person, full: bool) -> Value {
         o.insert("fails".into(), json!(p.fails));
         o.insert("traits".into(), json!({"fear": p.fear, "greed": p.greed, "compassion": p.compassion, "ambition": p.ambition, "loyalty": p.loyalty}));
         o.insert("process".into(), json!(match &p.process {
-            Some(Process::Travel { dest, arrive }) => json!({"kind": "travel", "dest": dest, "arrive": arrive}),
+            Some(Process::Travel { dest, since, arrive }) => json!({"kind": "travel", "dest": dest, "since": since, "arrive": arrive}),
             Some(Process::Seclusion { since, until }) => json!({"kind": "seclusion", "since": since, "until": until}),
             None => Value::Null,
         }));

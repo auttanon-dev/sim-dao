@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sim Dao</title>
+<style>
+  :root { --bg:#121110; --panel:#1c1a17; --line:#3a342a; --ink:#e8dcc4; --dim:#8a8272; --gold:#d4a65a; --red:#e76f51; --green:#52b788; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 "Sarabun","Noto Sans Thai",system-ui,sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:18px; margin:0 12px 0 0; color:var(--gold); }
+  .stat { color:var(--dim); } .stat b { color:var(--ink); font-weight:600; }
+  button, select { background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:4px 10px; cursor:pointer; font:inherit; }
+  button.go { border-color:var(--green); color:var(--green); } button.halt { border-color:var(--red); color:var(--red); }
+  main { display:grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr); gap:12px; padding:12px 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-width:0; }
+  h2 { font-size:15px; margin:0 0 8px; color:var(--gold); }
+  canvas { width:100%; height:420px; display:block; background:#0d0c0b; border-radius:6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td, th { padding:3px 6px; border-bottom:1px solid #26221d; text-align:left; white-space:nowrap; }
+  th { color:var(--dim); font-weight:500; }
+  .num { text-align:right; font-variant-numeric: tabular-nums; }
+  #feed { max-height:420px; overflow:auto; font-size:13px; }
+  #feed div { padding:2px 0; border-bottom:1px solid #221f1b; }
+  .k { color:var(--gold); } .d { color:var(--dim); }
+  a { color:#9cc3e6; cursor:pointer; text-decoration:none; }
+  #person { white-space:pre-wrap; font-size:13px; }
+  .bar { height:6px; background:#2a2620; border-radius:3px; overflow:hidden; } .bar i { display:block; height:100%; background:var(--green); }
+</style>
+</head>
+<body>
+<header>
+  <h1>วิถีสวรรค์</h1>
+  <span class="stat">ปีที่ <b id="year">–</b></span>
+  <span class="stat">ประชากร <b id="pop">–</b></span>
+  <span class="stat">ผู้บำเพ็ญ <b id="cult">–</b></span>
+  <span class="stat">ขั้นสูงสุด <b id="top">–</b></span>
+  <span class="stat">สำนัก <b id="sects">–</b></span>
+  <span style="flex:1"></span>
+  <select id="speed"><option value="0.25">ช้า</option><option value="1" selected>ปกติ</option><option value="5">เร็ว</option><option value="0">เร็วสุด</option></select>
+  <button class="go" id="start">เดินโลก</button>
+  <button class="halt" id="stop">หยุด</button>
+</header>
+<main>
+  <section>
+    <h2>แผนที่ <select id="worldSel"></select></h2>
+    <canvas id="map"></canvas>
+    <div class="d" id="hover">ชี้ที่จุดเพื่อดูสถานที่ · คลิกเพื่อดูคนที่อยู่ที่นั่น</div>
+  </section>
+  <section>
+    <h2>เหตุการณ์</h2>
+    <div id="feed"></div>
+  </section>
+  <section>
+    <h2>แดนต่างๆ</h2>
+    <table id="worlds"></table>
+  </section>
+  <section>
+    <h2 id="sideTitle">สาเหตุการตาย · สำนัก</h2>
+    <div id="side"></div>
+  </section>
+  <section style="grid-column:1/-1">
+    <h2>บุคคล</h2>
+    <div id="person" class="d">คลิกชื่อในเหตุการณ์หรือในรายชื่อเพื่อดูรายละเอียด</div>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const api = (p, opt) => fetch(p, opt).then(r => r.json());
+let lastSeq = 0, places = [], edges = [], worlds = [], curWorld = 0, pts = [];
+
+function esc(s) { return String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+async function refreshStatus() {
+  const s = await api("/api/status");
+  $("year").textContent = s.year.toFixed(1);
+  $("pop").textContent = s.population.toLocaleString();
+  $("cult").textContent = s.cultivators.toLocaleString();
+  $("top").textContent = s.top_realm_name;
+  $("sects").textContent = s.sects;
+  $("start").disabled = s.running; $("stop").disabled = !s.running;
+  const deaths = Object.entries(s.deaths).sort((a,b) => b[1]-a[1]).map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${v.toLocaleString()}</td></tr>`).join("");
+  const sects = await api("/api/sects");
+  const st = sects.sort((a,b) => b.members-a.members).slice(0,8).map(x => `<tr><td>${esc(x.name)}</td><td class="num">${x.members}</td><td class="num">${x.treasury.toFixed(0)}</td></tr>`).join("");
+  $("side").innerHTML = `<table><tr><th>สาเหตุการตาย</th><th class="num">ราย</th></tr>${deaths}</table><br><table><tr><th>สำนัก</th><th class="num">ศิษย์</th><th class="num">คลัง</th></tr>${st || '<tr><td class="d">ยังไม่มีสำนัก</td></tr>'}</table>`;
+}
+
+async function refreshEvents() {
+  const evs = await api(`/api/events?since=${lastSeq}&limit=200`);
+  if (!evs.length) return;
+  lastSeq = Math.max(lastSeq, ...evs.map(e => e.seq));
+  const feed = $("feed");
+  const html = evs.map(e => `<div><span class="d">ปี ${(e.day/365).toFixed(1)}</span> <span class="k">[${esc(e.kind)}]</span> ${link(e.actor, e.text)}</div>`).join("");
+  feed.insertAdjacentHTML("afterbegin", html);
+  while (feed.children.length > 300) feed.lastChild.remove();
+}
+
+function link(pid, text) { return pid == null ? esc(text) : `<a onclick="showPerson(${pid})">${esc(text)}</a>`; }
+
+async function refreshWorlds() {
+  worlds = await api("/api/worlds");
+  const sel = $("worldSel");
+  if (!sel.options.length) {
+    worlds.forEach(w => sel.add(new Option(w.name, w.id)));
+    sel.onchange = () => { curWorld = +sel.value; drawMap(); };
+  }
+  const rows = worlds.filter(w => w.population > 0).sort((a,b) => b.population-a.population).slice(0,14).map(w =>
+    `<tr><td><a onclick="pickWorld(${w.id})">${esc(w.name)}</a></td><td class="num">${w.population}</td><td class="num">${w.cultivators}</td>
+     <td style="width:30%"><div class="bar"><i style="width:${(100*w.heaven/w.cap).toFixed(0)}%"></i></div></td><td class="d">${esc(w.state)}</td></tr>`).join("");
+  $("worlds").innerHTML = `<tr><th>แดน</th><th class="num">คน</th><th class="num">ผู้บำเพ็ญ</th><th>ปราณฟ้า</th><th></th></tr>${rows}`;
+}
+
+function pickWorld(id) { curWorld = id; $("worldSel").value = id; drawMap(); }
+
+async function drawMap() {
+  places = await api(`/api/places?world=${curWorld}`);
+  const c = $("map"), g = c.getContext("2d");
+  c.width = c.clientWidth * devicePixelRatio; c.height = c.clientHeight * devicePixelRatio;
+  g.clearRect(0, 0, c.width, c.height);
+  if (!places.length) return;
+  const xs = places.map(p => p.x), ys = places.map(p => p.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const pad = 30 * devicePixelRatio, sx = (c.width - 2*pad) / Math.max(1, x1-x0), sy = (c.height - 2*pad) / Math.max(1, y1-y0), s = Math.min(sx, sy);
+  const P = p => [pad + (p.x - x0) * s, c.height - pad - (p.y - y0) * s];
+  const byId = Object.fromEntries(places.map(p => [p.id, p]));
+  g.strokeStyle = "#3a342a"; g.lineWidth = devicePixelRatio;
+  for (const [a, b, , , open] of edges) {
+    if (!open || !byId[a] || !byId[b]) continue;
+    const [ax, ay] = P(byId[a]), [bx, by] = P(byId[b]);
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+  }
+  pts = [];
+  for (const p of places) {
+    const [x, y] = P(p);
+    const r = (3 + Math.sqrt(p.population) * 1.6) * devicePixelRatio;
+    const qi = p.qi ?? 0.5;
+    g.fillStyle = `hsl(${140 + qi*120}, 55%, ${30 + qi*30}%)`;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+    if (p.population > 0 && p.granary < p.population * 15) { g.strokeStyle = "#e76f51"; g.lineWidth = 2*devicePixelRatio; g.stroke(); }
+    pts.push([x, y, r, p]);
+  }
+}
+
+function placeAt(ev) {
+  const c = $("map"), rect = c.getBoundingClientRect();
+  const x = (ev.clientX - rect.left) * devicePixelRatio, y = (ev.clientY - rect.top) * devicePixelRatio;
+  return pts.find(([px, py, r]) => (px-x)**2 + (py-y)**2 <= (r+6)**2)?.[3];
+}
+
+$("map").onmousemove = ev => {
+  const p = placeAt(ev);
+  $("hover").textContent = p ? `${p.name} · ${p.kind} · คน ${p.population} · ยุ้งฉาง ${p.granary.toFixed(0)} สำรับ · ปราณ ${(p.qi*100).toFixed(0)}%${p.material ? " · แหล่ง" + p.material : ""}` : "ชี้ที่จุดเพื่อดูสถานที่ · คลิกเพื่อดูคนที่อยู่ที่นั่น";
+};
+$("map").onclick = async ev => {
+  const p = placeAt(ev); if (!p) return;
+  const ppl = await api(`/api/people?place=${p.id}&limit=80`);
+  $("person").innerHTML = `<b>${esc(p.name)}</b> (${ppl.length} คน)\n` + ppl.map(x => `${link(x.id, x.name)} · ${x.age} ปี · ${esc(x.realm_name)} · ${esc(x.profession)}`).join("\n");
+};
+
+async function showPerson(id) {
+  const p = await api(`/api/person/${id}`);
+  const fam = [p.spouse != null ? "คู่ครอง " + link(p.spouse, "#" + p.spouse) : "", p.children.length ? "ลูก " + p.children.map(c => link(c, "#" + c)).join(" ") : ""].filter(Boolean).join(" · ");
+  const evs = p.events.map(e => `ปี ${(e.day/365).toFixed(1)} [${esc(e.kind)}] ${esc(e.text)}`).join("\n");
+  $("person").innerHTML = `<b style="color:var(--gold)">${esc(p.name)}</b> ${p.alive ? "" : "(สิ้นชีพ: " + esc(p.death_cause) + ")"}
+${esc(p.gender)} · อายุ ${p.age} ปี (อายุขัย ${p.lifespan.toFixed(0)}) · ${esc(p.tribe)} · ${esc(p.origin)} · ${esc(p.profession)} · ${esc(p.dao)}
+${esc(p.realm_name)} ${p.cultivator ? `· ความเข้าใจ ${p.insight.toFixed(1)} · รากปราณ ${(p.root*100).toFixed(0)}%` : "· ปุถุชน"} · อยู่ที่ ${esc(p.place_name)}
+ทอง ${p.gold.toFixed(1)} · เสบียง ${p.pack.toFixed(0)} สำรับ · บาดแผล ${(p.injury*100).toFixed(0)}% · หิว ${p.hunger_days.toFixed(0)} วัน
+${fam}
+${evs}`;
+}
+
+$("start").onclick = () => api("/api/run/start", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({speed: +$("speed").value})}).then(refreshStatus);
+$("stop").onclick = () => api("/api/run/stop", {method:"POST"}).then(refreshStatus);
+$("speed").onchange = () => api("/api/run/start", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({speed: +$("speed").value})}).then(refreshStatus);
+
+(async () => {
+  edges = await api("/api/edges");
+  await refreshWorlds(); await drawMap(); await refreshStatus(); await refreshEvents();
+  setInterval(() => { refreshStatus(); refreshEvents(); }, 1500);
+  setInterval(() => { refreshWorlds(); drawMap(); }, 5000);
+})();
+window.addEventListener("resize", drawMap);
+</script>
+</body>
+</html>
