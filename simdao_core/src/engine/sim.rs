@@ -40,6 +40,12 @@ pub struct Engine {
     pub news: Vec<News>,
     pub ledger: Ledger,
     pub used_names: BTreeSet<String>,
+    /// จำนวนเหตุการณ์ทุกชนิดต่อแดน (รวมที่ไม่ได้บันทึกลง log)
+    #[serde(default)]
+    pub world_counts: std::collections::BTreeMap<u16, std::collections::BTreeMap<String, u64>>,
+    /// งบเหตุการณ์ "น่าสนใจ" ของปีปัจจุบันต่อแดน (ปี, ใช้ไปแล้ว)
+    #[serde(default)]
+    pub notable_budget: std::collections::BTreeMap<u16, (i64, u32)>,
     pub steps: u64,
     // ---- แดนมารและเผ่าโกลาหล
     pub mara_world: Option<u16>,
@@ -100,6 +106,8 @@ impl Engine {
             news: Vec::new(),
             ledger: Ledger::default(),
             used_names: BTreeSet::new(),
+            world_counts: Default::default(),
+            notable_budget: Default::default(),
             steps: 0,
             mara_world: None,
             chaos_world: None,
@@ -377,6 +385,9 @@ impl Engine {
             Some(id) => (self.people[id as usize].world, self.people[id as usize].place),
             None => (0, 0),
         };
+        if !self.admit_event(kind, actor, world) {
+            return;
+        }
         self.seq += 1;
         self.log.push_back(Event {
             seq: self.seq,
@@ -392,17 +403,18 @@ impl Engine {
         while self.log.len() > self.cfg.log_keep {
             self.log.pop_front();
         }
-        self.ledger.count(kind);
     }
 
     /// เหตุการณ์ที่ไม่มีผู้กระทำ (ภัยพิบัติ โรคระบาด) — ระบุแดนและสถานที่เอง
     pub fn emit_at(&mut self, kind: &str, world: u16, place: u32, outcome: &str, text: String) {
+        if !self.admit_event(kind, None, world) {
+            return;
+        }
         self.seq += 1;
         self.log.push_back(Event { seq: self.seq, day: self.day, kind: kind.to_string(), actor: None, target: None, world, place, outcome: outcome.to_string(), text });
         while self.log.len() > self.cfg.log_keep {
             self.log.pop_front();
         }
-        self.ledger.count(kind);
     }
 
     // ------------------------------------------------------------------ ตัวช่วย

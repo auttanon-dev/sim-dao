@@ -98,7 +98,7 @@ impl Engine {
                         menu.push((Act::JoinSect(s), 5.0 * p.loyalty as f64 + 1.0));
                     }
                 }
-                None if p.realm % self.cfg.realm_band >= self.cfg.found_sect_realm && p.ambition > 0.5 => {
+                None if p.ambition > 0.5 && self.can_found_sect(id) => {
                     menu.push((Act::FoundSect, 3.0 * p.ambition as f64));
                 }
                 Some(s) => {

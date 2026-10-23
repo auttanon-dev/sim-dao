@@ -532,8 +532,9 @@ impl Engine {
         self.leave_sect(taken);
         self.move_to(taken, dest);
         let utier = self.worlds[up as usize].tier;
+        self.people[taken as usize].world = up;
+        self.release_office(taken);
         let p = &mut self.people[taken as usize];
-        p.world = up;
         p.peak_tier = p.peak_tier.max(utier);
         if p.spouse.is_some() {
             // คู่ครองที่ถูกทิ้งไว้ข้างล่าง

@@ -2,7 +2,6 @@
 
 use crate::engine::data;
 use crate::engine::model::*;
-use crate::engine::polity::PolityKind;
 use crate::engine::sim::Engine;
 
 impl Engine {
@@ -57,20 +56,4 @@ impl Engine {
     }
 
     // ------------------------------------------------------------------ สำนัก
-    pub(crate) fn tick_sects(&mut self) {
-        for s in 0..self.polities.len() {
-            if self.polities[s].kind != PolityKind::Sect || !self.polities[s].alive() {
-                continue;
-            }
-            self.polities[s].members.retain(|&m| self.people[m as usize].alive);
-            if self.polities[s].members.is_empty() {
-                self.dissolve_sect(s as u32, "ไม่เหลือศิษย์สักคน");
-                continue;
-            }
-            let leader = self.polities[s].head();
-            if leader.map_or(true, |l| !self.people[l as usize].alive || self.people[l as usize].sect != Some(s as u32)) {
-                self.succeed_sect(s as u32);
-            }
-        }
-    }
 }

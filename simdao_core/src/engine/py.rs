@@ -29,6 +29,8 @@ fn person_json(e: &Engine, p: &Person, full: bool) -> Value {
         "cultivator": p.cultivator,
         "profession": d.professions[p.profession as usize].0,
         "sect": p.sect,
+        "sect_rank": e.sect_rank_name(p.id),
+        "office": p.office.map(|(g, i)| json!({"polity": g, "name": e.polities[g as usize].name, "title": e.polities[g as usize].offices[i as usize].title})),
         "gold": (p.gold * 100.0).round() / 100.0,
     });
     if full {

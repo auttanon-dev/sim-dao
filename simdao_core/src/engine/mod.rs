@@ -7,6 +7,8 @@ pub mod cultivation;
 pub mod data;
 pub mod disease;
 pub mod geo;
+pub mod governance;
+pub mod history;
 pub mod items;
 pub mod life;
 pub mod model;

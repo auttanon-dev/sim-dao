@@ -46,6 +46,8 @@ pub enum Accession {
     Appointed,
     Elected,
     Seized,
+    /// ชนะด้วยกำลังตามกฎของหน่วยที่ถือกำลังเป็นใหญ่ (ไม่ใช่การยึดอำนาจ)
+    Prevailed,
     Mandated,
     Migrated,
 }
@@ -305,9 +307,8 @@ mod tests {
 
     #[test]
     fn pre_p1_save_migrates() {
-        // ก่อน P1 สำนักเก็บก่อนเมือง: ใช้เซฟที่ยังไม่มีสำนัก (สร้างแค่เมือง) แล้วจำลองต่อ เทียบกับต้นฉบับ
+        // เซฟก่อน P1 มีแค่เจ้าเมือง (ยังไม่มีขุนนาง) — ใช้โลกที่เพิ่งสร้างก่อนรอบรายเดือนแรก แล้วจำลองต่อ เทียบกับต้นฉบับ
         let mut a = Engine::new(9, Config::default());
-        a.run_until(30);
         assert!(a.polities.iter().all(|p| p.kind == super::PolityKind::City));
         let legacy = to_legacy(&a);
         let mut b: Engine = serde_json::from_value(legacy).unwrap();

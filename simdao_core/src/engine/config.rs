@@ -120,6 +120,29 @@ pub struct Config {
     pub found_sect_realm: u8,
     pub sect_join_realm_max: u8,
     pub sect_tithe: f64,
+    /// ทุนตั้งสำนัก (ย้ายเข้าคลังสำนักใหม่ — บัญชีทองไม่เปลี่ยน)
+    pub sect_found_cost: f64,
+    /// ปราณขั้นต่ำของที่ตั้งสำนัก
+    pub sect_site_qi: f64,
+    /// ปราณรวมของแดนที่ต้องใช้ต่อหนึ่งสำนัก (แดนปราณหนาแน่นรองรับสำนักได้มากกว่า)
+    pub sect_qi_per_sect: f64,
+    /// ต่ำกว่านี้นับว่าอ่อนแอ
+    pub sect_min_members: usize,
+    /// อ่อนแอติดต่อกันกี่เดือนจึงต้องควบรวม/สวามิภักดิ์/สลาย
+    pub sect_weak_months: u16,
+    /// ระยะเดินทางที่สำนักใกล้เคียงยังเกื้อหนุน/ครอบงำกันได้
+    pub sect_reach_days: i64,
+    /// ส่วนของคลังที่สำนักจ่ายคืนแก่ศิษย์ต่อปี
+    pub sect_payout_rate: f64,
+    /// ผู้อาวุโสหนึ่งคนต่อศิษย์กี่คน และไม่เกินกี่คน
+    pub sect_members_per_elder: usize,
+    pub sect_elders_max: usize,
+    /// ขุนนางของเมือง
+    pub city_officials: usize,
+
+    // ---- บันทึกประวัติศาสตร์
+    /// เหตุการณ์ "น่าสนใจ" ที่บันทึกต่อแดนต่อปี ก่อนจะเริ่มรวมเป็นสถิติ (เป้าหมายแบบยืดหยุ่น — เหตุการณ์ประวัติศาสตร์บันทึกเสมอ)
+    pub notable_per_world_year: u32,
 
     // ---- ข่าว
     pub news_per_hop_days: f64,
@@ -233,6 +256,17 @@ impl Default for Config {
             found_sect_realm: 4,
             sect_join_realm_max: 4,
             sect_tithe: 0.10,
+            sect_found_cost: 150.0,
+            sect_site_qi: 0.5,
+            sect_qi_per_sect: 1.5,
+            sect_min_members: 3,
+            sect_weak_months: 24,
+            sect_reach_days: 30,
+            sect_payout_rate: 0.6,
+            sect_members_per_elder: 8,
+            sect_elders_max: 6,
+            city_officials: 2,
+            notable_per_world_year: 24,
 
             news_per_hop_days: 6.0,
 

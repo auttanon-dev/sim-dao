@@ -40,6 +40,10 @@ impl Engine {
     }
 
     pub fn found_sect(&mut self, id: Pid) -> i64 {
+        // เงื่อนไขอาจเปลี่ยนไประหว่างตัดสินใจกับลงมือ (มีคนตั้งสำนักที่นี่ไปก่อน เงินหมด)
+        if !self.can_found_sect(id) {
+            return self.range(10, 30);
+        }
         let d = data::world();
         let (words, tails) = &d.org_words;
         let sects_ever = self.polities.iter().filter(|s| s.kind == PolityKind::Sect).count();
@@ -56,10 +60,14 @@ impl Engine {
         let (world, home) = (self.people[id as usize].world, self.people[id as usize].place);
         let mut pol = Polity::new(sid, PolityKind::Sect, name.clone(), world, home, Succession::Council, "เจ้าสำนัก", self.day);
         pol.founder = Some(id);
-        pol.offices[0].holder = Some(id);
         pol.members.push(id);
+        // ทุนตั้งสำนักย้ายจากผู้ก่อตั้งเข้าคลังสำนัก
+        let cost = self.cfg.sect_found_cost;
+        self.people[id as usize].gold -= cost;
+        pol.treasury = cost;
         self.polities.push(pol);
         self.people[id as usize].sect = Some(sid);
+        self.install(sid, 0, id, Accession::Founded);
         let n = self.people[id as usize].name.clone();
         let place = self.place_name(home);
         self.emit("ตั้งสำนัก", Some(id), None, "ตั้งสำนัก", format!("{}ตั้ง{}ขึ้นที่{}", n, name, place));
@@ -69,6 +77,9 @@ impl Engine {
     pub fn leave_sect(&mut self, id: Pid) {
         if let Some(s) = self.people[id as usize].sect.take() {
             self.polities[s as usize].members.retain(|&m| m != id);
+            if self.people[id as usize].office.map_or(false, |(p, _)| p == s) {
+                self.release_office(id);
+            }
         }
     }
 
@@ -84,33 +95,12 @@ impl Engine {
         for m in members {
             self.people[m as usize].sect = None;
         }
-        for o in 0..self.polities[s as usize].offices.len() {
-            self.polities[s as usize].offices[o].holder = None;
+        let holders: Vec<Pid> = self.polities[s as usize].holders().map(|(_, h)| h).collect();
+        for h in holders {
+            self.vacate(h);
         }
         let name = self.polities[s as usize].name.clone();
         self.emit("สำนักล่มสลาย", None, None, "สลาย", format!("{}ล่มสลาย — {}", name, why));
-    }
-
-    /// ผู้นำตาย — ผู้ที่ขั้นสูงสุดในสำนักขึ้นแทน
-    pub fn succeed_sect(&mut self, s: u32) {
-        let members = self.polities[s as usize].members.clone();
-        let next = members
-            .iter()
-            .copied()
-            .filter(|&m| self.people[m as usize].alive)
-            .max_by_key(|&m| (self.people[m as usize].realm, std::cmp::Reverse(m)));
-        match next {
-            Some(n) => {
-                let day = self.day;
-                let o = &mut self.polities[s as usize].offices[0];
-                o.holder = Some(n);
-                o.since = day;
-                o.how = Accession::Elected;
-                let (nn, sn) = (self.people[n as usize].name.clone(), self.polities[s as usize].name.clone());
-                self.emit("สืบทอดสำนัก", Some(n), None, "เป็นเจ้าสำนัก", format!("{}ขึ้นเป็นเจ้า{}", nn, sn));
-            }
-            None => self.dissolve_sect(s, "ไร้ผู้สืบทอด"),
-        }
     }
 
     /// เซฟก่อน P1: สำนักและเมืองแยกกัน → รวมเข้า polities (สำนักคง id เดิม เมืองต่อท้าย)

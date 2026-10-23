@@ -29,16 +29,17 @@ impl Engine {
         for (i, (world, place)) in spots.into_iter().enumerate().take(lore.len()) {
             let c = &lore[i];
             let kind = c["type_desc"].as_str().unwrap_or("").to_string();
-            let (strict, title, realm) = if kind.contains("เมืองหลวง") {
-                (90.0, "ฮ่องเต้", 6)
+            // ราชวงศ์สืบสายเลือด · ทัพและอำเภอรับการแต่งตั้ง (ไร้ผู้แต่งตั้ง → สภาขุนนาง) · ตลาดมืดถือกำลังเป็นใหญ่
+            let (strict, title, realm, rule) = if kind.contains("เมืองหลวง") {
+                (90.0, "ฮ่องเต้", 6, Succession::Heredity)
             } else if kind.contains("ชายแดน") {
-                (80.0, "แม่ทัพใหญ่", 5)
+                (80.0, "แม่ทัพใหญ่", 5, Succession::Appointment)
             } else if kind.contains("หน้าด่านสำนัก") {
-                (40.0, "ตัวแทนสำนัก", 7)
+                (40.0, "ตัวแทนสำนัก", 7, Succession::Appointment)
             } else if kind.contains("ลับแล") || kind.contains("เถื่อน") || kind.contains("ตลาดมืด") {
-                (10.0, "ราชาตลาดมืด", 8)
+                (10.0, "ราชาตลาดมืด", 8, Succession::Strength)
             } else {
-                (50.0, "นายอำเภอ", 3)
+                (50.0, "นายอำเภอ", 3, Succession::Appointment)
             };
             let a = &c["attributes"];
             let id = self.polities.len() as u32;
@@ -49,7 +50,7 @@ impl Engine {
             p.realm = realm;
             p.peak_realm = realm;
             p.office = Some((id, 0));
-            let mut pol = Polity::new(id, PolityKind::City, c["name_th"].as_str().unwrap_or("").to_string(), world, place, Succession::Strength, title, self.day);
+            let mut pol = Polity::new(id, PolityKind::City, c["name_th"].as_str().unwrap_or("").to_string(), world, place, rule, title, self.day);
             pol.style = kind;
             pol.policy.strictness = strict / 100.0;
             pol.offices[0].holder = Some(ruler);
@@ -83,27 +84,6 @@ impl Engine {
             Some(c) if self.polities[c].head().is_some() => self.polities[c].policy.strictness as f64,
             Some(_) => 0.05,
             None => 0.3,
-        }
-    }
-
-    /// เจ้าเมืองตาย — ผู้แกร่งที่สุดในเมืองขึ้นแทน
-    pub fn tick_cities(&mut self) {
-        for c in 0..self.polities.len() {
-            if self.polities[c].kind != PolityKind::City {
-                continue;
-            }
-            let ruler = self.polities[c].head();
-            if ruler.map_or(false, |r| self.people[r as usize].alive) {
-                continue;
-            }
-            let place = self.polities[c].seat;
-            let cand = self.present_at(place).into_iter().filter(|&i| self.is_adult(i) && self.people[i as usize].office.is_none() && !self.is_criminal(i)).max_by(|&a, &b| self.power(a).partial_cmp(&self.power(b)).unwrap().then(b.cmp(&a)));
-            self.polities[c].offices[0].holder = cand;
-            if let Some(r) = cand {
-                self.people[r as usize].office = Some((c as u32, 0));
-                let (n, t, cn) = (self.people[r as usize].name.clone(), self.polities[c].title().to_string(), self.polities[c].name.clone());
-                self.emit("สืบตำแหน่งเจ้าเมือง", Some(r), None, "ขึ้นปกครอง", format!("{}ขึ้นเป็น{}แห่ง{}", n, t, cn));
-            }
         }
     }
 
@@ -414,6 +394,8 @@ impl Engine {
         let floor = dtier * self.cfg.realm_band;
         let p = &mut self.people[id as usize];
         p.world = dest;
+        self.release_office(id);
+        let p = &mut self.people[id as usize];
         p.realm = p.realm.saturating_sub(push).max(floor.min(p.realm));
         let (n, gn, wn) = (p.name.clone(), d.places[place as usize].name.clone(), self.worlds[dest as usize].name.clone());
         let tail = if push > 0 { format!(" (ถูกกดพลัง {} ขั้น)", push) } else { String::new() };

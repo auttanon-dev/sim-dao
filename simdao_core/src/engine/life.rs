@@ -432,6 +432,7 @@ impl Engine {
         self.alive.remove(&id);
         let place = self.people[id as usize].place;
         self.at[place as usize].remove(&id);
+        self.release_office(id);
         self.ledger.death(cause_class(cause));
         // คืนปราณที่ดูดไปให้ฟ้า — ตายตามธรรมชาติคืนมาก ถูกฆ่ากลางคันคืนน้อย
         let w = self.people[id as usize].world as usize;
