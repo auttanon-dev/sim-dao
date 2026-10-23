@@ -133,6 +133,12 @@ pub struct Person {
     pub fragments: std::collections::BTreeMap<u16, Vec<u8>>, // เศษวิชาที่เก็บได้
     pub leads: Vec<u32>,        // ร่องรอยที่ชี้ไปแดนลับ (cache id)
     pub crimes: u16,            // ความผิดที่ยังไม่ได้ชดใช้
+    #[serde(default)]
+    pub moral: i16,             // คุณธรรม -100..100
+    #[serde(default)]
+    pub merit: f32,             // บุญบารมี
+    #[serde(default)]
+    pub city: Option<u16>,      // เจ้าเมืองของเมืองนี้
     // ---- สายเลือดและจิต
     pub blood: [f32; 5],
     pub refine: f64,            // การขัดเกลาสายเลือดวิญญาณ

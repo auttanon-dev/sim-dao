@@ -22,6 +22,7 @@ impl Engine {
         self.tick_families(days);
         self.deliver_news();
         self.tick_sects();
+        self.tick_cities();
         self.tick_realms(days);
         self.tick_temptation(days);
         for w in 0..self.worlds.len() {

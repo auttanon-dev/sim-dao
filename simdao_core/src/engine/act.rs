@@ -48,6 +48,15 @@ pub enum Act {
     Seize(Pid),
     CraftArray,
     Foresee,
+    Patrol,
+    Protect,
+    Extort,
+    Merit,
+    Fortune(Pid),
+    SellInfo(Pid),
+    Assassinate(Pid),
+    CityLife,
+    Gate,
 }
 
 impl Engine {
@@ -288,6 +297,7 @@ impl Engine {
             }
         }
         self.trade_options(id, &others, &mut menu);
+        self.profession_options(id, &others, &mut menu);
         // หลอมค่ายกล/หุ่นกล · จำลองอนาคต
         if self.line_grade(id, "หุ่นกล") >= 0 || self.line_grade(id, "ค่ายกล") >= 0 {
             menu.push((Act::CraftArray, 4.0));
@@ -376,6 +386,15 @@ impl Engine {
             Act::Seize(t) => self.seize_treasure(id, t),
             Act::CraftArray => self.craft_array(id),
             Act::Foresee => self.foresee(id),
+            Act::Patrol => self.patrol(id),
+            Act::Protect => self.protect(id),
+            Act::Extort => self.extort(id),
+            Act::Merit => self.merit(id),
+            Act::Fortune(t) => self.fortune(id, t),
+            Act::SellInfo(t) => self.sell_info(id, t),
+            Act::Assassinate(t) => self.assassinate(id, t),
+            Act::CityLife => self.city_life(id),
+            Act::Gate => self.use_gate(id),
             Act::Arrest(t) => self.arrest(id, t, None),
             Act::Train => self.train(id),
             Act::RefineBlood => self.refine_blood(id),

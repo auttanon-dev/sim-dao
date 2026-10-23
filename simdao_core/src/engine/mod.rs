@@ -17,6 +17,7 @@ pub mod realms;
 pub mod sect;
 pub mod sim;
 pub mod skills;
+pub mod society;
 pub mod trades;
 pub mod world;
 

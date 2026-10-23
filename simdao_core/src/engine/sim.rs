@@ -58,6 +58,8 @@ pub struct Engine {
     pub legends: Vec<u32>,
     pub fragments: Vec<super::items::Fragment>,
     pub ruin_gold: Vec<f64>,
+    #[serde(default)]
+    pub cities: Vec<super::society::City>,
     /// สำเนาที่ใช้มองอนาคต — ไม่มอบระบบ ไม่จำลองซ้อน
     #[serde(skip)]
     pub fork: bool,
@@ -109,6 +111,7 @@ impl Engine {
             legends: Vec::new(),
             fragments: Vec::new(),
             ruin_gold: Vec::new(),
+            cities: Vec::new(),
             fork: false,
             qi: Vec::new(),
             at: vec![Default::default(); d.places.len()],
@@ -117,6 +120,7 @@ impl Engine {
         e.compute_qi();
         e.seed_nature();
         e.populate();
+        e.found_cities();
         e
     }
 
