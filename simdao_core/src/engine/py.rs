@@ -63,6 +63,7 @@ fn person_json(e: &Engine, p: &Person, full: bool) -> Value {
             Some(Process::Travel { dest, since, arrive }) => json!({"kind": "travel", "dest": dest, "since": since, "arrive": arrive}),
             Some(Process::Seclusion { since, until }) => json!({"kind": "seclusion", "since": since, "until": until}),
             Some(Process::Jail { until }) => json!({"kind": "jail", "until": until}),
+            Some(Process::Dissolved) => json!({"kind": "dissolved"}),
             None => Value::Null,
         }));
         o.insert("death_day".into(), json!(if p.alive { Value::Null } else { json!(p.death_day) }));

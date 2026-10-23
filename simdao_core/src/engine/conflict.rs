@@ -9,8 +9,11 @@ use crate::physics;
 
 impl Engine {
     /// คืน (ผู้ชนะ, ผู้แพ้, ส่วนต่างพลังเทียบผู้แพ้)
-    fn clash(&mut self, a: Pid, b: Pid) -> (Pid, Pid, f64) {
-        let (pa, pb) = (self.power(a).max(0.1), self.power(b).max(0.1));
+    pub fn clash(&mut self, a: Pid, b: Pid) -> (Pid, Pid, f64) {
+        let (ea, eb) = (self.fighting_element(a), self.fighting_element(b));
+        let el = super::skills::clash_edge(ea, eb) * 0.1;
+        let pa = (self.power(a) * (1.0 + el) * self.chaos_edge(a, b)).max(0.1);
+        let pb = (self.power(b) * (1.0 - el) * self.chaos_edge(b, a)).max(0.1);
         // ความได้เปรียบไม่ใช่ทั้งหมด — ความกลัว จังหวะ ดวง ทำให้ฝ่ายอ่อนชนะได้บ้าง
         let p_a = physics::logistic((pa - pb) / (0.25 * (pa + pb) + 1.0) * 3.0);
         let a_wins = self.chance(p_a);

@@ -3,6 +3,7 @@
 //! ปราณมีที่มาและมีที่ไป: การบำเพ็ญดูดปราณจากคลังฟ้าของแดน การข้ามขั้นจ่ายก้อนใหญ่
 //! ฟ้าฟื้นแบบลอจิสติก และได้คืนเมื่อผู้บำเพ็ญตาย — แดนที่ถูกดูดหนักเข้าสู่ยุคเสื่อมจริง
 
+use super::data;
 use super::model::*;
 use super::sim::Engine;
 use crate::physics;
@@ -19,7 +20,25 @@ impl Engine {
 
     pub fn power(&self, id: Pid) -> f64 {
         let p = &self.people[id as usize];
-        let base = p.realm as f64 * self.cfg.realm_step + p.insight * self.cfg.insight_w - p.decay * self.cfg.decay_w;
+        let (body, spirit) = self.path_shares(id);
+        // ความเข้าใจที่เกินเกณฑ์ขั้นปัจจุบันแปลงเป็นกำลังรบได้แบบลดทอน (ร่างนี้ยังรับไม่ไหว)
+        let req = self.need(id).max(1e-6);
+        let ins = if p.insight <= req { p.insight } else { req * (1.0 + (p.insight / req).ln()) };
+        let mut base = p.realm as f64 * self.cfg.realm_step
+            + ins * self.cfg.insight_w * (1.0 + data::k("PATH_SPIRIT_INSIGHT") * spirit)
+            + self.blood_power(id)
+            + self.skill_power(id)
+            - p.decay * self.cfg.decay_w * (1.0 - data::k("PATH_BODY_TOUGH") * body);
+        if body >= 0.35 && spirit >= 0.35 {
+            base += data::k("PATH_BALANCE_BONUS");
+        }
+        if p.is_chaos() {
+            base += p.chaos_rank as f64;
+            if p.is_lord {
+                base += data::k("CHAOS_LORD_BONUS") + p.lord_returns as f64 * data::k("LORD_GROWTH");
+            }
+        }
+        base *= 1.0 + self.bloodline_buff(id);
         // ร่างกายที่บาดเจ็บสู้ได้ไม่เต็มที่ · คนธรรมดาก็มีแรง (อายุและเพศมีผลเล็กน้อย)
         let age = p.age(self.day);
         let vigour = if age < 18.0 { 0.7 } else if age > 60.0 { (1.0 - (age - 60.0) / 60.0).max(0.4) } else { 1.0 };
@@ -41,6 +60,7 @@ impl Engine {
             -self.cfg.break_z_realm * (p.realm % band) as f64,
             self.cfg.break_z_scarce * ratio.ln(),
             (p.root as f64 - 0.5) * 1.5,
+            data::k("BREAK_Z_SPIRIT") * self.path_shares(id).1,
             0.72 * p.pills.min(3) as f64,   // ยาวิเศษกดกำแพงลง (ใช้ได้ไม่เกินสามเม็ดต่อครั้ง)
         ];
         physics::barrier_odds(gap, Some(shifts), self.cfg.break_base_p, self.cfg.break_softness)
@@ -81,9 +101,10 @@ impl Engine {
 
     pub fn cultivate(&mut self, id: Pid) -> i64 {
         let gap = self.range(60, 300);
-        let gain = self.insight_gain(id, gap as f64);
+        let gain = self.insight_gain(id, gap as f64) * (0.3 + 0.7 * self.people[id as usize].eff(HUMAN) + 0.5 * self.people[id as usize].eff(SPIRIT));
         let p = &mut self.people[id as usize];
         p.insight += gain;
+        p.refine = (p.refine + 0.10 * (gap as f64 / 365.0).min(4.0) * p.eff(SPIRIT)).min(1.0);
         p.decay = (p.decay - self.cfg.cultivate_heal * gap as f64 / 365.0).max(0.0);
         gap
     }
@@ -118,8 +139,16 @@ impl Engine {
 
     pub fn breakthrough(&mut self, id: Pid) -> i64 {
         let need = self.need(id);
-        if self.people[id as usize].insight < need {
+        // การขัดเกลาสายเลือดนับเป็นการสะสมด้วย (สายวิญญาณข้ามขั้นได้จากการขัดเกลา)
+        let refine_part = self.people[id as usize].refine * 3.0;
+        if self.people[id as usize].insight + refine_part < need {
             return self.cultivate(id);
+        }
+        if self.people[id as usize].insight < need {
+            let take = need - self.people[id as usize].insight;
+            let p = &mut self.people[id as usize];
+            p.insight += take;
+            p.refine -= take / 3.0;
         }
         let realm = self.people[id as usize].realm;
         let cost = self.cfg.break_cost * ((realm % self.cfg.realm_band) as f64 + 1.0).powi(2);
@@ -134,15 +163,35 @@ impl Engine {
             return self.range(120, 400);
         }
         self.people[id as usize].pills -= used;
-        if self.chance(odds) {
+        let trial = if self.chance(odds) { self.inner_trial(id) } else { "ด่านพลัง" };
+        if trial == "พ่าย" {
+            // พ่ายด่านจิตมาร — เลือดมารพุ่ง บาดเจ็บ สะสมเสียไปครึ่ง
+            let p = &mut self.people[id as usize];
+            p.insight -= need * 0.5;
+            p.blood[MARA] += data::k("INNER_FALL_MARA") as f32;
+            let s: f32 = p.blood.iter().sum();
+            for x in p.blood.iter_mut() {
+                *x /= s;
+            }
+            p.injury = (p.injury + 0.3).min(1.0);
+            p.fails += 1;
+            self.emit("ข้ามขั้น", Some(id), None, "พ่ายจิตมาร", format!("{}ผ่านด่านพลังแต่พ่ายด่านจิตมาร เลือดมารลุกลามในกาย", name));
+            return self.range(120, 500);
+        }
+        if trial != "ด่านพลัง" {
             let p = &mut self.people[id as usize];
             p.insight -= need;
             p.realm += 1;
             p.peak_realm = p.peak_realm.max(p.realm);
             p.breaks += 1;
             p.injury *= 0.65;
-            let rn = self.realm_name(self.people[id as usize].realm);
-            self.emit("ข้ามขั้น", Some(id), None, "สำเร็จ", format!("{}ข้ามขั้นสู่{} (โอกาส {:.0}%)", name, rn, odds * 100.0));
+            let rn = self.title(id);
+            let note = if trial == "กดไว้" { " — จิตมารถูกกดไว้ ไม่ได้หายไป" } else { "" };
+            self.emit("ข้ามขั้น", Some(id), None, "สำเร็จ", format!("{}ข้ามขั้นสู่{} (โอกาส {:.0}%){}", name, rn, odds * 100.0, note));
+            if trial == "กดไว้" {
+                self.people[id as usize].inner += 0.5;
+            }
+            self.check_apex(id);
         } else {
             let p = &mut self.people[id as usize];
             p.insight -= need * self.cfg.break_fail_spend;
@@ -193,6 +242,7 @@ impl Engine {
     }
 
     pub fn teach(&mut self, id: Pid, student: Pid) -> i64 {
+        self.teach_skill(id, student);
         let gift = 0.3 + 0.1 * (self.people[id as usize].realm as f64 - self.people[student as usize].realm as f64).max(0.0);
         self.people[student as usize].insight += gift;
         if self.people[student as usize].master.is_none() {

@@ -34,6 +34,23 @@ impl Material {
     }
 }
 
+/// สายเลือด: มนุษย์ วิญญาณ อสูร มาร โกลาหล
+pub const BLOODS: [&str; 5] = ["human", "spirit", "demon", "mara", "chaos"];
+pub const HUMAN: usize = 0;
+pub const SPIRIT: usize = 1;
+pub const DEMON: usize = 2;
+pub const MARA: usize = 3;
+pub const CHAOS: usize = 4;
+
+/// เรื่องค้างคาในใจ — ตัวเพาะจิตมาร (ฆ่า ทรยศ ผิดสัญญา ปล้น ทอดทิ้ง บุญคุณ)
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Debt {
+    pub kind: String,
+    pub target: Pid,
+    pub day: i64,
+    pub done: bool,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Process {
     /// เดินทางอยู่ — ถึงปลายทางวันไหน
@@ -42,6 +59,8 @@ pub enum Process {
     Seclusion { since: i64, until: i64 },
     /// ถูกคุมขังจนถึงวันไหน
     Jail { until: i64 },
+    /// เจ้าโกลาหลสลายเป็นความโกลาหล รอก่อร่างใหม่จากพลังความตายทั่วจักรวาล
+    Dissolved,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -107,6 +126,29 @@ pub struct Person {
     pub pills: u16,             // ยาวิเศษช่วยข้ามขั้น
     pub weapon: f32,            // คุณภาพอาวุธที่ถือ (0 = มือเปล่า)
     pub crimes: u16,            // ความผิดที่ยังไม่ได้ชดใช้
+    // ---- สายเลือดและจิต
+    pub blood: [f32; 5],
+    pub refine: f64,            // การขัดเกลาสายเลือดวิญญาณ
+    pub inner: f64,             // จิตมาร
+    pub inner_none: bool,       // เกิดมาไร้จิตมาร
+    pub inner_art: bool,        // ฝึกจิตมารเป็นวิชา
+    pub debts: Vec<Debt>,
+    pub fate: i8,               // ชะตาที่ช่วยให้รอดตายได้ (ใช้แล้วหมดไป)
+    pub chaos_rank: i8,         // -1 = ไม่ใช่เผ่าโกลาหล
+    pub is_lord: bool,
+    pub lord_returns: u16,
+    pub thrall: bool,           // ตกเป็นทาสโกลาหล
+    pub fallen: bool,           // ถูกจิตมารครอบงำ ตกเป็นมาร
+    pub sentient: bool,         // อสูรระดับต่ำยังไม่มีจิตนึกคิด
+    pub unique_title: String,   // อสูรเฉพาะตัว
+    pub affinity: [f32; 5],     // ดวงรับพรของแต่ละสายเลือด
+    pub birth_world: u16,
+    pub peak_tier: u8,
+    pub near_death: u16,
+    // ---- วิชา
+    pub skills: Vec<u16>,       // ดัชนีใน skills::skills()
+    pub mastery: Vec<u16>,      // จำนวนครั้งที่ฝึก (คู่กับ skills)
+    pub element: u8,            // ธาตุประจำตัว 0..5 (ไม้ ไฟ ดิน ทอง น้ำ)
     pub last_day: i64,          // วันที่คิดอายุ/ความเสื่อม/บาดแผลไปแล้ว
     pub next_turn: i64,         // เทิร์นถัดไปที่นัดไว้ — รายการในคิวที่ไม่ตรงนี้คือนัดเก่าที่ถูกเลื่อนแล้ว
     pub fieldwork: bool,        // ลงไร่ช่วงข้าวขาด
@@ -118,6 +160,25 @@ impl Person {
     }
     pub fn tier(&self, band: u8) -> u8 {
         self.realm / band
+    }
+    pub fn top_blood(&self) -> usize {
+        let mut best = 0;
+        for i in 1..5 {
+            if self.blood[i] > self.blood[best] {
+                best = i;
+            }
+        }
+        best
+    }
+    pub fn is_chaos(&self) -> bool {
+        self.chaos_rank >= 0
+    }
+    pub fn dissolved(&self) -> bool {
+        matches!(self.process, Some(Process::Dissolved))
+    }
+    /// ประสิทธิภาพของเส้นทางเติบโตสายหนึ่ง — ยิ่งเลือดผสม ยิ่งทำงานได้ไม่เต็ม
+    pub fn eff(&self, line: usize) -> f64 {
+        (self.blood[line] as f64).powf(1.4)
     }
     pub fn sick(&self, day: i64) -> bool {
         self.sick_until > day
@@ -144,6 +205,8 @@ pub enum WorldKind {
     Main,
     Sister,
     Branch,
+    Mara,
+    Chaos,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -163,6 +226,13 @@ pub struct World {
     pub blood_marks: Vec<i64>,  // วันที่มีการนองเลือด (ฮอว์กส์) — ตัดของเก่าทิ้งเป็นระยะ
     pub harvest_mult: f64,      // ภัยแล้ง/น้ำท่วมปีนี้ (1 = ปกติ)
     pub harvest_until: i64,
+    pub rift: f64,              // รอยแยกโกลาหลในแดนนี้
+    pub defense: f64,           // ค่ายกลป้องกันแดน
+    pub defense_max: f64,
+    pub closed: bool,           // ประตูแดนปิดรับผู้ข้ามฟ้า
+    pub resentment: f64,        // ความบาดหมางต่อแดนบน (จากการเกณฑ์คน)
+    pub last_coalition: i64,
+    pub ruined: Vec<(u32, i64)>,// สถานที่ที่ถูกถล่ม จนถึงวันไหน
 }
 
 impl World {

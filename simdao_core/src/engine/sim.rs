@@ -37,6 +37,19 @@ pub struct Engine {
     pub ledger: Ledger,
     pub used_names: HashSet<String>,
     pub steps: u64,
+    // ---- แดนมารและเผ่าโกลาหล
+    pub mara_world: Option<u16>,
+    pub chaos_world: Option<u16>,
+    pub mara_seal: f64,
+    pub mara_seal_broken: bool,
+    pub mara_seal_warned: bool,
+    pub lord: Option<Pid>,
+    pub lord_pool: f64,
+    pub lord_seal: f64,
+    pub lord_seals_made: u32,
+    pub lord_seal_last: i64,
+    /// ผู้ถึงยอดบันได (ขั้นสูงสุด) ต่อสายเลือด -> (cid, ความแรงพร)
+    pub apex: std::collections::BTreeMap<u8, (Pid, f32)>,
     /// ค่าปราณธรรมชาติของแต่ละสถานที่ 0..1 (คิดจากผิวดาวครั้งเดียว)
     #[serde(skip)]
     pub qi: Vec<f64>,
@@ -67,6 +80,17 @@ impl Engine {
             ledger: Ledger::default(),
             used_names: HashSet::new(),
             steps: 0,
+            mara_world: None,
+            chaos_world: None,
+            mara_seal: data::k("MARA_SEAL_INITIAL"),
+            mara_seal_broken: false,
+            mara_seal_warned: false,
+            lord: None,
+            lord_pool: 0.0,
+            lord_seal: 0.0,
+            lord_seals_made: 0,
+            lord_seal_last: -100_000,
+            apex: Default::default(),
             qi: Vec::new(),
             at: vec![Default::default(); d.places.len()],
         };
@@ -118,6 +142,13 @@ impl Engine {
                 blood_marks: Vec::new(),
                 harvest_mult: 1.0,
                 harvest_until: 0,
+                rift: 0.0,
+                defense: 100.0,
+                defense_max: 100.0,
+                closed: false,
+                resentment: 0.0,
+                last_coalition: -100_000,
+                ruined: Vec::new(),
             });
             id
         };
@@ -128,6 +159,16 @@ impl Engine {
         for t in 0..tiers - 1 {
             self.worlds[t].up = Some(t as u16 + 1);
         }
+        // แดนมารติดโลกมนุษย์ · ห้วงโกลาหลติดแดนชั้นสูงสุด (ตามต้นฉบับ)
+        let mara = add(self, &data::table("config", "MARA_WORLD_NAME").as_str().unwrap_or("แดนมาร").to_string(), 0, WorldKind::Mara, "mara", "han");
+        self.worlds[0].lateral.push(mara);
+        self.worlds[mara as usize].lateral.push(0);
+        let top = (data::k("CHAOS_TIER") as usize).min(tiers - 1) as u8;
+        let chaos = add(self, &data::table("config", "CHAOS_WORLD_NAME").as_str().unwrap_or("ห้วงโกลาหล").to_string(), top, WorldKind::Chaos, "chaos", "han");
+        self.worlds[top as usize].lateral.push(chaos);
+        self.worlds[chaos as usize].lateral.push(top as u16);
+        self.chaos_world = Some(chaos);
+        self.mara_world = Some(mara);
         for (key, name) in d.sister_realms.clone() {
             let culture = if d.names.contains_key(&key) { key.clone() } else { "han".to_string() };
             let id = add(self, &name, 0, WorldKind::Sister, &key, &culture);
@@ -186,6 +227,8 @@ impl Engine {
                 WorldKind::Main => self.cfg.cast_main,
                 WorldKind::Sister => self.cfg.cast_sister,
                 WorldKind::Branch => self.cfg.cast_branch,
+                WorldKind::Mara => self.cfg.cast_main / 3,
+                WorldKind::Chaos => continue,
             };
             for _ in 0..n {
                 let age = 8.0 + self.rng.next_f64() * 37.0;
@@ -197,10 +240,12 @@ impl Engine {
                     p.cultivator = true;
                     p.realm = tier * self.cfg.realm_band + (self.rng.below(4) as u8);
                     p.peak_realm = p.realm;
+                    p.peak_tier = tier;
                     p.root = p.root.max(0.5);
                 }
             }
         }
+        self.spawn_chaos_race();
         // ทุนตั้งต้น — การออกเงินและอาหารที่ประกาศไว้ในบัญชี
         let ids: Vec<Pid> = self.alive.iter().copied().collect();
         for id in ids {

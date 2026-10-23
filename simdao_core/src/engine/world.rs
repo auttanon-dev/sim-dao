@@ -21,6 +21,8 @@ impl Engine {
         self.tick_families(days);
         self.deliver_news();
         self.tick_sects();
+        self.tick_realms(days);
+        self.tick_temptation(days);
         let horizon = self.day - 5 * 365;
         for w in self.worlds.iter_mut() {
             w.blood_marks.retain(|&d| d >= horizon);
@@ -156,7 +158,7 @@ impl Engine {
     // ------------------------------------------------------------------ อาหาร
     pub fn eats(&self, id: Pid) -> bool {
         let p = &self.people[id as usize];
-        p.alive && p.realm < self.cfg.bigu_realm
+        p.alive && p.sentient && !p.is_chaos() && p.realm < self.cfg.bigu_realm && !p.dissolved()
     }
 
     pub fn ration(&self, id: Pid) -> f64 {

@@ -35,12 +35,22 @@ pub enum Act {
     Brew,
     Forge,
     Arrest(Pid),
+    Train,
+    RefineBlood,
+    Promise(Pid),
+    Betray(Pid),
+    Settle(Pid),
+    HeavenWar,
 }
 
 impl Engine {
     pub fn turn(&mut self, id: Pid) {
         // ---- กิจกรรมยาวที่ทำค้างอยู่
         match self.people[id as usize].process.clone() {
+            Some(Process::Dissolved) => {
+                self.lord_turn(id);
+                return;
+            }
             Some(Process::Travel { dest, arrive, .. }) => {
                 if self.day < arrive {
                     self.schedule(id, arrive - self.day);
@@ -75,6 +85,15 @@ impl Engine {
         }
         if !self.is_adult(id) {
             self.childhood(id);
+            return;
+        }
+        let p = &self.people[id as usize];
+        if p.is_chaos() || !p.sentient {
+            // เผ่าโกลาหลบำเพ็ญอยู่ในถิ่น (การบุกเกิดบนนาฬิกาโลก) · อสูรไร้จิตหากินตามสัญชาตญาณ
+            let gap = if p.is_chaos() { self.cultivate(id) } else { self.range(30, 120) };
+            if self.people[id as usize].alive {
+                self.schedule(id, gap);
+            }
             return;
         }
         let act = self.choose(id);
@@ -147,6 +166,10 @@ impl Engine {
             let progress = p.insight / need;
             let cap = self.cfg.realm_cap_of_tier(p.tier(self.cfg.realm_band));
             menu.push((Act::Cultivate, 12.0 * (0.4 + p.root as f64)));
+            menu.push((Act::Train, 10.0 + if p.skills.is_empty() { 8.0 } else { 0.0 }));
+            if p.blood[SPIRIT] >= 0.3 && p.refine < p.blood[SPIRIT] as f64 {
+                menu.push((Act::RefineBlood, 8.0 * p.blood[SPIRIT] as f64));
+            }
             if progress < 0.9 && (p.realm >= self.cfg.bigu_realm || p.pack > 60.0) {
                 menu.push((Act::Seclude, 3.0 + 4.0 * p.ambition as f64));
             }
@@ -159,7 +182,14 @@ impl Engine {
                 menu.push((Act::Breakthrough, w));
             }
             if p.realm == cap && world.up.is_some() && progress >= 1.0 {
-                menu.push((Act::Ascend, 10.0 + 10.0 * p.ambition as f64));
+                let up = world.up.unwrap() as usize;
+                if self.worlds[up].closed {
+                    // ประตูปิด — ทุบค่ายกลแดนบน (ความบาดหมางของแดนผลักให้ลงมือ)
+                    let w = data::k("HEAVEN_WAR_W") * (1.0 + 0.5 * world.resentment.min(4.0));
+                    menu.push((Act::HeavenWar, w * 0.3));
+                } else {
+                    menu.push((Act::Ascend, 10.0 + 10.0 * p.ambition as f64));
+                }
             }
             // ไปหาที่ปราณหนา
             if self.qi[p.place as usize] < 0.55 {
@@ -208,6 +238,18 @@ impl Engine {
             if let Some(m) = mate {
                 menu.push((Act::Court(m), 9.0));
             }
+        }
+        // คำสัญญา การหักหลัง และการสะสางเรื่องเก่ากับคนที่อยู่ตรงหน้า
+        if let Some(&friend) = others.iter().filter(|&&o| p.bond(o) >= 2).max_by_key(|&&o| (p.bond(o), std::cmp::Reverse(o))) {
+            if p.bond(friend) < 6 {
+                menu.push((Act::Promise(friend), 0.3 + 0.6 * p.loyalty as f64));
+            }
+            if p.greed > 0.7 && p.loyalty < 0.3 && self.people[friend as usize].gold > 30.0 {
+                menu.push((Act::Betray(friend), 1.5 * p.greed as f64));
+            }
+        }
+        if let Some(d) = p.debts.iter().find(|d| !d.done && others.contains(&d.target)) {
+            menu.push((Act::Settle(d.target), 4.0 + p.inner.min(8.0)));
         }
         // ล้างแค้น — ศัตรูที่อยู่ตรงหน้า
         if let Some((&foe, &g)) = p.rivals.iter().filter(|(f, _)| others.contains(f)).max_by_key(|(_, &g)| g) {
@@ -290,6 +332,12 @@ impl Engine {
             Act::Brew => self.brew(id),
             Act::Forge => self.forge(id),
             Act::Arrest(t) => self.arrest(id, t, None),
+            Act::Train => self.train(id),
+            Act::RefineBlood => self.refine_blood(id),
+            Act::Promise(t) => self.promise(id, t),
+            Act::Betray(t) => self.betray(id, t),
+            Act::Settle(t) => self.settle(id, t),
+            Act::HeavenWar => self.heaven_war(id),
         }
     }
 

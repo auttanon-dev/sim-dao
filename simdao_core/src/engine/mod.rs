@@ -10,8 +10,11 @@ pub mod geo;
 pub mod life;
 pub mod model;
 pub mod py;
+pub mod races;
+pub mod realms;
 pub mod sect;
 pub mod sim;
+pub mod skills;
 pub mod trades;
 pub mod world;
 

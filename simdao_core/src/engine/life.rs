@@ -59,6 +59,49 @@ fn weighted<'a>(e: &mut Engine, table: &'a [(String, f64)]) -> usize {
 }
 
 impl Engine {
+    /// สายเลือดตอนเกิด — ลูกได้ค่าเฉลี่ยของพ่อแม่ ผันผวนเล็กน้อย และเลือดวิญญาณเจือจางลงทุกรุ่น
+    /// (ส่วนที่เจือจางกลายเป็นอสูร) · คนที่ไม่มีพ่อแม่สุ่มตามแดนที่เกิด
+    fn roll_blood(&mut self, world: u16, parents: [Option<Pid>; 2]) -> [f32; 5] {
+        let ps: Vec<[f32; 5]> = parents.iter().flatten().map(|&p| self.people[p as usize].blood).collect();
+        let mut b = [0f32; 5];
+        if !ps.is_empty() {
+            for i in 0..5 {
+                b[i] = ps.iter().map(|x| x[i]).sum::<f32>() / ps.len() as f32;
+            }
+            let dil = b[SPIRIT] * data::k("BLOOD_DILUTE") as f32;
+            b[SPIRIT] -= dil;
+            b[DEMON] += dil;
+            for i in 0..4 {
+                b[i] = (b[i] + (self.rng.next_f64() as f32 - 0.5) * 0.12).max(0.0);
+            }
+        } else {
+            let u = |e: &mut Engine, lo: f64, hi: f64| (lo + (hi - lo) * e.rng.next_f64()) as f32;
+            if self.worlds[world as usize].kind == WorldKind::Mara {
+                b = [u(self, 0.0, 0.2), 0.0, u(self, 0.0, 0.2), u(self, 0.7, 1.0), 0.0];
+            } else {
+                let r = self.rng.next_f64();
+                b = if r < 0.70 {
+                    [u(self, 0.8, 1.0), u(self, 0.0, 0.1), u(self, 0.0, 0.1), u(self, 0.0, 0.05), 0.0]
+                } else if r < 0.80 {
+                    [u(self, 0.4, 0.7), u(self, 0.3, 0.6), 0.0, 0.0, 0.0]
+                } else if r < 0.88 {
+                    [u(self, 0.4, 0.7), 0.0, u(self, 0.3, 0.6), 0.0, 0.0]
+                } else if r < 0.93 {
+                    [0.0, u(self, 0.9, 1.0), u(self, 0.0, 0.1), 0.0, 0.0]
+                } else if r < 0.98 {
+                    [0.0, u(self, 0.0, 0.15), u(self, 0.85, 1.0), 0.0, 0.0]
+                } else {
+                    [u(self, 0.4, 0.6), 0.0, 0.0, u(self, 0.4, 0.6), 0.0]
+                };
+            }
+        }
+        let s: f32 = b.iter().sum::<f32>().max(1e-6);
+        for x in b.iter_mut() {
+            *x /= s;
+        }
+        b
+    }
+
     /// อายุขัยพื้นแบบปกติตัดปลาย [min, max] โดยมีเงื่อนไขว่ารอดมาถึงอายุตอนสร้าง
     fn roll_lifespan(&mut self, alive_at: f64) -> f64 {
         let (mu, sd, lo, hi) = (self.cfg.lifespan_mu, self.cfg.lifespan_sigma, self.cfg.lifespan_min, self.cfg.lifespan_max);
@@ -157,6 +200,20 @@ impl Engine {
         }
         .clamp(0.0, 1.0);
         let lifespan = self.roll_lifespan(age);
+        let blood = self.roll_blood(world, parents);
+        let mut affinity = [0f32; 5];
+        for i in 0..5 {
+            if blood[i] > 0.0 {
+                affinity[i] = (data::k("BLOODLINE_AFFINITY_MIN") + self.rng.next_f64() * (data::k("BLOODLINE_AFFINITY_MAX") - data::k("BLOODLINE_AFFINITY_MIN"))) as f32;
+            }
+        }
+        let inner_none = self.chance(data::k("INNER_NONE_P"));
+        let inner_art = !inner_none && self.chance(data::k("INNER_ART_P"));
+        let fate = self.range(data::k("FATE_MIN") as i64, data::k("FATE_MAX") as i64) as i8;
+        let tier = self.worlds[world as usize].tier;
+        // ธาตุประจำตัว: สืบจากพ่อแม่เป็นหลัก ที่เหลือคือสิ่งที่ฟ้าให้มา
+        let par_el: Vec<u8> = parents.iter().flatten().map(|&p| self.people[p as usize].element).collect();
+        let element = if !par_el.is_empty() && self.chance(0.6) { par_el[self.rng.below(par_el.len() as u64) as usize] } else { self.rng.below(5) as u8 };
         let p = Person {
             id,
             name,
@@ -208,6 +265,27 @@ impl Engine {
             pills: 0,
             weapon: 0.0,
             crimes: 0,
+            blood,
+            refine: 0.0,
+            inner: 0.0,
+            inner_none,
+            inner_art,
+            debts: Vec::new(),
+            fate,
+            chaos_rank: -1,
+            is_lord: false,
+            lord_returns: 0,
+            thrall: false,
+            fallen: false,
+            sentient: true,
+            unique_title: String::new(),
+            affinity,
+            birth_world: world,
+            peak_tier: tier,
+            near_death: 0,
+            skills: Vec::new(),
+            mastery: Vec::new(),
+            element,
             last_day: self.day,
             next_turn: 0,
             fieldwork: false,
@@ -226,6 +304,22 @@ impl Engine {
         }
         for par in parents.iter().flatten() {
             self.people[*par as usize].children.push(id);
+        }
+        // อสูรระดับต่ำยังไม่มีจิตนึกคิด · อสูรบางตัวเกิดมาเป็นตัวเฉพาะ
+        if self.people[id as usize].blood[DEMON] >= data::k("BLOOD_RACE_AT") as f32 {
+            if age < 60.0 {
+                self.people[id as usize].sentient = age >= self.cfg.adult_age && self.chance(0.5);
+            }
+            if self.chance(data::k("UNIQUE_BEAST_CHANCE")) {
+                let titles = data::strs(data::table("config", "UNIQUE_BEAST_TITLES"));
+                let t = titles[self.rng.below(titles.len() as u64) as usize].clone();
+                let p = &mut self.people[id as usize];
+                p.unique_title = t;
+                p.sentient = true;
+                p.cultivator = true;
+                p.realm = (p.realm + 2).min(self.cfg.realm_cap_of_tier(tier));
+                p.peak_realm = p.realm;
+            }
         }
         let gap = self.range(1, 120);
         self.schedule(id, gap);
@@ -278,6 +372,29 @@ impl Engine {
     pub fn kill(&mut self, id: Pid, killer: Option<Pid>, cause: &str, natural: bool) {
         if !self.people[id as usize].alive {
             return;
+        }
+        if self.people[id as usize].is_lord {
+            self.lord_dissolves(id, killer, cause);
+            return;
+        }
+        // ชะตาช่วยให้รอดจากการถูกฆ่าได้ครั้งหนึ่ง (ไม่ใช่จากวัย โรค หรือความหิว)
+        if !natural && killer.is_some() && self.people[id as usize].fate > 0 && self.chance(0.5) {
+            let p = &mut self.people[id as usize];
+            p.fate -= 1;
+            p.near_death += 1;
+            p.injury = 0.9;
+            if let Some(k) = killer {
+                *p.rivals.entry(k).or_insert(0) += 3;
+            }
+            let n = p.name.clone();
+            self.emit("รอดตายด้วยชะตา", Some(id), killer, "รอดตาย", format!("{}รอดจากความตายอย่างหวุดหวิดด้วยชะตาที่ยังไม่ขาด ({})", n, cause));
+            return;
+        }
+        self.feed_lord(id, natural);
+        if let Some(k) = killer {
+            if self.people[k as usize].alive {
+                self.add_debt(k, "ฆ่า", id);
+            }
         }
         let day = self.day;
         {

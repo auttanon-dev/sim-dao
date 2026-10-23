@@ -93,3 +93,28 @@ impl WorldData {
         v
     }
 }
+
+// ------------------------------------------------------------------ ตารางจากต้นฉบับ (data/tables.json)
+static TABLES: OnceLock<serde_json::Value> = OnceLock::new();
+
+/// ตารางทั้งหมดที่ส่งออกจากต้นฉบับ: tables()["skills"]["SKILLS"] ฯลฯ
+pub fn tables() -> &'static serde_json::Value {
+    TABLES.get_or_init(|| serde_json::from_str(include_str!("../../data/tables.json")).expect("data/tables.json เสีย"))
+}
+
+pub fn table(module: &str, name: &str) -> &'static serde_json::Value {
+    &tables()[module][name]
+}
+
+/// ค่าคงที่ตัวเลขจาก config เดิม (ไม่มี = panic เพราะเป็นบั๊กของการย้าย ไม่ใช่สถานะของโลก)
+pub fn k(name: &str) -> f64 {
+    tables()["config"][name].as_f64().unwrap_or_else(|| panic!("ไม่มีค่าคงที่ {}", name))
+}
+
+pub fn k_or(name: &str, default: f64) -> f64 {
+    tables()["config"][name].as_f64().unwrap_or(default)
+}
+
+pub fn strs(v: &serde_json::Value) -> Vec<String> {
+    v.as_array().map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect()).unwrap_or_default()
+}
