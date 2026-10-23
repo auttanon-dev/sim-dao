@@ -8,23 +8,7 @@ use super::act::Act;
 use super::data::{self, k};
 use super::model::*;
 use super::sim::Engine;
-use serde::{Deserialize, Serialize};
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct City {
-    pub id: u16,
-    pub name: String,
-    pub world: u16,
-    pub place: u32,
-    pub kind: String,
-    pub safety: f32,
-    pub wealth: f32,
-    pub jianghu: f32,
-    pub info: f32,
-    pub strictness: f32,
-    pub title: String,
-    pub ruler: Option<Pid>,
-}
+use super::polity::*;
 
 impl Engine {
     /// เมืองของโลกมนุษย์และแดนเพื่อนบ้าน — หนึ่งเมืองต่อสถานที่ที่เป็นเมือง/ตลาด พร้อมเจ้าเมือง
@@ -57,39 +41,46 @@ impl Engine {
                 (50.0, "นายอำเภอ", 3)
             };
             let a = &c["attributes"];
-            let id = self.cities.len() as u16;
+            let id = self.polities.len() as u32;
             let age = 30.0 + self.rng.next_f64() * 30.0;
             let ruler = self.spawn(world, Some(place), age, [None, None]);
             let p = &mut self.people[ruler as usize];
             p.cultivator = true;
             p.realm = realm;
             p.peak_realm = realm;
-            p.city = Some(id);
-            self.cities.push(City {
-                id,
-                name: c["name_th"].as_str().unwrap_or("").to_string(),
-                world,
-                place,
-                kind,
+            p.office = Some((id, 0));
+            let mut pol = Polity::new(id, PolityKind::City, c["name_th"].as_str().unwrap_or("").to_string(), world, place, Succession::Strength, title, self.day);
+            pol.style = kind;
+            pol.policy.strictness = strict / 100.0;
+            pol.offices[0].holder = Some(ruler);
+            pol.traits = Some(CityTraits {
                 safety: a["safety"].as_f64().unwrap_or(50.0) as f32,
                 wealth: a["wealth"].as_f64().unwrap_or(50.0) as f32,
                 jianghu: a["jianghu"].as_f64().unwrap_or(50.0) as f32,
                 info: a["info"].as_f64().unwrap_or(50.0) as f32,
-                strictness: strict,
-                title: title.into(),
-                ruler: Some(ruler),
             });
+            self.polities.push(pol);
+        }
+        self.index_cities();
+    }
+
+    pub fn index_cities(&mut self) {
+        self.city_index = vec![None; self.places.len()];
+        for p in self.polities.iter().rev() {
+            if p.kind == PolityKind::City {
+                self.city_index[p.seat as usize] = Some(p.id);
+            }
         }
     }
 
     pub fn city_at(&self, place: u32) -> Option<usize> {
-        self.cities.iter().position(|c| c.place == place)
+        self.city_index.get(place as usize).copied().flatten().map(|c| c as usize)
     }
 
     /// ความเข้มงวดของกฎที่สถานที่หนึ่ง (เมืองไร้เจ้าเมือง = ไร้กฎ)
     pub fn law_at(&self, place: u32) -> f64 {
         match self.city_at(place) {
-            Some(c) if self.cities[c].ruler.is_some() => self.cities[c].strictness as f64 / 100.0,
+            Some(c) if self.polities[c].head().is_some() => self.polities[c].policy.strictness as f64,
             Some(_) => 0.05,
             None => 0.3,
         }
@@ -97,17 +88,20 @@ impl Engine {
 
     /// เจ้าเมืองตาย — ผู้แกร่งที่สุดในเมืองขึ้นแทน
     pub fn tick_cities(&mut self) {
-        for c in 0..self.cities.len() {
-            let ruler = self.cities[c].ruler;
+        for c in 0..self.polities.len() {
+            if self.polities[c].kind != PolityKind::City {
+                continue;
+            }
+            let ruler = self.polities[c].head();
             if ruler.map_or(false, |r| self.people[r as usize].alive) {
                 continue;
             }
-            let place = self.cities[c].place;
-            let cand = self.present_at(place).into_iter().filter(|&i| self.is_adult(i) && self.people[i as usize].city.is_none() && !self.is_criminal(i)).max_by(|&a, &b| self.power(a).partial_cmp(&self.power(b)).unwrap().then(b.cmp(&a)));
-            self.cities[c].ruler = cand;
+            let place = self.polities[c].seat;
+            let cand = self.present_at(place).into_iter().filter(|&i| self.is_adult(i) && self.people[i as usize].office.is_none() && !self.is_criminal(i)).max_by(|&a, &b| self.power(a).partial_cmp(&self.power(b)).unwrap().then(b.cmp(&a)));
+            self.polities[c].offices[0].holder = cand;
             if let Some(r) = cand {
-                self.people[r as usize].city = Some(c as u16);
-                let (n, t, cn) = (self.people[r as usize].name.clone(), self.cities[c].title.clone(), self.cities[c].name.clone());
+                self.people[r as usize].office = Some((c as u32, 0));
+                let (n, t, cn) = (self.people[r as usize].name.clone(), self.polities[c].title().to_string(), self.polities[c].name.clone());
                 self.emit("สืบตำแหน่งเจ้าเมือง", Some(r), None, "ขึ้นปกครอง", format!("{}ขึ้นเป็น{}แห่ง{}", n, t, cn));
             }
         }
@@ -328,28 +322,28 @@ impl Engine {
         let gap = self.range(5, 30);
         let place = self.people[id as usize].place;
         let Some(ci) = self.city_at(place) else { return gap };
-        let c = self.cities[ci].clone();
+        let (cname, cworld, t) = (self.polities[ci].name.clone(), self.polities[ci].world, self.polities[ci].traits.expect("เมืองต้องมีคุณลักษณะ"));
         let roll = self.rng.next_f64() * 100.0;
         let name = self.people[id as usize].name.clone();
-        if roll > c.safety as f64 && self.chance(0.5) {
+        if roll > t.safety as f64 && self.chance(0.5) {
             // โจรป่าดักโจมตีระหว่างทางเข้าเมือง
-            let enemy = 3.0 + self.rng.next_f64() * 12.0 * (1.0 + self.worlds[c.world as usize].tier as f64);
+            let enemy = 3.0 + self.rng.next_f64() * 12.0 * (1.0 + self.worlds[cworld as usize].tier as f64);
             if self.power(id) >= enemy {
                 let p = &mut self.people[id as usize];
                 p.insight += 0.5;
                 p.moral += 1;
-                self.emit("เหตุการณ์เมือง", Some(id), None, "ปราบโจร", format!("{}ถูกโจรป่าดักโจมตีใกล้{} แต่ปราบได้สำเร็จ", name, c.name));
+                self.emit("เหตุการณ์เมือง", Some(id), None, "ปราบโจร", format!("{}ถูกโจรป่าดักโจมตีใกล้{} แต่ปราบได้สำเร็จ", name, cname));
             } else {
                 let loss = (self.people[id as usize].gold * 0.3).min(40.0);
                 let p = &mut self.people[id as usize];
                 p.gold -= loss;
                 p.injury = (p.injury + 0.3).min(1.0);
                 self.places[place as usize].treasury += loss; // ของโจรกระจายกลับสู่ตลาดมืดของเมือง
-                self.emit("เหตุการณ์เมือง", Some(id), None, "ถูกปล้น", format!("{}ถูกโจรป่าดักปล้นใกล้{} เสียเงิน {:.0} ตำลึงและบาดเจ็บ", name, c.name, loss));
+                self.emit("เหตุการณ์เมือง", Some(id), None, "ถูกปล้น", format!("{}ถูกโจรป่าดักปล้นใกล้{} เสียเงิน {:.0} ตำลึงและบาดเจ็บ", name, cname, loss));
             }
             return gap;
         }
-        if self.rng.next_f64() * 100.0 <= c.jianghu as f64 {
+        if self.rng.next_f64() * 100.0 <= t.jianghu as f64 {
             // งานประลองยุทธในเมือง กับคนที่อยู่ที่นี่จริง
             let rivals: Vec<Pid> = self.present_at(place).into_iter().filter(|&o| o != id && self.people[o as usize].cultivator && self.is_adult(o)).collect();
             if let Some(o) = self.pick(&rivals) {
@@ -358,7 +352,7 @@ impl Engine {
             self.people[id as usize].insight += 0.4;
             return gap;
         }
-        if self.rng.next_f64() * 100.0 <= c.wealth as f64 && self.people[id as usize].gold >= 40.0 && self.people[id as usize].injury > 0.2 {
+        if self.rng.next_f64() * 100.0 <= t.wealth as f64 && self.people[id as usize].gold >= 40.0 && self.people[id as usize].injury > 0.2 {
             // ซื้อยาสมานแผล
             self.people[id as usize].gold -= 40.0;
             self.places[place as usize].till += 40.0;
@@ -366,9 +360,9 @@ impl Engine {
             p.injury *= 0.5;
             return gap;
         }
-        if self.rng.next_f64() * 100.0 <= c.info as f64 {
+        if self.rng.next_f64() * 100.0 <= t.info as f64 {
             // ได้ยินข่าวลือเรื่องแดนลับในร้านน้ำชา
-            let world = c.world;
+            let world = cworld;
             let sealed: Vec<u32> = self.caches.iter().filter(|x| x.world == world && !x.opened).map(|x| x.id).collect();
             if let Some(cid) = self.pick(&sealed) {
                 let p = &mut self.people[id as usize];

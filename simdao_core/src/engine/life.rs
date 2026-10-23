@@ -272,7 +272,8 @@ impl Engine {
             crimes: 0,
             moral: 0,
             merit: 0.0,
-            city: None,
+            office: None,
+            legacy_city: None,
             blood,
             refine: 0.0,
             inner: 0.0,
@@ -491,8 +492,8 @@ impl Engine {
                     self.people[*h as usize].mats[k] += mshare[k];
                 }
             }
-        } else if let Some(s) = sect.filter(|&s| self.sects[s as usize].alive) {
-            self.sects[s as usize].treasury += gold;
+        } else if let Some(s) = sect.filter(|&s| self.polities[s as usize].alive()) {
+            self.polities[s as usize].treasury += gold;
             self.ledger.gold("to_sect", gold);
         } else {
             self.places[place as usize].treasury += gold;

@@ -102,7 +102,7 @@ impl Engine {
                     menu.push((Act::FoundSect, 3.0 * p.ambition as f64));
                 }
                 Some(s) => {
-                    let home = self.sects[s as usize].home;
+                    let home = self.polities[s as usize].seat;
                     if home != p.place && self.chance(0.3) {
                         menu.push((Act::GoHome(home), 2.0));
                     }

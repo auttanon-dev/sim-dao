@@ -232,12 +232,13 @@ impl PyEngine {
     fn sects_json(&self) -> String {
         let v: Vec<Value> = self
             .inner
-            .sects
+            .polities
             .iter()
+            .filter(|s| s.kind == crate::engine::polity::PolityKind::Sect)
             .map(|s| {
-                json!({"id": s.id, "name": s.name, "world": s.world, "home": s.home, "founder": s.founder,
-                       "leader": s.leader, "founded": s.founded, "members": s.members.len(),
-                       "treasury": s.treasury, "alive": s.alive})
+                json!({"id": s.id, "name": s.name, "world": s.world, "home": s.seat, "founder": s.founder,
+                       "leader": s.head(), "founded": s.founded, "members": s.members.len(),
+                       "treasury": s.treasury, "alive": s.alive(), "parent": s.parent})
             })
             .collect();
         Value::Array(v).to_string()
@@ -252,7 +253,7 @@ impl PyEngine {
             "day": e.day, "year": e.day as f64 / 365.0, "steps": e.steps,
             "population": e.alive.len(), "ever_born": e.people.len(), "cultivators": cultivators,
             "top_realm": top, "top_realm_name": data::world().realm_name(top),
-            "sects": e.sects.iter().filter(|s| s.alive).count(),
+            "sects": e.polities.iter().filter(|s| s.kind == crate::engine::polity::PolityKind::Sect && s.alive()).count(),
             "food_total": e.total_food(), "food_ledger": e.ledger_food(),
             "gold_total": e.total_gold(), "gold_ledger": e.ledger_gold(),
             "food": e.ledger.food, "gold": e.ledger.gold, "deaths": e.ledger.deaths, "counts": e.ledger.counts,

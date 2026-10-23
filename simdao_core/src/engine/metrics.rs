@@ -2,6 +2,7 @@
 //!
 //! อ่านอย่างเดียว ไม่แตะสถานะของโลก (เปิดดูกี่ครั้งก็ไม่เปลี่ยนผลจำลอง)
 
+use super::polity::PolityKind;
 use super::sim::Engine;
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -31,11 +32,11 @@ impl Engine {
             year: self.day as f64 / 365.0,
             alive,
             cultivators,
-            sects: self.sects.iter().filter(|s| s.alive).count(),
-            cities_ruled: self.cities.iter().filter(|c| c.ruler.is_some()).count(),
-            cities: self.cities.len(),
+            sects: self.polities.iter().filter(|s| s.kind == PolityKind::Sect && s.alive()).count(),
+            cities_ruled: self.polities.iter().filter(|c| c.kind == PolityKind::City && c.head().is_some()).count(),
+            cities: self.polities.iter().filter(|c| c.kind == PolityKind::City).count(),
             gold_people: self.alive.iter().map(|&i| self.people[i as usize].gold).sum(),
-            gold_sects: self.sects.iter().filter(|s| s.alive).map(|s| s.treasury).sum(),
+            gold_sects: self.polities.iter().filter(|s| s.alive()).map(|s| s.treasury).sum(),
             gold_places: self.places.iter().map(|p| p.till + p.treasury).sum(),
             food_delta: self.total_food() - self.ledger_food(),
             gold_delta: self.total_gold() - self.ledger_gold(),

@@ -137,8 +137,12 @@ pub struct Person {
     pub moral: i16,             // คุณธรรม -100..100
     #[serde(default)]
     pub merit: f32,             // บุญบารมี
+    /// ตำแหน่งที่ดำรงอยู่ (หน่วยปกครอง, ลำดับตำแหน่ง) — คนหนึ่งดำรงได้ตำแหน่งเดียว
     #[serde(default)]
-    pub city: Option<u16>,      // เจ้าเมืองของเมืองนี้
+    pub office: Option<(u32, u8)>,
+    /// เซฟเก่า: เจ้าเมืองของเมืองที่ (ย้ายเป็น office ใน after_load)
+    #[serde(default, rename = "city", skip_serializing)]
+    pub legacy_city: Option<u16>,
     // ---- สายเลือดและจิต
     pub blood: [f32; 5],
     pub refine: f64,            // การขัดเกลาสายเลือดวิญญาณ
@@ -268,21 +272,6 @@ impl World {
     pub fn ratio(&self) -> f64 {
         self.heaven / self.cap
     }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Sect {
-    pub id: u32,
-    pub name: String,
-    pub world: u16,
-    pub home: u32,
-    pub founder: Pid,
-    pub leader: Pid,
-    pub founded: i64,
-    pub members: Vec<Pid>,
-    pub treasury: f64,
-    pub alive: bool,
-    pub grudges: BTreeMap<u32, i16>,
 }
 
 /// สถานะของสถานที่หนึ่งแห่ง (สถานที่แต่ละแห่งอยู่ในแดนเดียวเสมอ)

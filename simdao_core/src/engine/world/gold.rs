@@ -22,7 +22,7 @@ impl Engine {
                 // ภาษีสำนักของสมาชิก
                 if let Some(s) = self.people[id as usize].sect {
                     let tithe = spend * self.cfg.sect_tithe;
-                    self.sects[s as usize].treasury += tithe;
+                    self.polities[s as usize].treasury += tithe;
                     self.places[place].till += spend - tithe;
                 } else {
                     self.places[place].till += spend;
@@ -90,7 +90,7 @@ impl Engine {
     pub fn total_gold(&self) -> f64 {
         let people: f64 = self.alive.iter().map(|&i| self.people[i as usize].gold).sum();
         let places: f64 = self.places.iter().map(|p| p.till + p.treasury).sum();
-        let sects: f64 = self.sects.iter().map(|s| s.treasury).sum();
+        let sects: f64 = self.polities.iter().map(|s| s.treasury).sum();
         let caches: f64 = self.caches.iter().map(|c| c.gold).sum();
         let ruins: f64 = self.ruin_gold.iter().sum();
         people + places + sects + caches + ruins

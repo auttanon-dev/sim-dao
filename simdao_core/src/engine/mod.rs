@@ -10,6 +10,7 @@ pub mod geo;
 pub mod items;
 pub mod life;
 pub mod model;
+pub mod polity;
 pub mod mystic;
 pub mod py;
 pub mod races;

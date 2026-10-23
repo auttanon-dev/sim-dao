@@ -28,7 +28,11 @@ pub struct Engine {
     pub worlds: Vec<World>,
     pub places: Vec<PlaceState>,
     pub place_world: Vec<Option<u16>>,
-    pub sects: Vec<Sect>,
+    #[serde(default)]
+    pub polities: Vec<super::polity::Polity>,
+    /// เซฟเก่า (ก่อน P1) — ย้ายเข้า polities ใน after_load
+    #[serde(default, rename = "sects", skip_serializing)]
+    pub legacy_sects: Vec<super::polity::LegacySect>,
     pub queue: BinaryHeap<Reverse<(i64, Pid)>>,
     pub next_tick: i64,
     pub log: VecDeque<Event>,
@@ -58,8 +62,11 @@ pub struct Engine {
     pub legends: Vec<u32>,
     pub fragments: Vec<super::items::Fragment>,
     pub ruin_gold: Vec<f64>,
-    #[serde(default)]
-    pub cities: Vec<super::society::City>,
+    #[serde(default, rename = "cities", skip_serializing)]
+    pub legacy_cities: Vec<super::polity::LegacyCity>,
+    /// สถานที่ → เมืองที่ตั้งอยู่ที่นั่น (สร้างใหม่ได้ — ไม่เซฟ)
+    #[serde(skip)]
+    pub city_index: Vec<Option<u32>>,
     /// สำเนาที่ใช้มองอนาคต — ไม่มอบระบบ ไม่จำลองซ้อน
     #[serde(skip)]
     pub fork: bool,
@@ -84,7 +91,8 @@ impl Engine {
             worlds: Vec::new(),
             places: vec![PlaceState::default(); d.places.len()],
             place_world: vec![None; d.places.len()],
-            sects: Vec::new(),
+            polities: Vec::new(),
+            legacy_sects: Vec::new(),
             queue: BinaryHeap::new(),
             next_tick: 0,
             log: VecDeque::new(),
@@ -111,7 +119,8 @@ impl Engine {
             legends: Vec::new(),
             fragments: Vec::new(),
             ruin_gold: Vec::new(),
-            cities: Vec::new(),
+            legacy_cities: Vec::new(),
+            city_index: Vec::new(),
             fork: false,
             qi: Vec::new(),
             at: vec![Default::default(); d.places.len()],
@@ -126,6 +135,8 @@ impl Engine {
 
     /// หลังโหลดเซฟ — คืนค่าที่ไม่ได้เซฟไว้ (คิดใหม่ได้จาก seed)
     pub fn after_load(&mut self) {
+        self.migrate_legacy_polities();
+        self.index_cities();
         self.compute_qi();
         self.at = vec![Default::default(); self.places.len()];
         for &i in &self.alive {
@@ -452,7 +463,7 @@ impl Engine {
 pub(crate) mod tests {
     use super::*;
 
-    fn fingerprint(e: &Engine) -> (usize, usize, u64, i64) {
+    pub fn fingerprint(e: &Engine) -> (usize, usize, u64, i64) {
         let h = e.log.iter().fold(0u64, |h, ev| {
             ev.text.bytes().fold(h.wrapping_mul(1_000_003) ^ ev.day as u64, |h, b| h.wrapping_mul(31) ^ b as u64)
         });
@@ -472,7 +483,18 @@ pub(crate) mod tests {
         eprintln!("GOLDEN {} {}", h, e.alive.len());
         assert_eq!(h, GOLDEN, "behaviour changed (alive {})", e.alive.len());
     }
-    const GOLDEN: u64 = 5628211116023001513;
+    const GOLDEN: u64 = 5666692564723387031;
+
+    /// พฤติกรรม (ไม่ขึ้นกับรูปแบบการเซฟ): ใช้ยืนยันว่าการย้ายโครงสร้างข้อมูลไม่เปลี่ยนผล
+    #[test]
+    fn behaviour_fingerprint() {
+        let mut e = Engine::new(21, Config::default());
+        e.run_until(20 * 365);
+        let f = fingerprint(&e);
+        eprintln!("BEHAVIOUR {:?}", f);
+        assert_eq!(f, BEHAVIOUR);
+    }
+    const BEHAVIOUR: (usize, usize, u64, i64) = (1626, 2207, 1719639053237918737, 7300);
 
     #[test]
     fn same_seed_same_world() {
