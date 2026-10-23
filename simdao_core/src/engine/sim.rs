@@ -1,0 +1,356 @@
+//! Engine — โลกหนึ่งใบ: สร้างโลก คิวเทิร์น นาฬิกาโลก บันทึกเหตุการณ์
+//!
+//! เวลาเดินเป็นวัน มีสองจังหวะ
+//!   · เทิร์นของคน (คิว min-heap ตามวัน) — การตัดสินใจและการกระทำ (intent.rs, actions.rs)
+//!   · นาฬิกาโลกทุก world_tick_days วัน — สิ่งที่เกิดกับทุกคนพร้อมกัน: กิน ผลิต ค่าแรง แก่ ฟื้นตัว
+//!     ตั้งครรภ์ คลอด ข่าว ปราณฟ้า (world.rs)
+
+use super::config::Config;
+use super::data;
+use super::model::*;
+use crate::noise::Planet;
+use crate::rng::{fold_seed, Xoshiro};
+use serde::{Deserialize, Serialize};
+use std::cmp::Reverse;
+use std::collections::{BTreeSet, BinaryHeap, HashSet, VecDeque};
+
+pub const PLANET_SPAN: f64 = 1000.0;
+pub const PLANET_SCALE: f64 = 12.0;
+
+#[derive(Serialize, Deserialize)]
+pub struct Engine {
+    pub cfg: Config,
+    pub seed: u64,
+    pub rng: Xoshiro,
+    pub day: i64,
+    pub people: Vec<Person>,
+    pub alive: BTreeSet<Pid>,
+    pub worlds: Vec<World>,
+    pub places: Vec<PlaceState>,
+    pub place_world: Vec<Option<u16>>,
+    pub sects: Vec<Sect>,
+    pub queue: BinaryHeap<Reverse<(i64, Pid)>>,
+    pub next_tick: i64,
+    pub log: VecDeque<Event>,
+    pub seq: u64,
+    pub news: Vec<News>,
+    pub ledger: Ledger,
+    pub used_names: HashSet<String>,
+    pub steps: u64,
+    /// ค่าปราณธรรมชาติของแต่ละสถานที่ 0..1 (คิดจากผิวดาวครั้งเดียว)
+    #[serde(skip)]
+    pub qi: Vec<f64>,
+}
+
+impl Engine {
+    pub fn new(seed: u64, cfg: Config) -> Engine {
+        let d = data::world();
+        let mut e = Engine {
+            cfg,
+            seed,
+            rng: Xoshiro::from_seed(seed),
+            day: 0,
+            people: Vec::new(),
+            alive: BTreeSet::new(),
+            worlds: Vec::new(),
+            places: vec![PlaceState::default(); d.places.len()],
+            place_world: vec![None; d.places.len()],
+            sects: Vec::new(),
+            queue: BinaryHeap::new(),
+            next_tick: 0,
+            log: VecDeque::new(),
+            seq: 0,
+            news: Vec::new(),
+            ledger: Ledger::default(),
+            used_names: HashSet::new(),
+            steps: 0,
+            qi: Vec::new(),
+        };
+        e.build_worlds();
+        e.compute_qi();
+        e.seed_nature();
+        e.populate();
+        e
+    }
+
+    /// หลังโหลดเซฟ — คืนค่าที่ไม่ได้เซฟไว้ (คิดใหม่ได้จาก seed)
+    pub fn after_load(&mut self) {
+        self.compute_qi();
+    }
+
+    // ------------------------------------------------------------------ สร้างโลก
+    fn build_worlds(&mut self) {
+        let d = data::world();
+        let add = |e: &mut Engine, name: &str, tier: u8, kind: WorldKind, key: &str, culture: &str| -> u16 {
+            let id = e.worlds.len() as u16;
+            let cap = e.cfg.heaven_cap * e.cfg.heaven_cap_per_tier.powi(tier as i32);
+            e.worlds.push(World {
+                id,
+                name: name.to_string(),
+                tier,
+                kind,
+                key: key.to_string(),
+                culture: culture.to_string(),
+                up: None,
+                lateral: Vec::new(),
+                places: Vec::new(),
+                heaven: cap * 0.85,
+                cap,
+                era: 1,
+                blood_marks: Vec::new(),
+            });
+            id
+        };
+        let tiers = d.tier_names.len().min(3);
+        for t in 0..tiers {
+            add(self, &d.tier_names[t].clone(), t as u8, WorldKind::Main, &format!("t{}", t), "han");
+        }
+        for t in 0..tiers - 1 {
+            self.worlds[t].up = Some(t as u16 + 1);
+        }
+        for (key, name) in d.sister_realms.clone() {
+            let culture = if d.names.contains_key(&key) { key.clone() } else { "han".to_string() };
+            let id = add(self, &name, 0, WorldKind::Sister, &key, &culture);
+            self.worlds[id as usize].up = Some(1);
+            self.worlds[id as usize].lateral.push(0);
+            self.worlds[0].lateral.push(id);
+        }
+        let n_branch = self.cfg.branch_realms.min(d.branch_realms.len());
+        for b in d.branch_realms.iter().take(n_branch).cloned().collect::<Vec<_>>() {
+            let id = add(self, &b.name, 1, WorldKind::Branch, &b.key, "han");
+            self.worlds[id as usize].up = if tiers > 2 { Some(2) } else { None };
+            self.worlds[id as usize].lateral.push(1);
+            self.worlds[1].lateral.push(id);
+        }
+        // สถานที่ของแต่ละแดน (แดนลับไม่ใช่ที่อยู่อาศัย)
+        for (i, p) in d.places.iter().enumerate() {
+            if let Some(w) = self.worlds.iter().position(|w| w.key == p.world) {
+                self.place_world[i] = Some(w as u16);
+                if p.kind != "แดนลับ" && !p.sealed {
+                    self.worlds[w].places.push(i as u32);
+                }
+            }
+        }
+    }
+
+    fn compute_qi(&mut self) {
+        let d = data::world();
+        let planet = Planet::create(fold_seed(self.seed as i128 ^ 0x91F1_0000) as i128, 1.0, 0.12, 1.0, 5, 2);
+        self.qi = d
+            .places
+            .iter()
+            .map(|p| {
+                let (x, y, z) = crate::noise::sphere_dir(p.x, p.y, PLANET_SPAN);
+                let h = planet.height_at(x, y, z, PLANET_SCALE);
+                // ที่ระดับสูง (เกรด) ปราณหนากว่า — เกรดคือสิ่งที่ผู้ออกแบบโลกตั้งใจ ส่วนผิวดาวคือธรรมชาติ
+                (0.5 + 0.5 * h + 0.08 * p.grade as f64).clamp(0.0, 1.0)
+            })
+            .collect();
+    }
+
+    fn seed_nature(&mut self) {
+        for i in 0..self.places.len() {
+            if self.place_world[i].is_none() {
+                continue;
+            }
+            for m in Material::ALL {
+                self.places[i].stock[m as usize] = self.eco_k(i, m);
+            }
+        }
+    }
+
+    fn populate(&mut self) {
+        for w in 0..self.worlds.len() {
+            let n = match self.worlds[w].kind {
+                WorldKind::Main if self.worlds[w].tier == 0 => self.cfg.cast_mortal,
+                WorldKind::Main => self.cfg.cast_main,
+                WorldKind::Sister => self.cfg.cast_sister,
+                WorldKind::Branch => self.cfg.cast_branch,
+            };
+            for _ in 0..n {
+                let age = 8.0 + self.rng.next_f64() * 37.0;
+                let id = self.spawn(w as u16, None, age, [None, None]);
+                let tier = self.worlds[w].tier;
+                if tier > 0 {
+                    // คนที่เกิดบนแดนสูงอยู่บนบันไดของแดนนั้นแล้ว
+                    let p = &mut self.people[id as usize];
+                    p.cultivator = true;
+                    p.realm = tier * self.cfg.realm_band + (self.rng.below(4) as u8);
+                    p.peak_realm = p.realm;
+                    p.root = p.root.max(0.5);
+                }
+            }
+        }
+        // ทุนตั้งต้น — การออกเงินและอาหารที่ประกาศไว้ในบัญชี
+        let ids: Vec<Pid> = self.alive.iter().copied().collect();
+        for id in ids {
+            let (gold, food) = (self.cfg.start_gold, self.cfg.start_food_days * self.cfg.ration_adult);
+            let p = &mut self.people[id as usize];
+            p.gold += gold;
+            p.pack += food as f32;
+            self.ledger.gold("issued", gold);
+            self.ledger.food("endowed", food);
+        }
+        // ยุ้งฉางตั้งต้นของทุกที่ที่มีคน — สองเดือนของคนที่อยู่ที่นั่น
+        let mut need = vec![0.0f64; self.places.len()];
+        for &id in &self.alive {
+            let p = &self.people[id as usize];
+            need[p.place as usize] += self.cfg.ration_adult * 60.0;
+        }
+        for (i, n) in need.into_iter().enumerate() {
+            if n > 0.0 {
+                self.places[i].granary += n;
+                self.ledger.food("endowed", n);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ คิว
+    /// นัดเทิร์นถัดไป (แทนนัดเดิม — คนหนึ่งคนมีนัดที่มีผลได้นัดเดียว)
+    pub fn schedule(&mut self, id: Pid, gap: i64) {
+        let when = self.day + gap.max(1);
+        self.people[id as usize].next_turn = when;
+        self.queue.push(Reverse((when, id)));
+    }
+
+    /// เดินโลกไป `steps` เทิร์น (เทิร์นของคน หนึ่งเทิร์นต่อหนึ่ง step) — คืนจำนวนที่เดินได้จริง
+    pub fn run(&mut self, steps: u64) -> u64 {
+        let mut done = 0;
+        while done < steps {
+            if !self.step() {
+                break;
+            }
+            done += 1;
+        }
+        done
+    }
+
+    /// เดินโลกไปจนถึงวันที่กำหนด
+    pub fn run_until(&mut self, day: i64) -> u64 {
+        let mut done = 0;
+        loop {
+            let next_turn = self.queue.peek().map(|Reverse((d, _))| *d).unwrap_or(i64::MAX);
+            if next_turn.min(self.next_tick) > day {
+                self.day = self.day.max(day);
+                break;
+            }
+            if !self.step() {
+                break;
+            }
+            done += 1;
+        }
+        done
+    }
+
+    /// หนึ่งเทิร์น — นาฬิกาโลกมาก่อนเทิร์นของคนที่ตรงวันกัน
+    pub fn step(&mut self) -> bool {
+        loop {
+            let next_turn = self.queue.peek().map(|Reverse((d, _))| *d);
+            match next_turn {
+                Some(d) if d < self.next_tick => {
+                    let Reverse((day, id)) = self.queue.pop().unwrap();
+                    let p = &self.people[id as usize];
+                    if !p.alive || p.next_turn != day {
+                        continue;
+                    }
+                    self.day = self.day.max(day);
+                    self.turn(id);
+                    self.steps += 1;
+                    return true;
+                }
+                _ => {
+                    if self.alive.is_empty() {
+                        return false;
+                    }
+                    self.day = self.day.max(self.next_tick);
+                    self.world_tick();
+                    self.next_tick = self.day + self.cfg.world_tick_days as i64;
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ บันทึก
+    pub fn emit(&mut self, kind: &str, actor: Option<Pid>, target: Option<Pid>, outcome: &str, text: String) {
+        let (world, place) = match actor.or(target) {
+            Some(id) => (self.people[id as usize].world, self.people[id as usize].place),
+            None => (0, 0),
+        };
+        self.seq += 1;
+        self.log.push_back(Event {
+            seq: self.seq,
+            day: self.day,
+            kind: kind.to_string(),
+            actor,
+            target,
+            world,
+            place,
+            outcome: outcome.to_string(),
+            text,
+        });
+        while self.log.len() > self.cfg.log_keep {
+            self.log.pop_front();
+        }
+        self.ledger.count(kind);
+    }
+
+    // ------------------------------------------------------------------ ตัวช่วย
+    pub fn person(&self, id: Pid) -> &Person {
+        &self.people[id as usize]
+    }
+
+    pub fn world_of(&self, id: Pid) -> &World {
+        &self.worlds[self.people[id as usize].world as usize]
+    }
+
+    /// คนที่ยังมีชีวิตอยู่ที่สถานที่เดียวกัน (ไม่นับผู้เดินทาง/ปิดด่าน)
+    pub fn present_at(&self, place: u32) -> Vec<Pid> {
+        self.alive
+            .iter()
+            .copied()
+            .filter(|&i| {
+                let p = &self.people[i as usize];
+                p.place == place && p.process.is_none()
+            })
+            .collect()
+    }
+
+    pub fn living_in(&self, world: u16) -> Vec<Pid> {
+        self.alive.iter().copied().filter(|&i| self.people[i as usize].world == world).collect()
+    }
+
+    pub fn realm_name(&self, realm: u8) -> String {
+        data::world().realm_name(realm)
+    }
+
+    pub fn place_name(&self, place: u32) -> &'static str {
+        &data::world().places[place as usize].name
+    }
+
+    pub fn pick<T: Copy>(&mut self, v: &[T]) -> Option<T> {
+        if v.is_empty() {
+            None
+        } else {
+            Some(v[self.rng.below(v.len() as u64) as usize])
+        }
+    }
+
+    pub fn chance(&mut self, p: f64) -> bool {
+        self.rng.next_f64() < p
+    }
+
+    pub fn range(&mut self, lo: i64, hi: i64) -> i64 {
+        lo + self.rng.below((hi - lo + 1).max(1) as u64) as i64
+    }
+
+    pub fn is_adult(&self, id: Pid) -> bool {
+        self.people[id as usize].age(self.day) >= self.cfg.adult_age
+    }
+
+    /// อายุขัยรวมตอนนี้ (ปี): อายุขัยพื้น + ขั้นย่อยที่ผ่าน + ขั้นใหญ่ที่ผ่าน
+    pub fn lifespan_of(&self, id: Pid) -> f64 {
+        let p = &self.people[id as usize];
+        let tier = p.tier(self.cfg.realm_band) as f64;
+        p.lifespan + p.realm as f64 * self.cfg.lifespan_per_minor + tier * self.cfg.lifespan_per_major
+    }
+}

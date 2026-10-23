@@ -5,6 +5,7 @@
 //! shim บางๆ ที่ re-export จากที่นี่ เพื่อให้ผู้เรียกเดิม (`from tiandao import physics as PH`)
 //! ไม่ต้องแก้
 
+pub mod engine;
 pub mod noise;
 pub mod physics;
 pub mod rng;
@@ -70,6 +71,7 @@ impl Rng {
 #[pymodule]
 fn simdao_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Rng>()?;
+    m.add_class::<engine::py::PyEngine>()?;
     m.add_class::<noise::Field>()?;
     m.add_class::<noise::Planet>()?;
     m.add_function(wrap_pyfunction!(noise::py_fade, m)?)?;

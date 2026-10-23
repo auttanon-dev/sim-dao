@@ -10,7 +10,7 @@ pub fn fold_seed(v: i128) -> u64 {
     (v as u64) ^ ((v >> 64) as u64)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Xoshiro {
     s: [u64; 4],
 }

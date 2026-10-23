@@ -237,6 +237,15 @@ pub struct Planet {
 }
 
 impl Planet {
+    /// สร้างดาวจากฝั่ง Rust (เอนจิน) — ตารางสับเปลี่ยนจาก xoshiro ไม่ใช่ random.Random
+    pub fn create(seed: i128, radius: f64, amp: f64, lam: f64, octaves: i64, warp_octaves: i64) -> Self {
+        Planet::new(seed, radius, amp, lam, octaves, warp_octaves)
+    }
+
+    pub fn height_at(&self, px: f64, py: f64, pz: f64, scale: f64) -> f64 {
+        self.height(px, py, pz, scale)
+    }
+
     fn fbm3_impl(&self, x: f64, y: f64, z: f64, octaves: i64, scale: f64, gain: f64, lacunarity: f64) -> f64 {
         let (mut amp, mut freq, mut total, mut norm) = (1.0, scale, 0.0, 0.0);
         for _ in 0..octaves.max(1) {
