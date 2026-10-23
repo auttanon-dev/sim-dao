@@ -50,6 +50,14 @@ pub struct Engine {
     pub lord_seal_last: i64,
     /// ผู้ถึงยอดบันได (ขั้นสูงสุด) ต่อสายเลือด -> (cid, ความแรงพร)
     pub apex: std::collections::BTreeMap<u8, (Pid, f32)>,
+    // ---- ของวิเศษ
+    pub items: std::collections::BTreeMap<u32, super::items::Item>,
+    pub next_item: u32,
+    pub caches: Vec<super::items::Cache>,
+    pub next_cache: u32,
+    pub legends: Vec<u32>,
+    pub fragments: Vec<super::items::Fragment>,
+    pub ruin_gold: Vec<f64>,
     /// ค่าปราณธรรมชาติของแต่ละสถานที่ 0..1 (คิดจากผิวดาวครั้งเดียว)
     #[serde(skip)]
     pub qi: Vec<f64>,
@@ -91,6 +99,13 @@ impl Engine {
             lord_seals_made: 0,
             lord_seal_last: -100_000,
             apex: Default::default(),
+            items: Default::default(),
+            next_item: 0,
+            caches: Vec::new(),
+            next_cache: 0,
+            legends: Vec::new(),
+            fragments: Vec::new(),
+            ruin_gold: Vec::new(),
             qi: Vec::new(),
             at: vec![Default::default(); d.places.len()],
         };
@@ -246,6 +261,7 @@ impl Engine {
             }
         }
         self.spawn_chaos_race();
+        self.seed_treasures();
         // ทุนตั้งต้น — การออกเงินและอาหารที่ประกาศไว้ในบัญชี
         let ids: Vec<Pid> = self.alive.iter().copied().collect();
         for id in ids {

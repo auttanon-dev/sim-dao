@@ -43,7 +43,7 @@ impl Engine {
         let age = p.age(self.day);
         let vigour = if age < 18.0 { 0.7 } else if age > 60.0 { (1.0 - (age - 60.0) / 60.0).max(0.4) } else { 1.0 };
         let sick = if p.sick(self.day) { 0.6 } else { 1.0 };
-        (base + 1.0 + 1.5 * p.weapon as f64) * (1.0 - 0.7 * p.injury as f64) * vigour * sick
+        (base + 1.0 + self.item_power(id)) * (1.0 - 0.7 * p.injury as f64) * vigour * sick
     }
 
     /// โอกาสข้ามขั้นตอนนี้ — ภาพการข้ามกำแพงพลังงาน (physics.barrier_odds)
@@ -61,7 +61,8 @@ impl Engine {
             self.cfg.break_z_scarce * ratio.ln(),
             (p.root as f64 - 0.5) * 1.5,
             data::k("BREAK_Z_SPIRIT") * self.path_shares(id).1,
-            0.72 * p.pills.min(3) as f64,   // ยาวิเศษกดกำแพงลง (ใช้ได้ไม่เกินสามเม็ดต่อครั้ง)
+            data::k("BREAK_Z_PILL") * self.pill_count(id).min(3) as f64, // ยาวิเศษกดกำแพงลง (ใช้ได้ไม่เกินสามเม็ดต่อครั้ง)
+            data::k("BREAK_Z_PER_P") * self.cultivation_aid(id).2,
         ];
         physics::barrier_odds(gap, Some(shifts), self.cfg.break_base_p, self.cfg.break_softness)
     }
@@ -101,7 +102,7 @@ impl Engine {
 
     pub fn cultivate(&mut self, id: Pid) -> i64 {
         let gap = self.range(60, 300);
-        let gain = self.insight_gain(id, gap as f64) * (0.3 + 0.7 * self.people[id as usize].eff(HUMAN) + 0.5 * self.people[id as usize].eff(SPIRIT));
+        let gain = self.insight_gain(id, gap as f64) * self.cultivation_aid(id).1 * (0.3 + 0.7 * self.people[id as usize].eff(HUMAN) + 0.5 * self.people[id as usize].eff(SPIRIT));
         let p = &mut self.people[id as usize];
         p.insight += gain;
         p.refine = (p.refine + 0.10 * (gap as f64 / 365.0).min(4.0) * p.eff(SPIRIT)).min(1.0);
@@ -154,7 +155,7 @@ impl Engine {
         let cost = self.cfg.break_cost * ((realm % self.cfg.realm_band) as f64 + 1.0).powi(2);
         let odds = self.break_odds(id);
         let got = self.draw_qi(id, cost);
-        let used = self.people[id as usize].pills.min(3);
+
         let name = self.people[id as usize].name.clone();
         if got < 0.999 {
             // ฟ้าไม่มีให้ — ปราณที่ดูดมาแล้วไม่สูญ แต่ข้ามไม่ได้
@@ -162,7 +163,9 @@ impl Engine {
             self.emit("ข้ามขั้น", Some(id), None, "ปราณไม่พอ", format!("{}พร้อมข้ามขั้นแต่ปราณฟ้าดินใน{}เหลือไม่พอ", name, wname));
             return self.range(120, 400);
         }
-        self.people[id as usize].pills -= used;
+        if self.pill_count(id) > 0 {
+            self.eat_pills(id, 3);
+        }
         let trial = if self.chance(odds) { self.inner_trial(id) } else { "ด่านพลัง" };
         if trial == "พ่าย" {
             // พ่ายด่านจิตมาร — เลือดมารพุ่ง บาดเจ็บ สะสมเสียไปครึ่ง

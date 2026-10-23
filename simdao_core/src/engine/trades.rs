@@ -34,12 +34,19 @@ impl Engine {
                 menu.push((Act::Heal(pat), 12.0 + if herb >= 1.0 { 6.0 } else { 0.0 }));
             }
         }
-        // ปรุงยาวิเศษ — ต้องเป็นผู้บำเพ็ญที่รู้จักปราณ หรือนักปรุงโอสถ
-        if (p.cultivator && p.realm >= 2 || self.profession_is(id, &["นักปรุงโอสถ"])) && herb >= 3.0 && core >= 1.0 {
-            menu.push((Act::Brew, 6.0));
+        // หลอมยา/อาวุธ — ต้องมีเตาที่สถานที่นี้ แก่นพลังและวัตถุดิบ
+        let furnace = data::world().places[p.place as usize].forge >= 0;
+        if furnace && core >= 2.0 {
+            if (p.cultivator && p.realm >= 2 || self.profession_is(id, &["นักปรุงโอสถ", "หมอยา"]) || p.alch_rank >= 0) && herb >= 3.0 {
+                menu.push((Act::Brew, 6.0 + 4.0 * p.alch_rank.max(0) as f64));
+            }
+            if (self.profession_is(id, &SMITHS) || p.forge_rank >= 0) && ore >= 3.0 {
+                menu.push((Act::Forge, 8.0 + 4.0 * p.forge_rank.max(0) as f64));
+            }
         }
-        if self.profession_is(id, &SMITHS) && ore >= 4.0 {
-            menu.push((Act::Forge, 10.0));
+        // ของที่หลอมไว้ขายต่อ
+        if p.items.iter().filter(|i| self.items.get(i).map_or(false, |it| it.maker == Some(id) && !it.legend)).count() >= 2 {
+            menu.push((Act::SellCrafts, 6.0));
         }
     }
 
@@ -68,53 +75,5 @@ impl Engine {
         *self.people[patient as usize].bonds.entry(id).or_insert(0) += 1;
         self.ledger.count("รักษาคน");
         self.range(5, 20)
-    }
-
-    pub fn brew(&mut self, id: Pid) -> i64 {
-        let p = &mut self.people[id as usize];
-        p.mats[Material::Herb as usize] -= 3.0;
-        p.mats[Material::Core as usize] -= 1.0;
-        // ฝีมือขึ้นกับขั้น — ผู้ฝึกตนขั้นสูงหลอมยาเสียน้อยกว่า
-        let ok = 0.35 + 0.05 * (p.realm % 10) as f64;
-        let name = p.name.clone();
-        if self.chance(ok) {
-            self.people[id as usize].pills += 1;
-            self.emit("ปรุงยา", Some(id), None, "สำเร็จ", format!("{}ปรุงยาวิเศษได้หนึ่งเม็ด", name));
-        } else {
-            self.ledger.count("ปรุงยาล้มเหลว");
-        }
-        self.range(30, 120)
-    }
-
-    pub fn forge(&mut self, id: Pid) -> i64 {
-        let p = &mut self.people[id as usize];
-        p.mats[Material::Ore as usize] -= 4.0;
-        let grade = (0.5 + self.rng.next_f64()) as f32;
-        let name = self.people[id as usize].name.clone();
-        // ขายให้ผู้บำเพ็ญที่อยู่ใกล้และอาวุธแย่กว่า — ราคาตามคุณภาพ
-        let place = self.people[id as usize].place;
-        let buyer = self
-            .present_at(place)
-            .into_iter()
-            .filter(|&b| b != id && self.people[b as usize].cultivator && self.people[b as usize].weapon < grade)
-            .max_by(|&a, &b| self.people[a as usize].gold.partial_cmp(&self.people[b as usize].gold).unwrap().then(b.cmp(&a)));
-        let price = 20.0 * grade as f64;
-        match buyer {
-            Some(b) if self.people[b as usize].gold >= price => {
-                self.people[b as usize].gold -= price;
-                self.people[b as usize].weapon = grade;
-                self.people[id as usize].gold += price;
-                let bn = self.people[b as usize].name.clone();
-                self.emit("ตีอาวุธ", Some(id), Some(b), "ขาย", format!("{}ตีกระบี่ขายให้{} ราคา {:.0} ตำลึง", name, bn, price));
-            }
-            _ => {
-                // ไม่มีคนซื้อ — เก็บไว้ใช้เองถ้าดีกว่าของเดิม
-                let p = &mut self.people[id as usize];
-                if p.weapon < grade {
-                    p.weapon = grade;
-                }
-            }
-        }
-        self.range(20, 80)
     }
 }

@@ -3,6 +3,7 @@
 //! ลำดับต่อรอบ: แก่/ฟื้นตัว → อาหาร → ทอง → ธรรมชาติ → ปราณฟ้า → ครรภ์/คลอด → ข่าว → สำนัก
 //! บัญชีอาหารและทองปิดได้เสมอ (ดู ledger_* ด้านล่าง และเทสต์ในไฟล์นี้)
 
+use super::data;
 use super::geo;
 use super::model::*;
 use super::sim::Engine;
@@ -23,6 +24,14 @@ impl Engine {
         self.tick_sects();
         self.tick_realms(days);
         self.tick_temptation(days);
+        for w in 0..self.worlds.len() {
+            if matches!(self.worlds[w].kind, WorldKind::Main | WorldKind::Sister) && self.chance(data::k("AUCTION_EVENT_P") * days / 30.0 * 4.0) {
+                self.market_auction(w as u16);
+            }
+        }
+        if self.day.rem_euclid(3650) < self.cfg.world_tick_days as i64 {
+            self.reseal_lost_legends();
+        }
         let horizon = self.day - 5 * 365;
         for w in self.worlds.iter_mut() {
             w.blood_marks.retain(|&d| d >= horizon);
@@ -77,8 +86,13 @@ impl Engine {
             // ความเสื่อมของผู้บำเพ็ญ: ยิ่งขั้นสูงยิ่งกัดกร่อน (ต้องบำเพ็ญชดเชย)
             if p.cultivator {
                 let tier_realm = (p.realm % band) as f64;
-                p.decay += self.cfg.decay_per_year * (1.0 + self.cfg.decay_per_realm_mult * tier_realm) * days / 365.0;
+                let add = self.cfg.decay_per_year * (1.0 + self.cfg.decay_per_realm_mult * tier_realm) * days / 365.0;
+                let (aid, _, _) = self.cultivation_aid(id);
+                let (body, spirit) = self.path_shares(id);
+                let path = 1.0 - data::k("PATH_BODY_DECAY") * body + data::k("PATH_SPIRIT_FRAIL") * spirit;
+                self.people[id as usize].decay += add * aid * path;
             }
+            let p = &mut self.people[id as usize];
             p.last_day = day;
             // ความแค้นและความผูกพันจางลงตามเวลา (ทอยปัดเศษแบบสุ่มให้ค่าเฉลี่ยตรงกับครึ่งชีวิต)
             let fade = 1.0 - 0.5f64.powf(days / 365.0 / self.cfg.grudge_half_life_years);
@@ -158,7 +172,7 @@ impl Engine {
     // ------------------------------------------------------------------ อาหาร
     pub fn eats(&self, id: Pid) -> bool {
         let p = &self.people[id as usize];
-        p.alive && p.sentient && !p.is_chaos() && p.realm < self.cfg.bigu_realm && !p.dissolved()
+        p.alive && p.sentient && !p.is_chaos() && p.realm < self.cfg.bigu_realm && !p.dissolved() && !matches!(p.process, Some(Process::Hidden { .. }))
     }
 
     pub fn ration(&self, id: Pid) -> f64 {
@@ -456,7 +470,9 @@ impl Engine {
         let people: f64 = self.alive.iter().map(|&i| self.people[i as usize].gold).sum();
         let places: f64 = self.places.iter().map(|p| p.till + p.treasury).sum();
         let sects: f64 = self.sects.iter().map(|s| s.treasury).sum();
-        people + places + sects
+        let caches: f64 = self.caches.iter().map(|c| c.gold).sum();
+        let ruins: f64 = self.ruin_gold.iter().sum();
+        people + places + sects + caches + ruins
     }
 
     pub fn total_food(&self) -> f64 {

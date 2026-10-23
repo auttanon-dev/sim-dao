@@ -286,9 +286,3 @@ impl Engine {
     }
 }
 
-impl Engine {
-    /// ถือตราประทับสุญตาสยบโกลาหลอยู่ไหม (ระบบของวิเศษเติมภายหลัง)
-    pub fn holds_anti_chaos_treasure(&self, _id: Pid) -> bool {
-        false
-    }
-}

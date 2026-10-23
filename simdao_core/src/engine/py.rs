@@ -53,8 +53,14 @@ fn person_json(e: &Engine, p: &Person, full: bool) -> Value {
         o.insert("rivals".into(), json!(p.rivals));
         o.insert("kills".into(), json!(p.kills));
         o.insert("sick".into(), json!(p.sick(e.day)));
-        o.insert("pills".into(), json!(p.pills));
-        o.insert("weapon".into(), json!(p.weapon));
+        o.insert("items".into(), json!(p.items.iter().filter_map(|i| e.items.get(i)).map(|it| json!({"name": it.name, "kind": it.kind, "grade": it.grade, "legend": it.legend})).collect::<Vec<_>>()));
+        o.insert("skills".into(), json!(p.skills.iter().zip(p.mastery.iter()).map(|(&s, &m)| json!({"name": super::skills::skills()[s as usize].name, "mastery": m})).collect::<Vec<_>>()));
+        o.insert("race".into(), json!(e.race(p.id)));
+        o.insert("title".into(), json!(e.title(p.id)));
+        o.insert("path".into(), json!(e.path_name(p.id)));
+        o.insert("element".into(), json!(super::skills::ELEMENTS[p.element as usize]));
+        o.insert("inner".into(), json!(p.inner));
+        o.insert("fate".into(), json!(p.fate));
         o.insert("crimes".into(), json!(p.crimes));
         o.insert("breaks".into(), json!(p.breaks));
         o.insert("fails".into(), json!(p.fails));
@@ -64,6 +70,7 @@ fn person_json(e: &Engine, p: &Person, full: bool) -> Value {
             Some(Process::Seclusion { since, until }) => json!({"kind": "seclusion", "since": since, "until": until}),
             Some(Process::Jail { until }) => json!({"kind": "jail", "until": until}),
             Some(Process::Dissolved) => json!({"kind": "dissolved"}),
+            Some(Process::Hidden { since, until, .. }) => json!({"kind": "hidden", "since": since, "until": until}),
             None => Value::Null,
         }));
         o.insert("death_day".into(), json!(if p.alive { Value::Null } else { json!(p.death_day) }));

@@ -61,6 +61,8 @@ pub enum Process {
     Jail { until: i64 },
     /// เจ้าโกลาหลสลายเป็นความโกลาหล รอก่อร่างใหม่จากพลังความตายทั่วจักรวาล
     Dissolved,
+    /// ซ่อนตัวในแดนลับของตัวเอง (trap = แกล้งตายวางกับดัก)
+    Hidden { since: i64, until: i64, trap: bool },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -123,8 +125,13 @@ pub struct Person {
     // ---- โรค ของทำมือ กฎหมาย
     pub sick_until: i64,        // ป่วยอยู่ถึงวันไหน (0 = ไม่ป่วย)
     pub immune_until: i64,      // มีภูมิคุ้มกันถึงวันไหน
-    pub pills: u16,             // ยาวิเศษช่วยข้ามขั้น
-    pub weapon: f32,            // คุณภาพอาวุธที่ถือ (0 = มือเปล่า)
+    pub items: Vec<u32>,        // ของในย่าม (ดัชนีใน Engine.items)
+    pub alchemy: f32,           // ประสบการณ์ปรุงยา / ตีอาวุธ
+    pub forge: f32,
+    pub alch_rank: i8,          // -1 = ยังไม่เข้าสาย
+    pub forge_rank: i8,
+    pub fragments: std::collections::BTreeMap<u16, Vec<u8>>, // เศษวิชาที่เก็บได้
+    pub leads: Vec<u32>,        // ร่องรอยที่ชี้ไปแดนลับ (cache id)
     pub crimes: u16,            // ความผิดที่ยังไม่ได้ชดใช้
     // ---- สายเลือดและจิต
     pub blood: [f32; 5],

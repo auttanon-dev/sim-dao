@@ -41,6 +41,11 @@ pub enum Act {
     Betray(Pid),
     Settle(Pid),
     HeavenWar,
+    SellCrafts,
+    Hunt,
+    Search,
+    Hide,
+    Seize(Pid),
 }
 
 impl Engine {
@@ -49,6 +54,14 @@ impl Engine {
         match self.people[id as usize].process.clone() {
             Some(Process::Dissolved) => {
                 self.lord_turn(id);
+                return;
+            }
+            Some(Process::Hidden { since, until, .. }) => {
+                if self.day < until {
+                    self.schedule(id, until - self.day);
+                } else {
+                    self.emerge_hidden(id, since);
+                }
                 return;
             }
             Some(Process::Travel { dest, arrive, .. }) => {
@@ -273,6 +286,22 @@ impl Engine {
             }
         }
         self.trade_options(id, &others, &mut menu);
+        // ล่าอสูร ค้นแดนลับ ซ่อนตัว ชิงสมบัติ
+        let cores_here = self.places[p.place as usize].stock[Material::Core as usize];
+        if p.cultivator && cores_here > 5.0 {
+            menu.push((Act::Hunt, 4.0 + 6.0 * (cores_here / self.cfg.eco_cap).min(1.0)));
+        }
+        if p.cultivator || p.fate > 1 {
+            menu.push((Act::Search, 2.5 + 6.0 * p.leads.len() as f64 + if d.places[p.place as usize].kind == "แดนลับ" { 4.0 } else { 0.0 }));
+        }
+        if p.cultivator && (p.realm % self.cfg.realm_band) as f64 >= data::k("CACHE_MIN_REALM") && age > 0.6 * self.lifespan_of(id) {
+            menu.push((Act::Hide, 0.6));
+        }
+        if p.greed > 0.6 {
+            if let Some(&t) = others.iter().find(|&&o| self.people[o as usize].items.iter().any(|i| self.items.get(i).map_or(false, |it| it.legend || it.grade >= 2.0))) {
+                menu.push((Act::Seize(t), 1.5 * p.greed as f64));
+            }
+        }
         if self.profession_is(id, &super::trades::GUARDS) {
             if let Some(&crook) = others.iter().filter(|&&o| self.people[o as usize].crimes > 0).max_by_key(|&&o| (self.people[o as usize].crimes, std::cmp::Reverse(o))) {
                 menu.push((Act::Arrest(crook), 8.0 + 4.0 * self.people[crook as usize].crimes as f64));
@@ -329,8 +358,13 @@ impl Engine {
             Act::FoundSect => self.found_sect(id),
             Act::Teach(t) => self.teach(id, t),
             Act::Heal(t) => self.heal(id, t),
-            Act::Brew => self.brew(id),
-            Act::Forge => self.forge(id),
+            Act::Brew => self.craft(id, true),
+            Act::Forge => self.craft(id, false),
+            Act::SellCrafts => self.sell_crafts(id),
+            Act::Hunt => self.hunt(id),
+            Act::Search => self.search_secret(id),
+            Act::Hide => self.hide(id),
+            Act::Seize(t) => self.seize_treasure(id, t),
             Act::Arrest(t) => self.arrest(id, t, None),
             Act::Train => self.train(id),
             Act::RefineBlood => self.refine_blood(id),
@@ -520,7 +554,7 @@ impl Engine {
             // ของที่ขายกลับเข้าสู่การใช้งานของชุมชน (ยา เครื่องมือ) — ไม่กลับเข้าธรรมชาติ
             earned += value;
         }
-        if earned > 20.0 {
+        if earned > 150.0 {
             let n = self.people[id as usize].name.clone();
             self.emit("ค้าขาย", Some(id), None, "ขายของ", format!("{}ขายวัตถุดิบได้ {:.0} ตำลึง", n, earned));
         }
