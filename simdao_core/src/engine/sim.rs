@@ -17,7 +17,7 @@ use std::collections::{BTreeSet, BinaryHeap, HashSet, VecDeque};
 pub const PLANET_SPAN: f64 = 1000.0;
 pub const PLANET_SCALE: f64 = 12.0;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Engine {
     pub cfg: Config,
     pub seed: u64,
@@ -58,6 +58,9 @@ pub struct Engine {
     pub legends: Vec<u32>,
     pub fragments: Vec<super::items::Fragment>,
     pub ruin_gold: Vec<f64>,
+    /// สำเนาที่ใช้มองอนาคต — ไม่มอบระบบ ไม่จำลองซ้อน
+    #[serde(skip)]
+    pub fork: bool,
     /// ค่าปราณธรรมชาติของแต่ละสถานที่ 0..1 (คิดจากผิวดาวครั้งเดียว)
     #[serde(skip)]
     pub qi: Vec<f64>,
@@ -106,6 +109,7 @@ impl Engine {
             legends: Vec::new(),
             fragments: Vec::new(),
             ruin_gold: Vec::new(),
+            fork: false,
             qi: Vec::new(),
             at: vec![Default::default(); d.places.len()],
         };
@@ -262,6 +266,7 @@ impl Engine {
         }
         self.spawn_chaos_race();
         self.seed_treasures();
+        self.grant_foresight();
         // ทุนตั้งต้น — การออกเงินและอาหารที่ประกาศไว้ในบัญชี
         let ids: Vec<Pid> = self.alive.iter().copied().collect();
         for id in ids {

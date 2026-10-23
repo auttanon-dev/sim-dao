@@ -32,6 +32,11 @@ impl Engine {
         if self.day.rem_euclid(3650) < self.cfg.world_tick_days as i64 {
             self.reseal_lost_legends();
         }
+        if self.day.rem_euclid(365) < self.cfg.world_tick_days as i64 {
+            self.check_fate();
+            self.grant_foresight();
+            self.prune_departed();
+        }
         let horizon = self.day - 5 * 365;
         for w in self.worlds.iter_mut() {
             w.blood_marks.retain(|&d| d >= horizon);
@@ -555,6 +560,29 @@ impl Engine {
                     self.try_conceive(id, s, days);
                 }
             }
+        }
+    }
+
+    /// ผู้ที่ตายเกิน 30 ปีและไม่มีลูกเล็กเหลือ ย่อเหลือแค่ประวัติ (เซฟไม่โตไม่จำกัด)
+    fn prune_departed(&mut self) {
+        let cutoff = self.day - data::k("PRUNE_DEAD_YEARS") as i64 * 365;
+        for i in 0..self.people.len() {
+            let p = &self.people[i];
+            if p.alive || p.death_day > cutoff || (p.skills.is_empty() && p.bonds.is_empty() && p.debts.is_empty()) {
+                continue;
+            }
+            if p.children.iter().any(|&c| self.people[c as usize].alive && self.people[c as usize].age(self.day) < 14.0) {
+                continue;
+            }
+            let p = &mut self.people[i];
+            p.bonds.clear();
+            p.rivals.clear();
+            p.debts.clear();
+            p.leads.clear();
+            p.fragments.clear();
+            p.foreseen.clear();
+            p.visions.clear();
+            p.skills.shrink_to_fit();
         }
     }
 

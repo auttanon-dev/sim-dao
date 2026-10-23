@@ -291,6 +291,21 @@ impl Engine {
             skills: Vec::new(),
             mastery: Vec::new(),
             element,
+            puppets: 0,
+            puppet_kind: String::new(),
+            cycle_born: false,
+            rebirth_count: 0,
+            past_life: None,
+            past_realm: 0,
+            past_skills: Vec::new(),
+            past_dao: 0,
+            memory_woken: false,
+            foresight: false,
+            foresight_ready: 0,
+            foreseen: Default::default(),
+            visions: Vec::new(),
+            fate_changed: 0,
+            fate_kept: 0,
             last_day: self.day,
             next_turn: 0,
             fieldwork: false,
@@ -434,6 +449,12 @@ impl Engine {
         }
         // ข่าวการตายเดินทางไปหาคนที่ผูกพัน
         self.send_death_news(id, killer);
+        if let Some(k) = killer {
+            self.raise_corpse(k, id);
+        }
+        if self.knows_cycle(id) && !self.fork {
+            self.reincarnate(id);
+        }
         let name = self.people[id as usize].name.clone();
         let age = self.people[id as usize].age(day);
         let text = match killer {

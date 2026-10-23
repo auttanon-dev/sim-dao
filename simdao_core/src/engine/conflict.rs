@@ -18,6 +18,7 @@ impl Engine {
         let p_a = physics::logistic((pa - pb) / (0.25 * (pa + pb) + 1.0) * 3.0);
         let a_wins = self.chance(p_a);
         let (w, l, pw, pl) = if a_wins { (a, b, pa, pb) } else { (b, a, pb, pa) };
+        self.puppets_break(l);
         (w, l, pw / pl)
     }
 

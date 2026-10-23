@@ -46,6 +46,8 @@ pub enum Act {
     Search,
     Hide,
     Seize(Pid),
+    CraftArray,
+    Foresee,
 }
 
 impl Engine {
@@ -286,6 +288,13 @@ impl Engine {
             }
         }
         self.trade_options(id, &others, &mut menu);
+        // หลอมค่ายกล/หุ่นกล · จำลองอนาคต
+        if self.line_grade(id, "หุ่นกล") >= 0 || self.line_grade(id, "ค่ายกล") >= 0 {
+            menu.push((Act::CraftArray, 4.0));
+        }
+        if p.foresight && !self.fork && self.day >= p.foresight_ready {
+            menu.push((Act::Foresee, data::k("FORESIGHT_W")));
+        }
         // ล่าอสูร ค้นแดนลับ ซ่อนตัว ชิงสมบัติ
         let cores_here = self.places[p.place as usize].stock[Material::Core as usize];
         if p.cultivator && cores_here > 5.0 {
@@ -365,6 +374,8 @@ impl Engine {
             Act::Search => self.search_secret(id),
             Act::Hide => self.hide(id),
             Act::Seize(t) => self.seize_treasure(id, t),
+            Act::CraftArray => self.craft_array(id),
+            Act::Foresee => self.foresee(id),
             Act::Arrest(t) => self.arrest(id, t, None),
             Act::Train => self.train(id),
             Act::RefineBlood => self.refine_blood(id),

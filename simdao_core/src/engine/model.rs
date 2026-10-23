@@ -156,6 +156,22 @@ pub struct Person {
     pub skills: Vec<u16>,       // ดัชนีใน skills::skills()
     pub mastery: Vec<u16>,      // จำนวนครั้งที่ฝึก (คู่กับ skills)
     pub element: u8,            // ธาตุประจำตัว 0..5 (ไม้ ไฟ ดิน ทอง น้ำ)
+    // ---- หุ่นเชิด วัฏจักร นิมิต
+    pub puppets: u8,
+    pub puppet_kind: String,
+    pub cycle_born: bool,
+    pub rebirth_count: u8,
+    pub past_life: Option<Pid>,
+    pub past_realm: u8,
+    pub past_skills: Vec<u16>,
+    pub past_dao: u8,
+    pub memory_woken: bool,
+    pub foresight: bool,        // เจ้าของระบบจำลองอนาคต (มีคนเดียวในโลก)
+    pub foresight_ready: i64,
+    pub foreseen: std::collections::BTreeMap<Pid, i64>,
+    pub visions: Vec<Vec<String>>,
+    pub fate_changed: u16,
+    pub fate_kept: u16,
     pub last_day: i64,          // วันที่คิดอายุ/ความเสื่อม/บาดแผลไปแล้ว
     pub next_turn: i64,         // เทิร์นถัดไปที่นัดไว้ — รายการในคิวที่ไม่ตรงนี้คือนัดเก่าที่ถูกเลื่อนแล้ว
     pub fieldwork: bool,        // ลงไร่ช่วงข้าวขาด

@@ -38,6 +38,7 @@ impl Engine {
                 base += data::k("CHAOS_LORD_BONUS") + p.lord_returns as f64 * data::k("LORD_GROWTH");
             }
         }
+        base += p.puppets as f64 * data::k("PUPPET_POWER_EACH");
         base *= 1.0 + self.bloodline_buff(id);
         // ร่างกายที่บาดเจ็บสู้ได้ไม่เต็มที่ · คนธรรมดาก็มีแรง (อายุและเพศมีผลเล็กน้อย)
         let age = p.age(self.day);
@@ -195,6 +196,7 @@ impl Engine {
                 self.people[id as usize].inner += 0.5;
             }
             self.check_apex(id);
+            self.maybe_wake_past(id);
         } else {
             let p = &mut self.people[id as usize];
             p.insight -= need * self.cfg.break_fail_spend;
