@@ -78,7 +78,7 @@ def test_physics_covers_everything():
 
 
 def rust_field(seed):
-    pf = PN.Field(seed)
+    pf = PN._PyField(seed)
     return pf, core.Field.from_perm(list(pf.perm[:256]), seed)
 
 
@@ -95,7 +95,7 @@ def test_field_parity(seed):
 
 @pytest.mark.parametrize("seed", [0, 99])
 def test_planet_parity(seed):
-    pp = PN.Planet(seed)
+    pp = PN._PyPlanet(seed)
     _, rf = rust_field(seed)
     rp = core.Planet.from_field(rf)
     for _ in range(200):

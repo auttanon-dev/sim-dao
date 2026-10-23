@@ -314,3 +314,81 @@ def sphere_dir(x: float, y: float, span: float):
     ux, uy, uz = x / s, y / s, 1.0
     n = math.sqrt(ux * ux + uy * uy + uz * uz)
     return ux / n, uy / n, uz / n
+
+
+# ---------------------------------------------------------------- Rust core
+# ถ้า build simdao_core แล้ว Field/Planet คำนวณด้วย Rust แต่ตารางสับเปลี่ยนยังมาจาก random.Random
+# แบบเดิมทุกตัว (Field.from_perm) — แผนที่ทุกใบจึงเท่าเดิมทุกค่า (test_simdao_core_parity.py)
+# ตัวคลาสยังเป็น Python ชื่อเดิม เซฟเก่าโหลดได้ และวัตถุ Rust ไม่เข้าเซฟ (สร้างใหม่เมื่อใช้ครั้งแรก)
+_PyField, _PyPlanet = Field, Planet
+
+try:
+    import simdao_core as _core
+except ImportError:
+    _core = None
+
+
+def _state_without_rust(obj):
+    slots = {}
+    for cls in type(obj).__mro__:
+        for name in getattr(cls, "__slots__", ()):
+            if name != "_rs" and hasattr(obj, name):
+                slots[name] = getattr(obj, name)
+    return None, slots
+
+
+if _core is not None:
+    class Field(_PyField):
+        __slots__ = ("_rs",)
+
+        def _rust(self):
+            rs = getattr(self, "_rs", None)
+            if rs is None:
+                rs = self._rs = _core.Field.from_perm(list(self.perm[:TABLE]), self.seed)
+            return rs
+
+        __getstate__ = _state_without_rust
+
+        def noise(self, x, y):
+            return self._rust().noise(x, y)
+
+        def fbm(self, x, y, octaves=4, lacunarity=2.0, gain=0.5, scale=1.0):
+            return self._rust().fbm(x, y, int(octaves), lacunarity, gain, scale)
+
+        def ridged(self, x, y, octaves=4, scale=1.0):
+            return self._rust().ridged(x, y, int(octaves), scale)
+
+        def slope(self, x, y, step=0.5, **kw):
+            return self._rust().slope(x, y, step, **kw)
+
+    class Planet(_PyPlanet):
+        __slots__ = ("_rs",)
+
+        def _rust(self):
+            rs = getattr(self, "_rs", None)
+            if rs is None:
+                f = self.field
+                rf = f._rust() if isinstance(f, Field) else _core.Field.from_perm(list(f.perm[:TABLE]), f.seed)
+                rs = self._rs = _core.Planet.from_field(rf, self.radius, self.amp, self.lam,
+                                                        self.octaves, self.warp_octaves)
+            return rs
+
+        __getstate__ = _state_without_rust
+
+        def noise3(self, x, y, z):
+            return self._rust().noise3(x, y, z)
+
+        def fbm3(self, x, y, z, octaves=None, scale=1.0, gain=0.5, lacunarity=2.0):
+            return self._rust().fbm3(x, y, z, None if octaves is None else int(octaves), scale, gain, lacunarity)
+
+        def warp(self, qx, qy, qz):
+            return self._rust().warp(qx, qy, qz)
+
+        def height(self, px, py, pz, scale=1.0):
+            return self._rust().height(px, py, pz, scale)
+
+        def surface_radius(self, px, py, pz, scale=1.0):
+            return self._rust().surface_radius(px, py, pz, scale)
+
+        def sdf(self, px, py, pz, scale=1.0):
+            return self._rust().sdf(px, py, pz, scale)
